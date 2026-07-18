@@ -9,6 +9,7 @@ import mne
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, sosfiltfilt
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
@@ -21,6 +22,7 @@ from bigp3_als.edf import REQUIRED_EVENT_CHANNELS, SHARED_EEG_CHANNELS, parse_so
 EPOCH_START_SECONDS = -0.2
 EPOCH_END_SECONDS = 0.8
 P300_WINDOW_SECONDS = (0.25, 0.5)
+POSTERIOR_CHANNELS = ("EEG_P3", "EEG_Pz", "EEG_P4", "EEG_PO7", "EEG_PO8", "EEG_Oz")
 ARTIFACT_THRESHOLD_UV = 150.0
 MIN_TARGET_EPOCHS = 10
 MIN_NONTARGET_EPOCHS = 40
@@ -47,10 +49,16 @@ def select_calibration_events(
     return samples[valid], event_labels[valid]
 
 
-def calibration_discriminability(
-    epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray
-) -> float:
-    """Estimate inner grouped-CV target discrimination AUC from calibration epochs only."""
+def _downsampled_epoch_features(epochs: np.ndarray) -> np.ndarray:
+    """Return a fixed, compact epoch representation for calibration classifiers."""
+    downsample_step = max(1, epochs.shape[-1] // 20)
+    return epochs[:, :, ::downsample_step].reshape(len(epochs), -1)
+
+
+def _grouped_cv_predictions(
+    epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray, classifier: str
+) -> np.ndarray:
+    """Return grouped out-of-fold calibration probabilities for one classifier."""
     labels = np.asarray(labels, dtype=int)
     groups = np.asarray(groups)
     if epochs.ndim != 3 or len(epochs) != len(labels) or len(labels) != len(groups):
@@ -61,20 +69,50 @@ def calibration_discriminability(
     if len(unique_groups) < 2:
         raise ValueError("at least two calibration files are required for grouped validation")
     n_splits = min(5, len(unique_groups))
-    downsample_step = max(1, epochs.shape[-1] // 20)
-    features = epochs[:, :, ::downsample_step].reshape(len(epochs), -1)
+    features = _downsampled_epoch_features(epochs)
     splitter = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=20260718)
     predictions = np.full(len(labels), np.nan)
     for train_indices, test_indices in splitter.split(features, labels, groups):
-        model = make_pipeline(
-            StandardScaler(),
-            LogisticRegression(C=1.0, class_weight="balanced", max_iter=1000, random_state=20260718),
-        )
+        if classifier == "logistic":
+            model = make_pipeline(
+                StandardScaler(),
+                LogisticRegression(
+                    C=1.0, class_weight="balanced", max_iter=1000, random_state=20260718
+                ),
+            )
+        elif classifier == "shrinkage_lda":
+            model = make_pipeline(
+                StandardScaler(), LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto")
+            )
+        else:
+            raise ValueError(f"unknown calibration classifier: {classifier}")
         model.fit(features[train_indices], labels[train_indices])
         predictions[test_indices] = model.predict_proba(features[test_indices])[:, 1]
     if np.isnan(predictions).any():
         raise ValueError("grouped cross-validation did not predict every calibration epoch")
-    return float(roc_auc_score(labels, predictions))
+    return predictions
+
+
+def calibration_discriminability(
+    epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray
+) -> float:
+    """Estimate inner grouped-CV target discrimination AUC from calibration epochs only."""
+    return float(roc_auc_score(labels, _grouped_cv_predictions(epochs, labels, groups, "logistic")))
+
+
+def calibration_classification_accuracy(
+    epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray
+) -> float:
+    """Estimate grouped-CV calibration classification accuracy at a prespecified 0.5 threshold."""
+    predictions = _grouped_cv_predictions(epochs, labels, groups, "logistic")
+    return float(np.mean((predictions >= 0.5) == np.asarray(labels, dtype=int)))
+
+
+def shrinkage_lda_discriminability(
+    epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray
+) -> float:
+    """Estimate grouped-CV AUC of a conventional regularized LDA comparator."""
+    return float(roc_auc_score(labels, _grouped_cv_predictions(epochs, labels, groups, "shrinkage_lda")))
 
 
 def _bandpass(data: np.ndarray, sampling_frequency: float) -> np.ndarray:
@@ -82,7 +120,7 @@ def _bandpass(data: np.ndarray, sampling_frequency: float) -> np.ndarray:
     return sosfiltfilt(sos, data, axis=-1)
 
 
-def _extract_file_epochs(edf_path: Path) -> tuple[np.ndarray, np.ndarray, float]:
+def _extract_file_epochs(edf_path: Path) -> tuple[np.ndarray, np.ndarray, float, int]:
     raw = mne.io.read_raw_edf(edf_path, preload=False, verbose="ERROR")
     required = set(SHARED_EEG_CHANNELS) | {"StimulusBegin", "StimulusType", "PhaseInSequence"}
     missing = sorted(required - set(raw.ch_names))
@@ -100,8 +138,9 @@ def _extract_file_epochs(edf_path: Path) -> tuple[np.ndarray, np.ndarray, float]
     samples, labels = samples[valid], labels[valid]
     epochs = np.stack([eeg[:, sample - pre_samples : sample + post_samples] for sample in samples])
     epochs = epochs - epochs[:, :, :pre_samples].mean(axis=2, keepdims=True)
+    n_pre_artifact = int(len(labels))
     artifact_free = np.max(np.abs(epochs), axis=(1, 2)) * 1e6 <= ARTIFACT_THRESHOLD_UV
-    return epochs[artifact_free], labels[artifact_free], sampling_frequency
+    return epochs[artifact_free], labels[artifact_free], sampling_frequency, n_pre_artifact
 
 
 def _session_feature_row(session_paths: list[Path], cache_path: Path) -> dict[str, object]:
@@ -110,8 +149,9 @@ def _session_feature_row(session_paths: list[Path], cache_path: Path) -> dict[st
     labels_list: list[np.ndarray] = []
     groups_list: list[np.ndarray] = []
     sampling_frequency: float | None = None
+    n_pre_artifact = 0
     for group_index, path in enumerate(session_paths):
-        epochs, labels, file_sampling_frequency = _extract_file_epochs(path)
+        epochs, labels, file_sampling_frequency, file_pre_artifact = _extract_file_epochs(path)
         if sampling_frequency is None:
             sampling_frequency = file_sampling_frequency
         elif not sampling_frequencies_compatible(sampling_frequency, file_sampling_frequency):
@@ -119,6 +159,7 @@ def _session_feature_row(session_paths: list[Path], cache_path: Path) -> dict[st
         epochs_list.append(epochs)
         labels_list.append(labels)
         groups_list.append(np.repeat(group_index, len(labels)))
+        n_pre_artifact += file_pre_artifact
     epochs = np.concatenate(epochs_list)
     labels = np.concatenate(labels_list)
     groups = np.concatenate(groups_list)
@@ -132,14 +173,37 @@ def _session_feature_row(session_paths: list[Path], cache_path: Path) -> dict[st
         "train_file_count": len(session_paths),
         "n_target_epochs": target_count,
         "n_nontarget_epochs": nontarget_count,
+        "n_calibration_epochs": int(len(labels)),
+        "n_calibration_epochs_pre_artifact": n_pre_artifact,
+        "artifact_rejection_fraction": float(1.0 - len(labels) / n_pre_artifact) if n_pre_artifact else np.nan,
         "feature_exclusion_reason": None,
     }
     if target_count < MIN_TARGET_EPOCHS or nontarget_count < MIN_NONTARGET_EPOCHS:
-        return {**base, "calibration_auc": np.nan, "pz_difference_uv": np.nan, "feature_exclusion_reason": "insufficient_epochs"}
+        return {
+            **base,
+            "calibration_auc": np.nan,
+            "calibration_accuracy": np.nan,
+            "shrinkage_lda_auc": np.nan,
+            "pz_difference_uv": np.nan,
+            "posterior_difference_uv": np.nan,
+            "posterior_signed_r2_max": np.nan,
+            "feature_exclusion_reason": "insufficient_epochs",
+        }
     try:
         auc = calibration_discriminability(epochs, labels, groups)
+        accuracy = calibration_classification_accuracy(epochs, labels, groups)
+        lda_auc = shrinkage_lda_discriminability(epochs, labels, groups)
     except ValueError as error:
-        return {**base, "calibration_auc": np.nan, "pz_difference_uv": np.nan, "feature_exclusion_reason": str(error)}
+        return {
+            **base,
+            "calibration_auc": np.nan,
+            "calibration_accuracy": np.nan,
+            "shrinkage_lda_auc": np.nan,
+            "pz_difference_uv": np.nan,
+            "posterior_difference_uv": np.nan,
+            "posterior_signed_r2_max": np.nan,
+            "feature_exclusion_reason": str(error),
+        }
     assert sampling_frequency is not None
     times = np.arange(epochs.shape[-1]) / sampling_frequency + EPOCH_START_SECONDS
     p300_window = (times >= P300_WINDOW_SECONDS[0]) & (times <= P300_WINDOW_SECONDS[1])
@@ -149,7 +213,28 @@ def _session_feature_row(session_paths: list[Path], cache_path: Path) -> dict[st
          - epochs[labels == 0, pz_index, :][:, p300_window].mean())
         * 1e6
     )
-    return {**base, "calibration_auc": auc, "pz_difference_uv": pz_difference_uv}
+    posterior_indices = [SHARED_EEG_CHANNELS.index(channel) for channel in POSTERIOR_CHANNELS]
+    target_window = epochs[labels == 1, :, :][:, posterior_indices, :][:, :, p300_window]
+    nontarget_window = epochs[labels == 0, :, :][:, posterior_indices, :][:, :, p300_window]
+    posterior_difference_uv = float((target_window.mean() - nontarget_window.mean()) * 1e6)
+    target_mean = target_window.mean(axis=0)
+    nontarget_mean = nontarget_window.mean(axis=0)
+    pooled_variance = (
+        target_window.var(axis=0, ddof=1) + nontarget_window.var(axis=0, ddof=1)
+    ) / 2
+    signed_r2 = np.sign(target_mean - nontarget_mean) * (target_mean - nontarget_mean) ** 2 / (
+        pooled_variance + np.finfo(float).eps
+    )
+    posterior_signed_r2_max = float(np.max(signed_r2))
+    return {
+        **base,
+        "calibration_auc": auc,
+        "calibration_accuracy": accuracy,
+        "shrinkage_lda_auc": lda_auc,
+        "pz_difference_uv": pz_difference_uv,
+        "posterior_difference_uv": posterior_difference_uv,
+        "posterior_signed_r2_max": posterior_signed_r2_max,
+    }
 
 
 def build_calibration_features(cache_path: Path) -> pd.DataFrame:

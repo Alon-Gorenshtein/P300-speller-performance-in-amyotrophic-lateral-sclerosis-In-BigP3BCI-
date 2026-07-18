@@ -13,7 +13,10 @@ import zipfile
 
 
 ARCHIVE_SHA256 = "eea294aa34e9ed11e5a25d07e30aeefdf8b2d467a8309e2c38405a289afcd72f"
-CLINICAL_STUDIES = frozenset({"StudyF", "StudyL", "StudyN"})
+# The primary cohort includes every ALS-labelled source study with a compatible
+# calibration and feedback protocol. Numerical ALSFRS-R availability is not an
+# eligibility requirement because severity is an exploratory covariate only.
+CLINICAL_STUDIES = frozenset({"StudyB", "StudyF", "StudyL", "StudyN"})
 
 
 class ProvenanceError(RuntimeError):
@@ -71,8 +74,13 @@ def _find_member(archive: zipfile.ZipFile, suffix: str) -> str:
     return matches[0]
 
 
-def build_manifest(archive_path: Path) -> list[ArchiveMember]:
-    """Select verified F/L/N EDF members from the archive's checksum manifest."""
+def build_manifest(
+    archive_path: Path, studies: frozenset[str] | None = None
+) -> list[ArchiveMember]:
+    """Select verified EDF members from prespecified or explicitly requested ALS studies."""
+    selected_studies = CLINICAL_STUDIES if studies is None else studies
+    if not selected_studies or not selected_studies <= CLINICAL_STUDIES:
+        raise ProvenanceError("requested studies must be a nonempty subset of the ALS source studies")
     with zipfile.ZipFile(archive_path) as archive:
         checksum_member = _find_member(archive, "SHA256SUMS.txt")
         checksums = _parse_sha256sums(archive.read(checksum_member).decode("utf-8"))
@@ -86,7 +94,7 @@ def build_manifest(archive_path: Path) -> list[ArchiveMember]:
                 continue
             relative_path = zip_path[zip_path.index(marker) :]
             components = Path(relative_path).parts
-            if len(components) < 2 or components[1] not in CLINICAL_STUDIES:
+            if len(components) < 2 or components[1] not in selected_studies:
                 continue
             try:
                 expected_sha256 = checksums[relative_path]
@@ -101,7 +109,7 @@ def build_manifest(archive_path: Path) -> list[ArchiveMember]:
                 )
             )
     if not selected:
-        raise ProvenanceError("no eligible StudyF/StudyL/StudyN EDF members selected")
+        raise ProvenanceError("no eligible ALS-study EDF members selected")
     return sorted(selected, key=lambda member: member.relative_path)
 
 
@@ -170,12 +178,13 @@ def write_validation_record(
     output_path: Path,
     archive_path: Path,
     manifest: list[ArchiveMember],
+    archive_sha256: str | None = None,
 ) -> None:
     """Write an auditable JSON record of the pinned archive and selected inputs."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "archive_path": str(archive_path.resolve()),
-        "archive_sha256": sha256_file(archive_path),
+        "archive_sha256": sha256_file(archive_path) if archive_sha256 is None else archive_sha256,
         "expected_archive_sha256": ARCHIVE_SHA256,
         "selected_member_count": len(manifest),
         "members": [asdict(member) for member in manifest],

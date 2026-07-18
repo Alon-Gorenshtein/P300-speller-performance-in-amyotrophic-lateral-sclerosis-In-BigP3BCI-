@@ -3,8 +3,9 @@ __pycache__/
 .pytest_cache/
 *.py[cod]
 
-data/source_cache/
+data/
 output/
+tmp/
 
 # Rendered delivery artifacts are reproducible from tracked manuscript sources.
 manuscript/*.pdf
