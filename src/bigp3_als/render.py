@@ -17,7 +17,7 @@ LANCET_GREY = "#ADB6B6"
 LANCET_SALMON = "#FDAF91"
 LABEL_COLOR = "#2B2B2B"
 MUTED_COLOR = "#6B7280"
-STUDY_COLORS = {"StudyF": LANCET_BLUE, "StudyL": LANCET_SALMON, "StudyN": "#5B8C85"}
+STUDY_COLORS = {"StudyB": "#6A3D9A", "StudyF": LANCET_BLUE, "StudyL": LANCET_SALMON, "StudyN": "#5B8C85"}
 
 plt.rcParams.update(
     {
@@ -58,11 +58,11 @@ def render_study_flow(records: pd.DataFrame, directory: Path) -> None:
     fig, ax = plt.subplots(figsize=(8.6, 3.2))
     ax.set_axis_off()
     text = [
-        "bigP3BCI v1.0.0 clinical archive",
-        "760 verified EDF files from three ALS studies",
-        "57 participant-session calibration records",
-        f"{int(records.study_participant_id.nunique())} study-scoped ALS records; {int(records.n.sum())} eligible online character selections",
-        "Leave-one-study-out external validation",
+        "bigP3BCI v1.0.0: 20 source studies screened",
+        "4 ALS source studies with compatible Train and Test phases",
+        f"{int(records.study_participant_id.nunique())} study-scoped records; {records[['study', 'study_participant_id', 'session_id']].drop_duplicates().shape[0]} participant-sessions",
+        f"{len(records)} session-condition records; {int(records.n.sum())} eligible online selections",
+        "Source-study-held-out probability estimation",
     ]
     y = np.linspace(0.86, 0.14, len(text))
     for index, (line, y_position) in enumerate(zip(text, y, strict=True)):
@@ -88,21 +88,21 @@ def render_calibration_relationship(records: pd.DataFrame, predictions: pd.DataF
     primary["online_accuracy"] = primary["correct"] / primary["n"]
     fig, axes = plt.subplots(1, 2, figsize=(10.0, 4.1), constrained_layout=True)
     for study, frame in observed.groupby("study", sort=True):
-        axes[0].scatter(frame.calibration_auc, frame.online_accuracy, s=34, color=STUDY_COLORS[study],
+        axes[0].scatter(frame.calibration_auc, frame.online_accuracy, s=14 + 4 * np.sqrt(frame.n), color=STUDY_COLORS[study],
                         edgecolors="white", linewidths=0.7, alpha=0.85, label=study)
     axes[0].set_xlabel("Calibration discriminability (cross-validated AUC)")
-    axes[0].set_ylabel("Observed online character accuracy")
+    axes[0].set_ylabel("Observed session-condition accuracy")
     axes[0].set_xlim(0.42, 1.02)
     axes[0].set_ylim(-0.04, 1.04)
     axes[0].grid(color="#F3F4F6", lw=0.6)
-    axes[0].legend(loc="lower center", bbox_to_anchor=(0.5, -0.29), ncol=3, frameon=False, fontsize=9)
+    axes[0].legend(loc="lower center", bbox_to_anchor=(0.5, -0.29), ncol=4, frameon=False, fontsize=9)
     axes[0].text(-0.14, 1.04, "a", transform=axes[0].transAxes, fontsize=14, fontweight="bold", color=LABEL_COLOR)
     for study, frame in primary.groupby("study", sort=True):
-        axes[1].scatter(frame.predicted_probability, frame.online_accuracy, s=34, color=STUDY_COLORS[study],
+        axes[1].scatter(frame.predicted_probability, frame.online_accuracy, s=14 + 4 * np.sqrt(frame.n), color=STUDY_COLORS[study],
                         edgecolors="white", linewidths=0.7, alpha=0.85)
     axes[1].plot([0, 1], [0, 1], ls="--", lw=0.8, color="#9CA3AF", zorder=0)
     axes[1].set_xlabel("Predicted online accuracy (held-out study)")
-    axes[1].set_ylabel("Observed online character accuracy")
+    axes[1].set_ylabel("Observed session-condition accuracy")
     axes[1].set_xlim(-0.04, 1.04)
     axes[1].set_ylim(-0.04, 1.04)
     axes[1].grid(color="#F3F4F6", lw=0.6)
@@ -111,26 +111,26 @@ def render_calibration_relationship(records: pd.DataFrame, predictions: pd.DataF
 
 
 def render_external_auc(metrics: pd.DataFrame, directory: Path) -> None:
-    required = {"model", "held_out_study", "roc_auc", "roc_auc_ci_low", "roc_auc_ci_high"}
+    required = {"model", "held_out_study", "session_mean_absolute_error", "session_mean_absolute_error_ci_low", "session_mean_absolute_error_ci_high"}
     require_columns(metrics, required)
     primary = metrics.loc[metrics["model"] == "calibration_auc"].copy()
-    order = ["StudyF", "StudyL", "StudyN", "Pooled out-of-study"]
+    order = ["StudyB", "StudyF", "StudyL", "StudyN", "Pooled held-out predictions"]
     primary["position"] = primary.held_out_study.map({label: index for index, label in enumerate(order)})
     primary = primary.sort_values("position")
     fig, ax = plt.subplots(figsize=(7.4, 3.6))
     ax.axvline(0.5, ls="--", lw=0.8, color="#9CA3AF", zorder=0)
     for _, row in primary.iterrows():
         color = STUDY_COLORS.get(row.held_out_study, LANCET_BLUE)
-        ax.errorbar(row.roc_auc, row.position, xerr=[[row.roc_auc - row.roc_auc_ci_low], [row.roc_auc_ci_high - row.roc_auc]],
+        ax.errorbar(row.session_mean_absolute_error, row.position, xerr=[[row.session_mean_absolute_error - row.session_mean_absolute_error_ci_low], [row.session_mean_absolute_error_ci_high - row.session_mean_absolute_error]],
                     fmt="o", ms=7, mfc=color, mec="white", mew=0.8, ecolor=color, capsize=3, lw=1.4)
-        ax.text(1.01, row.position, f"{row.roc_auc:.2f} ({row.roc_auc_ci_low:.2f}-{row.roc_auc_ci_high:.2f})",
+        ax.text(0.255, row.position, f"{row.session_mean_absolute_error:.2f} ({row.session_mean_absolute_error_ci_low:.2f}-{row.session_mean_absolute_error_ci_high:.2f})",
                 va="center", fontsize=9, color=LABEL_COLOR)
     ax.set_yticks(primary.position, primary.held_out_study.str.replace("Study", "Study "))
     ax.invert_yaxis()
-    ax.set_xlim(0.4, 1.22)
-    ax.set_xlabel("Held-out character-level ROC AUC (95% cluster-bootstrap CI)")
+    ax.set_xlim(0, 0.32)
+    ax.set_xlabel("Held-out session-condition MAE (95% cluster-bootstrap CI)")
     ax.grid(axis="x", color="#F3F4F6", lw=0.6)
-    _save(fig, directory, "figure_3_external_validation_auc")
+    _save(fig, directory, "figure_3_session_accuracy_validation")
 
 
 def render_all(records: pd.DataFrame, predictions: pd.DataFrame, metrics: pd.DataFrame, directory: Path) -> None:
