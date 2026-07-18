@@ -83,7 +83,7 @@ The primary calibration score achieved AUCs of 0.860 (95% CI, 0.694-0.915) for S
 
 ### Secondary and sensitivity analyses
 
-The Pz amplitude comparator had a pooled held-out-study AUC of 0.480 (95% CI, 0.370-0.592), with Brier score 0.172 and mean absolute error 0.208. The exploratory model that added ALSFRS-R values had a pooled AUC of 0.826 (95% CI, 0.753-0.870), Brier score 0.121, and mean absolute error 0.094. In within-study leave-one-participant-out analyses, calibration-score AUCs were 0.858 in Study F, 0.801 in Study L, and 0.756 in Study N (Supplementary Table S3).
+The Pz amplitude comparator had a pooled held-out-study AUC of 0.480 (95% CI, 0.370-0.592), with Brier score 0.172 and mean absolute error 0.208. The exploratory model that added ALSFRS-R values had a pooled AUC of 0.826 (95% CI, 0.753-0.870), Brier score 0.121, and mean absolute error 0.094. In within-study leave-one-participant-out analyses, calibration-score AUCs were 0.858 in Study F, 0.801 in Study L, and 0.756 in Study N (Supplementary Table S4).
 
 ## Discussion
 

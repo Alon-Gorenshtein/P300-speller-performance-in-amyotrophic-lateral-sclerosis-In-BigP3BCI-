@@ -14,7 +14,7 @@ For each Test-phase transition to phase 3, the intended character was the final 
 
 **Table S1. Feedback-phase reconstruction and exclusions.**
 
-| Source study | Eligible selections | Excluded: feedback not displayed | Total reconstructed feedback phases |
+| Source study | Eligible selections | Excluded phases | Reconstructed phases |
 |---|---:|---:|---:|
 | Study F | 1,067 | 12 | 1,079 |
 | Study L | 990 | 0 | 990 |
@@ -27,18 +27,23 @@ For each source study, the primary model was trained using the two other studies
 
 The prespecified secondary analysis used Pz amplitude instead of the primary calibration score. The exploratory analysis added recorded ALSFRS-R values. The sensitivity analysis used leave-one-participant-out training and testing within each source study.
 
-**Table S2. Held-out-study validation metrics.**
+**Table S2. Primary calibration-score validation metrics.**
 
-| Model | Held-out study | Records | Selections | AUC (95% CI) | Brier score | Mean absolute error |
-|---|---|---:|---:|---:|---:|---:|
-| Calibration score | Study F | 10 | 1,067 | 0.860 (0.694-0.915) | 0.107 | 0.086 |
-| Calibration score | Study L | 11 | 990 | 0.803 (0.657-0.884) | 0.112 | 0.092 |
-| Calibration score | Study N | 8 | 480 | 0.799 (0.635-0.886) | 0.164 | 0.121 |
-| Calibration score | Pooled out-of-study | 29 | 2,537 | 0.829 (0.757-0.872) | 0.120 | 0.091 |
-| Pz amplitude | Pooled out-of-study | 29 | 2,537 | 0.480 (0.370-0.592) | 0.172 | 0.208 |
-| Calibration score plus ALSFRS-R | Pooled out-of-study | 29 | 2,537 | 0.826 (0.753-0.870) | 0.121 | 0.094 |
+| Held-out study | Records | Selections | AUC (95% CI) | Brier / MAE |
+|---|---:|---:|---:|---:|
+| Study F | 10 | 1,067 | 0.860 (0.694-0.915) | 0.107 / 0.086 |
+| Study L | 11 | 990 | 0.803 (0.657-0.884) | 0.112 / 0.092 |
+| Study N | 8 | 480 | 0.799 (0.635-0.886) | 0.164 / 0.121 |
+| Pooled out-of-study | 29 | 2,537 | 0.829 (0.757-0.872) | 0.120 / 0.091 |
 
-**Table S3. Within-study leave-one-participant-out sensitivity analysis.**
+**Table S3. Pooled comparator and exploratory metrics.**
+
+| Feature | AUC (95% CI) | Brier / MAE |
+|---|---:|---:|
+| Pz amplitude | 0.480 (0.370-0.592) | 0.172 / 0.208 |
+| EEG score plus ALSFRS-R | 0.826 (0.753-0.870) | 0.121 / 0.094 |
+
+**Table S4. Within-study leave-one-participant-out sensitivity analysis.**
 
 | Source study | Records | Selections | AUC | Brier score | Mean absolute error |
 |---|---:|---:|---:|---:|---:|

@@ -15,6 +15,7 @@ supplementary/*.docx
 supplementary/rendered_pages/
 submission/final_submission/
 submission/clean_bundle/
+submission/Submission_Ready_ALS_P300_Calibration/
 submission/*.zip
 manuscript/import_zotero.sh
 manuscript/references_source_AMA.txt
