@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+data/source_cache/
+output/
+
+# macOS AppleDouble sidecars created on the external exFAT volume.
+._*
