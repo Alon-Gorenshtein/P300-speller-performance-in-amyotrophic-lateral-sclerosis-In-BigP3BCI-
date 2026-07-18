@@ -6,5 +6,23 @@ __pycache__/
 data/source_cache/
 output/
 
+# Rendered delivery artifacts are reproducible from tracked manuscript sources.
+manuscript/*.pdf
+manuscript/*.docx
+manuscript/rendered_pages/
+supplementary/*.pdf
+supplementary/*.docx
+supplementary/rendered_pages/
+submission/final_submission/
+submission/clean_bundle/
+submission/*.zip
+manuscript/import_zotero.sh
+manuscript/references_source_AMA.txt
+manuscript/references_source_IEEE.tex
+manuscript/references_source_diffs.txt
+manuscript/references_source_for_zotero.bib
+manuscript/references_source_verified.json
+manuscript/references_source_zotero_plan.json
+
 # macOS AppleDouble sidecars created on the external exFAT volume.
 ._*

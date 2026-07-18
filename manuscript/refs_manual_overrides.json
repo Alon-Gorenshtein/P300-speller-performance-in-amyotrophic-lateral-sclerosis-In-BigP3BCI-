@@ -1,0 +1,24 @@
+{
+  "BigP3BCI": {
+    "_replace_all": true,
+    "type": "dataset",
+    "source": "PhysioNet",
+    "doi": "10.13026/0byy-ry86",
+    "title": "bigP3BCI: An Open, Diverse and Machine Learning Ready P300-based Brain-Computer Interface Dataset",
+    "authors": [
+      "Mainsah, Boyla",
+      "Fleeting, Chance",
+      "Balmat, Thomas",
+      "Sellers, Eric",
+      "Collins, Leslie"
+    ],
+    "venue": "PhysioNet",
+    "year": "2025",
+    "url": "https://physionet.org/content/bigp3bci/1.0.0/",
+    "override_entry": "Mainsah B, Fleeting C, Balmat T, Sellers E, Collins L. bigP3BCI: An Open, Diverse and Machine Learning Ready P300-based Brain-Computer Interface Dataset. Version 1.0.0. PhysioNet. Published May 19, 2025. doi:10.13026/0byy-ry86",
+    "override_entry_tex": "B. Mainsah, C. Fleeting, T. Balmat, E. Sellers, and L. Collins, ``bigP3BCI: An Open, Diverse and Machine Learning Ready P300-based Brain-Computer Interface Dataset,'' Version 1.0.0, PhysioNet, 2025. doi: 10.13026/0byy-ry86."
+  },
+  "Ryan2018": {
+    "year": "2018"
+  }
+}
