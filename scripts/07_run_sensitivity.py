@@ -1,0 +1,126 @@
+"""Prespecified sensitivity analyses for the widened design.
+
+Each analysis removes one explanation for the primary result and re-runs the whole withheld-cohort
+procedure on what remains. The reported quantity is the study-level summary rather than the
+participant bootstrap, because the question each sensitivity asks is whether the spread across
+cohorts changes, not whether the mean shifts within the observed cohorts.
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+import pandas as pd
+
+from bigp3_als.expanded import label_cohort_type, pool_held_out_metrics
+from bigp3_als.validation import MODEL_SPECS, build_analysis_records, run_source_study_held_out_validation
+
+METRIC = "session_mean_absolute_error"
+CALIBRATION = "calibration_slope"
+
+
+def _summarise(records: pd.DataFrame, label: str, replicates: int) -> dict[str, object]:
+    primary = next(spec for spec in MODEL_SPECS if spec.role == "primary")
+    if records["study"].nunique() < 3:
+        return {"analysis": label, "n_studies": records["study"].nunique(), "note": "too few cohorts"}
+    _, metrics = run_source_study_held_out_validation(records, primary, bootstrap_repetitions=replicates)
+    pooled = pool_held_out_metrics(metrics, (METRIC, CALIBRATION))
+    mae = pooled.loc[pooled["quantity"] == METRIC].iloc[0]
+    slope = pooled.loc[pooled["quantity"] == CALIBRATION].iloc[0]
+    return {
+        "analysis": label,
+        "n_studies": int(mae["n_studies"]),
+        "n_records": int(len(records)),
+        "n_selections": int(records["n"].sum()),
+        "mae_mean": mae["mean"],
+        "mae_between_study_sd": mae["between_study_sd"],
+        "mae_prediction_low": mae["prediction_interval_low"],
+        "mae_prediction_high": mae["prediction_interval_high"],
+        "slope_mean": slope["mean"],
+        "slope_between_study_sd": slope["between_study_sd"],
+        "slope_prediction_low": slope["prediction_interval_low"],
+        "slope_prediction_high": slope["prediction_interval_high"],
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--trials", type=Path, default=Path("output/intermediate/online_trials_all20.csv"))
+    parser.add_argument("--features", type=Path, default=Path("output/intermediate/calibration_features_all20.csv"))
+    parser.add_argument("--metadata", type=Path, default=Path("output/intermediate/file_metadata_all20.csv"))
+    parser.add_argument("--output-directory", type=Path, default=Path("output/expanded"))
+    parser.add_argument("--bootstrap-repetitions", type=int, default=50)
+    arguments = parser.parse_args()
+
+    records = label_cohort_type(
+        build_analysis_records(
+            pd.read_csv(arguments.trials), pd.read_csv(arguments.features), pd.read_csv(arguments.metadata)
+        )
+    )
+    records = records.dropna(subset=["calibration_auc"]).copy()
+    records["accuracy"] = records["correct"] / records["n"]
+
+    rows = [_summarise(records, "primary (all contributing cohorts)", arguments.bootstrap_repetitions)]
+
+    # Cohorts where almost every session is at ceiling leave little to estimate, so the error is
+    # small for reasons unrelated to the predictor.
+    spread = records.groupby("study")["accuracy"].std()
+    informative = spread.loc[spread >= 0.10].index
+    rows.append(
+        _summarise(
+            records.loc[records["study"].isin(informative)],
+            "cohorts with outcome standard deviation at least 0.10",
+            arguments.bootstrap_repetitions,
+        )
+    )
+
+    rows.append(
+        _summarise(
+            records.loc[records["artifact_rejection_fraction"] <= 0.20],
+            "records with artifact rejection at most 20 percent",
+            arguments.bootstrap_repetitions,
+        )
+    )
+
+    rows.append(
+        _summarise(
+            records.loc[records["n"] >= 10],
+            "records with at least 10 eligible selections",
+            arguments.bootstrap_repetitions,
+        )
+    )
+
+    rows.append(
+        _summarise(
+            records.loc[~records["als_cohort"]],
+            "other cohorts only",
+            arguments.bootstrap_repetitions,
+        )
+    )
+    rows.append(
+        _summarise(
+            records.loc[records["als_cohort"]],
+            "ALS cohorts only (prespecified primary subgroup)",
+            arguments.bootstrap_repetitions,
+        )
+    )
+
+    table = pd.DataFrame(rows)
+    arguments.output_directory.mkdir(parents=True, exist_ok=True)
+    table.to_csv(arguments.output_directory / "sensitivity_analyses.csv", index=False)
+    for _, row in table.iterrows():
+        if "note" in row and isinstance(row.get("note"), str):
+            print(f"{row['analysis']:52s} {row['note']}")
+            continue
+        print(
+            f"{row['analysis']:52s} studies {int(row['n_studies']):2d}  "
+            f"MAE {row['mae_mean']:.4f} (SD {row['mae_between_study_sd']:.4f}) "
+            f"PI [{row['mae_prediction_low']:.4f}, {row['mae_prediction_high']:.4f}]  "
+            f"slope SD {row['slope_between_study_sd']:.3f}"
+        )
+    print("wrote sensitivity_analyses.csv")
+
+
+if __name__ == "__main__":
+    main()

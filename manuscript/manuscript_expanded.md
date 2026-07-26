@@ -5,7 +5,23 @@ subtitle: "Draft for Journal of Neural Engineering, Original Research"
 
 **Authors, affiliations, corresponding author, funding, competing interests, and CRediT roles:** [to be completed by submitting authors]
 
-<!-- STATUS: draft in progress. Numbers marked [PENDING] await the 2,000-replicate bootstrap. -->
+## Abstract
+
+### Objective
+
+Calibration recordings precede P300-speller sessions, and a score derived from them has been related to online spelling accuracy, but always within the cohort measured. We evaluated whether a fitted mapping from that score to expected accuracy transports to withheld cohorts.
+
+### Approach
+
+Retrospective secondary analysis of BigP3BCI version 1.0.0. Of 20 documented source studies, 18 yielded eligible online outcomes: 271 participants, 410 sessions, 739 session-condition records, 19,611 character selections. The four documented amyotrophic lateral sclerosis (ALS) cohorts were the prespecified primary subgroup. The predictor was grouped cross-validated discriminability of a classifier fitted to calibration epochs only. One source study at a time was withheld from development. Uncertainty is reported conditional on the observed cohorts and, treating the study as the unit of replication, for an unrepresented cohort.
+
+### Main Results
+
+The score was associated with online accuracy in all 18 cohorts (within-cohort r 0.083 to 0.920; participant level r = 0.701, n = 271, p < 0.001), and after removing between-cohort differences (r = 0.652, p < 0.001). Estimation error was 0.103 (95% CI 0.094 to 0.112) against 0.146 with no predictor. The fitted mapping did not transport: calibration slope ranged from 0.075 to 2.233 and intercept from -2.445 to 1.870 across cohorts, and skill was negative in two of 18. For an unrepresented cohort, intervals spanned 0.001 to 0.208 for estimation error and 0.482 to 0.937 for discrimination. The ALS cohorts alone gave a slope of 0.991 with a between-cohort standard deviation of 0.204, against 0.586 overall.
+
+### Significance
+
+The score carries a reproducible signal about subsequent accuracy, but the mapping between them is cohort-specific. It may support ranking sessions within a setting, but should not be used to report an expected accuracy where the mapping was not developed without local recalibration. Evaluating on few cohorts, as the ALS cohorts illustrate, understates how much performance varies elsewhere.
 
 ## Introduction
 
@@ -43,6 +59,8 @@ Each epoch was decimated by taking every twelfth sample, giving 22 samples per c
 
 The primary score was the out-of-fold area under the receiver operating characteristic curve of an L2-regularised logistic classifier (C = 1.0, lbfgs solver) trained on standardised features, with stratified grouped cross-validation grouping by European Data Format file so that no epoch was scored by a model fitted on the same recording file. The number of folds was the smaller of five and the number of files in the session, so fold count varies between sessions and studies. The score is a property of a session and is constant across the conditions recorded within it.
 
+The regularised logistic classifier and the linear discriminant comparator were chosen because they are the families evaluated for this paradigm in the P300-speller literature.[20,21] Spatially filtered and Riemannian pipelines,[22,23,24] and the wider set of classifiers reviewed for event-related potential decoding,[25] were not used, because the study evaluates a mapping from a calibration summary to online accuracy rather than proposing a decoder.
+
 Comparator scores computed from the same calibration epochs were a regularised linear discriminant analysis area under the curve, grouped cross-validated classification accuracy, mean target-minus-non-target amplitude at Pz between 250 and 500 ms, the same contrast averaged over six posterior channels, and the maximum posterior signed r-squared.
 
 ### Outcome
@@ -59,7 +77,7 @@ The primary evaluation withheld one source study at a time. Three further analys
 
 ### Statistical Analysis
 
-The primary metric was the mean absolute difference between estimated and observed session-condition accuracy in the withheld cohort. Because an absolute error is not interpretable without a reference, three references are reported: a model with no predictor that estimates every withheld record at the development-set mean accuracy, an oracle told the withheld cohort's own mean accuracy, and the skill of the model against the no-predictor model, defined as one minus the ratio of their errors. Secondary metrics were root mean squared error, character-weighted Brier score, Brier skill score against development prevalence, calibration intercept and slope, and character-weighted area under the curve.
+The primary metric was the mean absolute difference between estimated and observed session-condition accuracy in the withheld cohort. Because an absolute error is not interpretable without a reference, three references are reported: a model with no predictor that estimates every withheld record at the development-set mean accuracy, an oracle told the withheld cohort's own mean accuracy, and the skill of the model against the no-predictor model, defined as one minus the ratio of their errors. Secondary metrics were root mean squared error, character-weighted Brier score, Brier skill score against development prevalence, calibration intercept and slope, and character-weighted area under the curve. Calibration intercept and slope are reported per withheld cohort as well as pooled, because a pooled value can conceal opposing departures in individual cohorts.[26,27]
 
 Two uncertainty statements are reported and are not interchangeable. Confidence intervals from 2,000 deterministic bootstrap replicates, in which development participant clusters were resampled within source study, the model was refitted, and withheld participant clusters were resampled, describe uncertainty conditional on the observed set of source studies. Separately, the source study was treated as the unit of replication: the withheld-cohort estimates were summarised by their mean and between-study standard deviation, with a t-distributed confidence interval for the mean and a prediction interval for a cohort not represented in the archive.[16,17] The prediction interval is the quantity a reader should use when asking what to expect in their own cohort.
 
@@ -77,31 +95,122 @@ In these copy-spelling protocols the classifier used online during the Test phas
 
 ## Results
 
-<!-- awaiting the completed bootstrap -->
+### Cohort
+
+All 20 documented source studies supplied the shared 16-channel montage at 256 Hz and were screened. Eighteen contributed at least one eligible online outcome. One study contributed none because artificial feedback overrode the selection in all 5,680 reconstructed feedback phases, and one contributed none because the intended character could not be recovered in any of 2,263 phases (Table 1).
+
+The analytic set contained 271 study-scoped participants, 410 participant-sessions, 739 participant-session-condition records, and 19,611 eligible online character selections. The four documented ALS cohorts contributed 47 participants, 113 sessions, 194 records, and 3,318 selections. Observed session-condition accuracy averaged 0.851 and 228 of 739 records (30.9%) were at 100%, with three cohorts near ceiling (mean accuracy 0.963 to 0.997).
+
+Because the calibration score is a property of a session, the 739 records carry 410 distinct predictor values. Session accuracy clustered within participant (intraclass correlation 0.412), giving approximately 338 effective independent sessions.
+
+### Association Between Calibration Discriminability and Online Accuracy
+
+**The association was present in every contributing cohort and was not an artefact of differences between cohorts.** Calibration discriminability correlated with observed session accuracy in all 18 cohorts, with within-cohort Pearson r from 0.083 to 0.920 (median 0.630). Pooling sessions gave r = 0.699 (n = 410, p < 0.001); centring both variables within cohort, which removes every between-cohort difference, gave r = 0.652 (p < 0.001). Collapsing each participant to a single observation gave r = 0.701 (n = 271, p < 0.001; Spearman ρ = 0.749).
+
+### Estimation Error and Its Reference Points
+
+**Estimated session accuracy fell about 30% closer to observed accuracy than a model with no predictor, and also beat an oracle told each withheld cohort's own mean.** Across withheld cohorts the mean absolute error was 0.103 (95% CI 0.094 to 0.112), against 0.146 for a no-predictor model and 0.123 for the same-study oracle, giving a skill of 0.298 against the no-predictor reference. The character-weighted Brier score was 0.124 (95% CI 0.115 to 0.134), Brier skill 0.098 (95% CI 0.049 to 0.138), and character-weighted area under the curve 0.743 (95% CI 0.714 to 0.766). These intervals are conditional on the 18 observed cohorts.
+
+### Transportability
+
+**Treating the source study as the unit of replication, discrimination transported moderately and calibration did not transport at all.** Across the 18 withheld cohorts the mean absolute error averaged 0.104 with a between-cohort standard deviation of 0.048, giving a 95% interval for the mean of 0.080 to 0.128 and a 95% interval for a cohort not represented in the archive of 0.001 to 0.208 (Figure 1). Area under the curve averaged 0.710 across cohorts, with a new-cohort interval of 0.482 to 0.937, the lower bound of which is chance. Brier skill averaged 0.167 across cohorts with a new-cohort interval of -0.287 to 0.621.
+
+**Calibration slope and intercept varied so widely between cohorts that a single fitted mapping produced miscalibrated estimates in most of them.** The calibration slope ranged from 0.075 to 2.233 and the intercept from -2.445 to 1.870 across withheld cohorts. The between-cohort standard deviation was 0.586 for the slope and 1.073 for the intercept, giving new-cohort intervals of -0.104 to 2.437 and -2.405 to 2.249. The pooled slope of 0.950 (95% CI 0.754 to 1.146) and intercept of 0.080 (95% CI -0.290 to 0.464) arise from averaging these opposing departures and do not describe any individual cohort.
+
+**In two cohorts the calibration score estimated accuracy less well than that cohort's own mean.** Skill against the no-predictor reference was negative in two of 18 cohorts (-0.281 and -0.093) and ranged up to 0.667 in the remainder (Figure 2). All four ALS cohorts had positive skill (0.229, 0.369, 0.396, 0.471).
+
+### Amyotrophic Lateral Sclerosis Subgroup
+
+**Restricting the analysis to the four ALS cohorts reproduced a more favourable and considerably more precise picture than the full archive supported.** Within the prespecified primary subgroup the mean absolute error was 0.095 (95% CI 0.080 to 0.115), Brier skill 0.287 (95% CI 0.169 to 0.407), area under the curve 0.828 (95% CI 0.761 to 0.866), calibration intercept 0.022 (95% CI -0.301 to 0.378), and slope 0.991 (95% CI 0.783 to 1.201). The between-cohort standard deviation of the calibration slope was 0.204 within this subgroup against 0.586 across all contributing cohorts.
+
+### Transfer From Cohorts Without a Documented ALS Population
+
+**A mapping developed without any ALS data estimated accuracy in the ALS cohorts with modest loss.** With all four ALS cohorts withheld from development simultaneously, mean absolute error in each was 0.089, 0.112, 0.124, and 0.142 (mean 0.117), against 0.101 when other ALS cohorts were available for development. Signed bias ranged from -0.085 to 0.063.
+
+### Cohort Type as a Moderator
+
+**The slope relating calibration discriminability to online accuracy was steeper in the ALS cohorts.** The fitted slope was 1.672 in ALS cohorts and 1.018 in the remaining cohorts, with an interaction of 0.655 (p < 0.001). The same calibration score therefore implied a different expected accuracy depending on cohort type.
+
+### Predictor From a Preceding Session
+
+**Using a calibration recording from a preceding session, rather than from the session being estimated, attenuated but did not remove the association.** Among 139 consecutive session pairs, the earlier session's calibration score correlated with the later session's accuracy at r = 0.525 (p < 0.001), against r = 0.702 for the score recorded in the session being estimated.
+
+### Sensitivity Analyses
+
+Results were similar when records with fewer than 10 eligible selections were excluded (mean absolute error 0.104, between-cohort standard deviation 0.048). Restricting to the 12 cohorts whose session accuracy varied by at least 0.10 raised the mean absolute error to 0.129 and the calibration-slope standard deviation to 0.674, indicating that near-ceiling cohorts contributed low error for reasons unrelated to the predictor. Excluding records in which more than 20% of calibration epochs were rejected lowered the mean absolute error to 0.084 and the calibration-slope standard deviation to 0.438, the only analysis in which transportability improved. Analysing the 14 cohorts without a documented ALS population gave a mean absolute error of 0.104 with a new-cohort interval of -0.012 to 0.219 and a calibration-slope standard deviation of 0.716.
 
 ## Discussion
 
-<!-- drafting -->
+Across 18 independent P300-speller cohorts, the discriminability of a classifier fitted to a session's calibration block was related to that session's subsequent online spelling accuracy in every cohort, at the level of individual participants as well as between cohorts, and when the calibration recording came from an earlier session. A fitted mapping from that score to an expected accuracy did not transport. Calibration slope varied from 0.075 to 2.233 and intercept from -2.445 to 1.870 across withheld cohorts, and in two cohorts the score estimated accuracy less well than that cohort's own mean. The association is a stable property of these recordings; the calibrated mapping is not.
+
+That distinction determines what a calibration score can be used for. Ranking sessions within a setting, which requires only that the association hold locally, is supported. Reporting an expected accuracy in a cohort where the mapping was not developed is not supported without local recalibration, because the interval for a cohort outside this archive spans 0.001 to 0.208 for estimation error and includes chance-level discrimination and negative skill.
+
+Mainsah and colleagues derived speller accuracy analytically from a calibration-derived detectability index and validated it within study.[15] The present analysis is the transportability counterpart to that work rather than a replacement for it: the relationship they described is reproduced here in every cohort, and what is added is the finding that the numerical mapping between the two quantities is cohort-specific. Earlier reports relating calibration measures to P300 performance in ALS[11,12] and to brain-computer interface performance more generally[10] are likewise consistent with the association reported here.
+
+The comparison between the four ALS cohorts and the full archive is itself a result. Analysed alone, the ALS cohorts gave a calibration slope of 0.991 with a between-cohort standard deviation of 0.204 and a favourable Brier skill of 0.287. Analysed alongside 14 further cohorts, the between-cohort standard deviation of the slope was 0.586 and Brier skill fell to 0.098. Four cohorts were not merely too few to estimate the spread; they happened to be homogeneous and favourable, and the resulting picture was optimistic in a direction that only became visible with more cohorts. External validation of a brain-computer interface mapping on a small number of cohorts should be expected to understate how much performance will vary elsewhere.
+
+One analysis improved transportability. Excluding records in which more than 20% of calibration epochs exceeded the artifact threshold reduced estimation error from 0.104 to 0.084 and reduced the between-cohort standard deviation of the calibration slope from 0.586 to 0.438. Screening calibration data quality before relying on a calibration-derived estimate is therefore a concrete step, and it is available at no cost because the rejection fraction is computed while the score is computed.
+
+A mapping developed entirely without ALS data estimated accuracy in the ALS cohorts with a mean absolute error of 0.117, against 0.101 when other ALS cohorts were available. The relationship is not specific to the clinical population in the sense of being absent elsewhere. It is population-dependent in a different sense: the slope was steeper in the ALS cohorts than in the others, so the same score implied a different expected accuracy, which is one mechanism by which a single fitted mapping mis-calibrates.
+
+### Study Limitations
+
+First, calibration and online blocks come from the same recording session throughout. Every timestamp in the archive is de-identified, so temporal precedence within a session cannot be verified from the data, and the separation enforced here is between protocol phases rather than demonstrated ordering. The analysis using a preceding session's calibration recording is the closest available approximation and shows an attenuated association.
+
+Second, the online classifier deployed during the Test phase was fitted on the same Train-phase files from which the calibration score is derived. The quantity evaluated is therefore the cross-validated fit quality of the decoder that was actually used, measured against that decoder's own subsequent accuracy, rather than an independent physiological marker of user aptitude.
+
+Third, the cohorts differ in speller matrix, stimulus paradigm, electrode type, and stopping rule, and paradigm is largely nested within source study, so withholding a cohort also withholds its paradigms. Cohort and paradigm effects cannot be separated in this design. Stimulus presentation and stopping rule are known to change speller accuracy substantially,[28,29,30] so some of the between-cohort variability reported here is attributable to protocol rather than to population.
+
+Fourth, 30.9% of records were at 100% accuracy and three cohorts were near ceiling, where there is little variation to estimate. The sensitivity analysis restricted to cohorts with meaningful outcome variance gave a higher estimation error, so the primary figure is favourably influenced by cohorts in which the task was easy.
+
+Fifth, the outcome is character-level selection accuracy reconstructed from archived event traces. It is an operational endpoint and not communication effectiveness, quality of life, or any clinical outcome, and it does not capture communication rate, for which accuracy alone is known to be an incomplete summary.[31] Sixth, these are legacy protocols, and the analysis does not establish performance with contemporary assistive-communication workflows. Seventh, the archive documentation identifies an ALS population for four cohorts only; the remaining cohorts are described as other cohorts because the documentation does not support a positive characterisation, and no participant-level clinical characteristics were available for the cohort description.
+
+### Conclusion
+
+In 18 independent P300-speller cohorts, calibration discriminability was related to subsequent online spelling accuracy in every cohort and at the level of individual participants, but the fitted mapping between the two did not transport: calibration slope and intercept varied several-fold between cohorts, and estimation performance in a cohort outside the archive cannot be bounded away from no benefit. A calibration score may support ranking sessions within a setting and may support a data-quality screen, and it should not be used to report an expected accuracy in a cohort where the mapping was not developed without local recalibration. Prospective evaluation would need to predefine the recalibration procedure and measure user-centred communication outcomes rather than character accuracy alone.
+
+## Tables and Figure Legends
+
+**Table 1. Source studies screened, and their contribution to the analytic set.** All 20 documented source studies supplied the shared 16-channel montage at 256 Hz. Two contributed no eligible online outcome: Study C, in which artificial feedback overrode the selection in all 5,680 reconstructed feedback phases, and Study P, in which the intended character could not be recovered in any of 2,263 phases. Cohorts are marked according to whether the archive documentation identifies an ALS study population.
+
+**Table 2. Per-cohort composition and withheld-cohort performance.** For each of the 18 contributing cohorts: participants, records, eligible selections, mean observed session-condition accuracy, and, when that cohort was withheld from model development, the mean absolute error, character-weighted area under the curve, and calibration intercept and slope. ALS cohorts are listed first. The calibration slope ranges from 0.075 to 2.233 and the intercept from -2.445 to 1.870.
+
+**Figure 1. Estimation error in each withheld cohort, with the two uncertainty statements.** Each point is one cohort withheld from model development. The darker band is the 95% interval for the mean across the observed cohorts; the lighter band is the 95% interval for a cohort not represented in the archive. The two answer different questions and only the second describes what a reader should expect in their own setting.
+
+**Figure 2. Error reduction in each withheld cohort against that cohort's own no-predictor benchmark.** Values below zero indicate that the calibration score estimated accuracy less well than simply using the cohort's mean. All four ALS cohorts were positive; two cohorts without a documented ALS population were negative.
+
+**Figure 3. Calibration discriminability against observed online accuracy, by cohort type.** Each point is one participant-session-condition record, sized by the number of eligible selections. Separate straight-line fits are shown for the ALS cohorts and the remaining cohorts; the drawn lines are bounded at one because the outcome is a proportion. The band of points at 1.0 shows the ceiling described in the Results.
 
 ## References
 
-<!-- Final numbering assigned once all sections are drafted. Working assignment:
-1  Farwell 1988      10.1016/0013-4694(88)90149-6
-2  Wolpaw 2002       10.1016/S1388-2457(02)00057-3
-3  Sellers 2006      10.1016/j.clinph.2005.06.027
-4  Nijboer 2008      10.1016/j.clinph.2008.03.034
-5  Sellers 2010      10.3109/17482961003777470
-6  Wolpaw 2018       10.1212/wnl.0000000000005812
-7  Vansteensel 2016  10.1056/nejmoa1608085
-8  Chaudhary 2016    10.1038/nrneurol.2016.113
-9  Guger 2009        10.1016/j.neulet.2009.06.045
-10 Blankertz 2010    10.1016/j.neuroimage.2010.03.022
-11 Mak 2012          10.1088/1741-2560/9/2/026014
-12 Halder 2013       10.1371/journal.pone.0076148
-13 Riccio 2013       10.3389/fnhum.2013.00732
-14 Kleih 2010        10.1016/j.clinph.2010.01.034
-15 Mainsah 2016      10.1088/1741-2560/13/6/066007
-16 Debray 2015       10.1016/j.jclinepi.2014.06.018
-17 Riley 2016        10.1136/bmj.i3140
-18 bigP3BCI          10.13026/0byy-ry86
--->
+1. Farwell LA, Donchin E. Talking off the top of your head: toward a mental prosthesis utilizing event-related brain potentials. *Electroencephalogr Clin Neurophysiol*. 1988;70(6):510-523. doi:10.1016/0013-4694(88)90149-6
+2. Wolpaw JR, Birbaumer N, McFarland DJ, Pfurtscheller G, Vaughan TM. Brain-computer interfaces for communication and control. *Clin Neurophysiol*. 2002;113(6):767-791. doi:10.1016/S1388-2457(02)00057-3
+3. Sellers EW, Donchin E. A P300-based brain-computer interface: initial tests by ALS patients. *Clin Neurophysiol*. 2006;117(3):538-548. doi:10.1016/j.clinph.2005.06.027
+4. Nijboer F, Sellers EW, Mellinger J, et al. A P300-based brain-computer interface for people with amyotrophic lateral sclerosis. *Clin Neurophysiol*. 2008;119(8):1909-1916. doi:10.1016/j.clinph.2008.03.034
+5. Sellers EW, Vaughan TM, Wolpaw JR. A brain-computer interface for long-term independent home use. *Amyotroph Lateral Scler*. 2010;11(5):449-455. doi:10.3109/17482961003777470
+6. Wolpaw JR, Bedlack RS, Reda DJ, et al. Independent home use of a brain-computer interface by people with amyotrophic lateral sclerosis. *Neurology*. 2018;91(3):e258-e267. doi:10.1212/WNL.0000000000005812
+7. Vansteensel MJ, Pels EGM, Bleichner MG, et al. Fully implanted brain-computer interface in a locked-in patient with ALS. *N Engl J Med*. 2016;375(21):2060-2066. doi:10.1056/NEJMoa1608085
+8. Chaudhary U, Birbaumer N, Ramos-Murguialday A. Brain-computer interfaces for communication and rehabilitation. *Nat Rev Neurol*. 2016;12(9):513-525. doi:10.1038/nrneurol.2016.113
+9. Guger C, Daban S, Sellers E, et al. How many people are able to control a P300-based brain-computer interface (BCI)? *Neurosci Lett*. 2009;462(1):94-98. doi:10.1016/j.neulet.2009.06.045
+10. Blankertz B, Sannelli C, Halder S, et al. Neurophysiological predictor of SMR-based BCI performance. *Neuroimage*. 2010;51(4):1303-1309. doi:10.1016/j.neuroimage.2010.03.022
+11. Mak JN, McFarland DJ, Vaughan TM, et al. EEG correlates of P300-based brain-computer interface (BCI) performance in people with amyotrophic lateral sclerosis. *J Neural Eng*. 2012;9(2):026014. doi:10.1088/1741-2560/9/2/026014
+12. Halder S, Ruf CA, Furdea A, et al. Prediction of P300 BCI aptitude in severe motor impairment. *PLoS One*. 2013;8(10):e76148. doi:10.1371/journal.pone.0076148
+13. Riccio A, Simione L, Schettini F, et al. Attention and P300-based BCI performance in people with amyotrophic lateral sclerosis. *Front Hum Neurosci*. 2013;7:732. doi:10.3389/fnhum.2013.00732
+14. Kleih SC, Nijboer F, Halder S, Kübler A. Motivation modulates the P300 amplitude during brain-computer interface use. *Clin Neurophysiol*. 2010;121(7):1023-1031. doi:10.1016/j.clinph.2010.01.034
+15. Mainsah BO, Collins LM, Throckmorton CS. Using the detectability index to predict P300 speller performance. *J Neural Eng*. 2016;13(6):066007. doi:10.1088/1741-2560/13/6/066007
+16. Debray TPA, Vergouwe Y, Koffijberg H, Nieboer D, Steyerberg EW, Moons KGM. A new framework to enhance the interpretation of external validation studies of clinical prediction models. *J Clin Epidemiol*. 2015;68(3):279-289. doi:10.1016/j.jclinepi.2014.06.018
+17. Riley RD, Ensor J, Snell KIE, et al. External validation of clinical prediction models using big datasets from e-health records or IPD meta-analysis: opportunities and challenges. *BMJ*. 2016;353:i3140. doi:10.1136/bmj.i3140
+18. Mainsah B, Fleeting C, Balmat T, Sellers E, Collins L. bigP3BCI: an open, diverse and machine learning ready P300-based brain-computer interface dataset. Version 1.0.0. PhysioNet. 2025. doi:10.13026/0byy-ry86
+19. Collins GS, Reitsma JB, Altman DG, Moons KGM. Transparent reporting of a multivariable prediction model for individual prognosis or diagnosis (TRIPOD): the TRIPOD statement. *BMJ*. 2015;350:g7594. doi:10.1136/bmj.g7594
+20. Krusienski DJ, Sellers EW, Cabestaing F, et al. A comparison of classification techniques for the P300 speller. *J Neural Eng*. 2006;3(4):299-305. doi:10.1088/1741-2560/3/4/007
+21. Krusienski DJ, Sellers EW, McFarland DJ, Vaughan TM, Wolpaw JR. Toward enhanced P300 speller performance. *J Neurosci Methods*. 2008;167(1):15-21. doi:10.1016/j.jneumeth.2007.07.017
+22. Rivet B, Souloumiac A, Attina V, Gibert G. xDAWN algorithm to enhance evoked potentials: application to brain-computer interface. *IEEE Trans Biomed Eng*. 2009;56(8):2035-2043. doi:10.1109/TBME.2009.2012869
+23. Barachant A, Bonnet S, Congedo M, Jutten C. Multiclass brain-computer interface classification by Riemannian geometry. *IEEE Trans Biomed Eng*. 2012;59(4):920-928. doi:10.1109/TBME.2011.2172210
+24. Congedo M, Barachant A, Bhatia R. Riemannian geometry for EEG-based brain-computer interfaces: a primer and a review. *Brain Comput Interfaces*. 2017;4(3):155-174. doi:10.1080/2326263X.2017.1297192
+25. Lotte F, Bougrain L, Cichocki A, et al. A review of classification algorithms for EEG-based brain-computer interfaces: a 10 year update. *J Neural Eng*. 2018;15(3):031005. doi:10.1088/1741-2552/aab2f2
+26. Van Calster B, Nieboer D, Vergouwe Y, De Cock B, Pencina MJ, Steyerberg EW. A calibration hierarchy for risk models was defined: from utopia to empirical data. *J Clin Epidemiol*. 2016;74:167-176. doi:10.1016/j.jclinepi.2015.12.005
+27. Steyerberg EW, Vickers AJ, Cook NR, et al. Assessing the performance of prediction models: a framework for traditional and novel measures. *Epidemiology*. 2010;21(1):128-138. doi:10.1097/EDE.0b013e3181c30fb2
+28. Townsend G, LaPallo BK, Boulay CB, et al. A novel P300-based brain-computer interface stimulus presentation paradigm: moving beyond rows and columns. *Clin Neurophysiol*. 2010;121(7):1109-1120. doi:10.1016/j.clinph.2010.01.030
+29. Kaufmann T, Kübler A. Beyond maximum speed: a novel two-stimulus paradigm for brain-computer interfaces based on event-related potentials (P300-BCI). *J Neural Eng*. 2014;11(5):056004. doi:10.1088/1741-2560/11/5/056004
+30. Mainsah BO, Collins LM, Colwell KA, et al. Increasing BCI communication rates with dynamic stopping towards more practical use: an ALS study. *J Neural Eng*. 2015;12(1):016013. doi:10.1088/1741-2560/12/1/016013
+31. Speier W, Arnold C, Pouratian N. Evaluating true BCI communication rate through mutual information and language models. *PLoS One*. 2013;8(10):e78432. doi:10.1371/journal.pone.0078432
