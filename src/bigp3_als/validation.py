@@ -86,11 +86,21 @@ def _fit_probability_model(development: pd.DataFrame, validation: pd.DataFrame, 
 def _fit_calibration_model(labels: np.ndarray, probabilities: np.ndarray) -> tuple[float, float]:
     """Return logistic calibration intercept and slope on held-out observations."""
     clipped = np.clip(probabilities, 1e-6, 1 - 1e-6)
-    design = sm.add_constant(np.log(clipped / (1 - clipped)))
+    # A resample can leave every predicted probability identical, in which case the default
+    # behaviour drops the intercept column and the slope becomes unrecoverable. Forcing the
+    # constant keeps the design two-dimensional so the degenerate case returns a missing value
+    # instead of raising. Non-degenerate fits are unaffected, because a constant column is added
+    # in either case when the log-odds vary.
+    design = sm.add_constant(np.log(clipped / (1 - clipped)), has_constant="add")
     try:
         model = sm.GLM(labels, design, family=sm.families.Binomial()).fit()
         return float(model.params[0]), float(model.params[1])
-    except (ValueError, np.linalg.LinAlgError, sm.tools.sm_exceptions.PerfectSeparationError):
+    except (
+        ValueError,
+        IndexError,
+        np.linalg.LinAlgError,
+        sm.tools.sm_exceptions.PerfectSeparationError,
+    ):
         return np.nan, np.nan
 
 

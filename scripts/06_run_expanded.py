@@ -74,7 +74,7 @@ def main() -> None:
 
     primary = next(spec for spec in MODEL_SPECS if spec.role == "primary")
 
-    metrics, predictions = run_source_study_held_out_validation(
+    predictions, metrics = run_source_study_held_out_validation(
         records, primary, bootstrap_repetitions=arguments.bootstrap_repetitions
     )
     metrics.to_csv(arguments.output_directory / "external_validation_metrics.csv", index=False)
@@ -84,7 +84,7 @@ def main() -> None:
     pooled.to_csv(arguments.output_directory / "random_effects_pooling.csv", index=False)
 
     als_records = records.loc[records["als_cohort"]]
-    als_metrics, _ = run_source_study_held_out_validation(
+    _, als_metrics = run_source_study_held_out_validation(
         als_records, primary, bootstrap_repetitions=arguments.bootstrap_repetitions
     )
     als_metrics.to_csv(arguments.output_directory / "als_subgroup_metrics.csv", index=False)

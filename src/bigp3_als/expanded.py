@@ -82,6 +82,38 @@ def _accuracy(records: pd.DataFrame) -> pd.Series:
     return records["correct"] / records["n"]
 
 
+def _simple_regression(x: np.ndarray, y: np.ndarray) -> tuple[float, float, float, float]:
+    """Return slope, intercept, Pearson r and its two-sided p-value.
+
+    Written out rather than taken from ``scipy.stats.linregress`` because that routine fails on the
+    numpy build used here.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    n = len(x)
+    if n < 3:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    x_centred = x - x.mean()
+    y_centred = y - y.mean()
+    denominator = float(x_centred @ x_centred)
+    if denominator <= 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    slope = float((x_centred @ y_centred) / denominator)
+    intercept = float(y.mean() - slope * x.mean())
+    spread = float(np.sqrt(denominator * (y_centred @ y_centred)))
+    r_value = float((x_centred @ y_centred) / spread) if spread > 0 else float("nan")
+
+    p_value = float("nan")
+    if np.isfinite(r_value) and abs(r_value) < 1.0:
+        t_statistic = r_value * np.sqrt((n - 2) / (1.0 - r_value**2))
+        p_value = float(2 * stats.t.sf(abs(t_statistic), df=n - 2))
+    elif np.isfinite(r_value):
+        p_value = 0.0
+    return slope, intercept, r_value, p_value
+
+
 def transfer_to_als(
     records: pd.DataFrame,
     fit_predictions,
@@ -127,12 +159,17 @@ def als_moderation(records: pd.DataFrame, feature: str = "calibration_auc") -> p
     """
     labelled = label_cohort_type(records)
     labelled = labelled.assign(accuracy=_accuracy(labelled))
+    # A session whose calibration block could not support the estimator carries no score; such
+    # records are absent from every model fit and must be absent here too.
+    labelled = labelled.dropna(subset=[feature, "accuracy"])
+    if labelled.empty:
+        raise ValueError(f"no records carry both {feature} and an outcome")
 
     rows: list[dict[str, object]] = []
     for is_als, group in labelled.groupby("als_cohort", sort=True):
         if len(group) < 3:
             continue
-        slope, intercept, r_value, p_value, _ = stats.linregress(group[feature], group["accuracy"])
+        slope, intercept, r_value, p_value = _simple_regression(group[feature], group["accuracy"])
         rows.append(
             {
                 "cohort": "ALS" if is_als else "Other",

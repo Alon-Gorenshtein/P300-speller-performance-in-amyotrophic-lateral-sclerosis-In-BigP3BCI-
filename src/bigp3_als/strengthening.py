@@ -41,6 +41,12 @@ def collapse_to_sessions(records: pd.DataFrame, feature: str = "calibration_auc"
     if missing:
         raise ValueError(f"records missing required columns: {missing}")
 
+    # Sessions whose calibration block could not support the estimator carry no score. They are
+    # absent from every model fit, so they must be absent from these summaries too.
+    records = records.dropna(subset=[feature])
+    if records.empty:
+        raise ValueError(f"no records carry a {feature} value")
+
     grouped = records.groupby(SESSION_KEYS, sort=True)
     distinct_features = grouped[feature].nunique()
     if (distinct_features > 1).any():
@@ -113,6 +119,16 @@ def null_benchmark(records: pd.DataFrame) -> pd.DataFrame:
 
 
 def _correlations(x: pd.Series, y: pd.Series, label: str, n_label: str) -> dict[str, object]:
+    # Columns read back from CSV can arrive as object dtype, which the correlation routines reject.
+    paired = pd.DataFrame(
+        {"x": pd.to_numeric(pd.Series(x).reset_index(drop=True), errors="coerce"),
+         "y": pd.to_numeric(pd.Series(y).reset_index(drop=True), errors="coerce")}
+    ).dropna()
+    if len(paired) < 3:
+        return {"analysis": label, n_label: int(len(paired))}
+
+    x = paired["x"].to_numpy(dtype=float)
+    y = paired["y"].to_numpy(dtype=float)
     pearson, pearson_p = stats.pearsonr(x, y)
     spearman, spearman_p = stats.spearmanr(x, y)
     return {
