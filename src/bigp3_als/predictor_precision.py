@@ -249,23 +249,37 @@ def disattenuated_heterogeneity(
 ) -> dict[str, object]:
     """Correct each cohort's slope for attenuation by its own reliability, then re-pool.
 
+    With lambda treated as known, classical attenuation correction gives
+    beta_true = beta_obs / lambda, and by the delta method Var(beta_true) = Var(beta_obs) / lambda
+    squared: the standard error is scaled by the same factor as the point estimate, not left at its
+    observed value. An earlier version of this function scaled only the point estimate, reasoning
+    that the standard error reflects sampling variability of the regression coefficient rather than
+    predictor reliability; that reasoning was wrong, and wrong in a checkable way. Measurement error
+    that is identical across every cohort carries no information about between-cohort
+    heterogeneity, so a correct convention must leave Q unchanged when the same lambda is applied to
+    every cohort alike. Scaling both the estimate and its standard error by 1/lambda satisfies that
+    invariance exactly: the lambda factors cancel in the inverse-variance weights and therefore in
+    Q. Scaling only the estimate does not, and instead multiplies Q by 1/lambda squared, an artifact
+    of the convention rather than a change in the underlying heterogeneity.
+    `test_disattenuated_heterogeneity_is_invariant_to_a_uniform_reliability` pins this property so
+    the error cannot be reintroduced silently.
+
     Re-pooling uses `bigp3_als.heterogeneity.random_effects`, the same estimator behind the
-    headline heterogeneity result, so a change here is directly comparable to that result. Only the
-    point estimate is corrected; the slope's standard error is left as fitted, because it reflects
-    the sampling variability of the regression coefficient itself and not the reliability of the
-    predictor, and scaling it by the same factor as the point estimate would import an assumption
-    about the uncertainty of the reliability correction that has not been estimated here.
+    headline heterogeneity result, so a change here is directly comparable to that result.
     """
     calibration = _filter_to_primary_specification(calibration, se_method)
     merged = reliability.merge(calibration[["study", "slope", "slope_se"]], on="study").dropna(
         subset=["slope", "slope_se"]
     )
     usable_reliability = merged["reliability"].where(merged["reliability"] > 0)
-    merged = merged.assign(slope_disattenuated=merged["slope"] / usable_reliability)
+    merged = merged.assign(
+        slope_disattenuated=merged["slope"] / usable_reliability,
+        slope_se_disattenuated=merged["slope_se"] / usable_reliability,
+    )
 
     indexed = merged.set_index("study")
     observed = random_effects(indexed["slope"], indexed["slope_se"])
-    disattenuated = random_effects(indexed["slope_disattenuated"], indexed["slope_se"])
+    disattenuated = random_effects(indexed["slope_disattenuated"], indexed["slope_se_disattenuated"])
 
     finite_reliability = merged["reliability"].dropna()
     finite_disattenuated_slope = merged["slope_disattenuated"].dropna()
@@ -287,25 +301,67 @@ def disattenuated_heterogeneity(
     }
 
 
+def identifiability_limit(predictions: pd.DataFrame) -> float:
+    """Largest error-variance inflation factor at which every cohort keeps an identifiable reliability.
+
+    Per cohort, the reliability ratio hits zero once the assumed error variance reaches the
+    cohort's observed between-session variance, at inflation factor `observed_variance /
+    error_variance`. The smallest such factor across cohorts is where the sensitivity analysis in
+    `reliability_inflation_sensitivity` must stop: past it, at least one cohort's assumed
+    measurement error would exceed its entire observed spread in calibration area under the curve,
+    which amounts to declaring that cohort's calibration score pure noise. That is not a value a
+    floor or a dropped-cohort convention can stand in for; it is a fact about the data, reported
+    here so the sensitivity analysis can refuse to go past it rather than inventing what happens
+    there.
+    """
+    sessions = _deduplicated_analysis_sessions(predictions).copy()
+    sessions["auc_se"] = [
+        _auc_standard_error(a, t, nt)
+        for a, t, nt in zip(sessions["calibration_auc"], sessions["n_target_epochs"], sessions["n_nontarget_epochs"])
+    ]
+    limits = []
+    for _, group in sessions.groupby("held_out_study", sort=True):
+        error_variance = float(np.mean(np.square(group["auc_se"])))
+        observed_variance = float(group["calibration_auc"].var(ddof=1)) if len(group) > 1 else float("nan")
+        if error_variance > 0 and observed_variance and observed_variance > 0:
+            limits.append(observed_variance / error_variance)
+    return float(min(limits)) if limits else float("nan")
+
+
 def reliability_inflation_sensitivity(
     predictions: pd.DataFrame,
     calibration: pd.DataFrame,
-    factors: tuple[float, ...] = (1.0, 2.0, 5.0, 10.0),
+    factors: tuple[float, ...] = (1.0, 2.0, 3.0, 4.0, 5.0, 6.0),
     se_method: str = PRIMARY_SE_METHOD,
 ) -> pd.DataFrame:
     """Repeat the disattenuation at increasing multiples of the assumed error variance.
 
     Answers how much larger the true measurement error would have to be, relative to what Hanley
-    and McNeil implies, before the disattenuated heterogeneity moves meaningfully. Cohorts that lose
-    an identifiable reliability at a given factor are dropped from that row's pooling rather than
-    divided by a near-zero or negative number; `n_studies` reports how many remained.
+    and McNeil implies, before the disattenuated heterogeneity moves meaningfully. Every cohort
+    keeps its own reliability at every factor tried here; none is floored, clipped, or dropped,
+    because either of those inserts a value nobody derived. Instead, every requested factor is
+    checked against `identifiability_limit` before anything is fit, and the call is refused if any
+    factor would push a cohort's reliability to zero or below. The caller who wants to see past that
+    factor has to reckon with what it means first: this method has nothing left to say about a
+    cohort whose reliability is not identified, so a sensitivity analysis is not the place to invent
+    an answer for it.
     """
+    limit = identifiability_limit(predictions)
+    unsafe_factors = sorted(factor for factor in factors if factor >= limit)
+    if unsafe_factors:
+        raise ValueError(
+            f"error-variance inflation factor(s) {unsafe_factors} are at or beyond the "
+            f"identifiability limit ({limit:.4f}): at least one cohort's assumed measurement error "
+            "would meet or exceed its entire observed spread in calibration area under the curve, "
+            "so its reliability is not identified. Choose factors strictly below this limit."
+        )
     rows = []
     for factor in factors:
         reliability = reliability_ratio(predictions, error_variance_inflation=factor)
         result = disattenuated_heterogeneity(reliability, calibration, se_method=se_method)
         rows.append({
             "error_variance_inflation_factor": float(factor),
+            "identifiability_limit": limit,
             "n_studies": result["n_studies"],
             "reliability_min": result["reliability_min"],
             "tau": result["disattenuated"]["tau"],

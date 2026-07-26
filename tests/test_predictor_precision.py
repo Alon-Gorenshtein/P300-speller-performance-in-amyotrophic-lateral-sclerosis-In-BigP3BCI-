@@ -17,9 +17,11 @@ import statsmodels.api as sm
 
 from bigp3_als.predictor_precision import (
     disattenuated_heterogeneity,
+    identifiability_limit,
     partial_correlation_controlling_for_auc_level,
     precision_table,
     precision_versus_slope,
+    reliability_inflation_sensitivity,
     reliability_ratio,
     weighted_slope_versus_reliability,
 )
@@ -221,3 +223,78 @@ def test_weighted_regression_is_not_dragged_off_by_a_barely_identified_outlier_c
     assert weighted["beta"] == pytest.approx(2.0, abs=0.05)
     assert weighted["p_value"] < 0.001
     assert abs(weighted["beta"] - 2.0) < abs(float(unweighted.params[1]) - 2.0)
+
+
+def test_disattenuated_heterogeneity_is_invariant_to_a_uniform_reliability() -> None:
+    """Measurement error identical across every cohort carries no information about between-cohort
+    heterogeneity, so applying the same reliability to every cohort must leave Q, and therefore
+    I-squared, exactly unchanged. This is the property whose absence let two different wrong
+    disattenuation conventions (scaling only the point estimate; flooring or dropping a cohort at
+    an arbitrary threshold) each look plausible before this test existed."""
+    calibration = pd.DataFrame({
+        "held_out_study": ["S1", "S2", "S3", "S4", "S5"],
+        "slope": [0.3, 0.8, 1.1, 1.5, 2.0],
+        "slope_se": [0.2, 0.15, 0.25, 0.3, 0.4],
+        "se_method": ["cluster"] * 5,
+    })
+    reliability = pd.DataFrame({"study": ["S1", "S2", "S3", "S4", "S5"], "reliability": [0.9] * 5})
+
+    result = disattenuated_heterogeneity(reliability, calibration)
+
+    assert result["disattenuated"]["q_statistic"] == pytest.approx(result["observed"]["q_statistic"], rel=1e-9)
+    assert result["disattenuated"]["i_squared"] == pytest.approx(result["observed"]["i_squared"], abs=1e-9)
+
+
+def test_identifiability_limit_is_the_smallest_per_cohort_ratio() -> None:
+    """StudyB has a tenth of StudyA's epochs and hence ten times its error variance at the same
+    observed spread, so StudyB's reliability reaches zero at a tenth of the inflation factor
+    StudyA would need; the limit reported for the pair is StudyB's, the smaller one."""
+    preds = pd.DataFrame({
+        "held_out_study": ["StudyA"] * 3 + ["StudyB"] * 3,
+        "study_participant_id": [f"P{i}" for i in range(6)],
+        "session_id": ["SE001"] * 6,
+        "calibration_auc": [0.80, 0.85, 0.75, 0.80, 0.85, 0.75],
+        "n_target_epochs": [600] * 3 + [60] * 3,
+        "n_nontarget_epochs": [6000] * 3 + [600] * 3,
+        "model_role": ["primary"] * 6,
+    })
+
+    limit = identifiability_limit(preds)
+
+    # At the limit itself, StudyB's reliability is no longer identified (the boundary belongs to
+    # the "not identified" side, matching the >= guard in reliability_inflation_sensitivity).
+    at_limit = reliability_ratio(preds, error_variance_inflation=limit).set_index("study")
+    assert np.isnan(at_limit.loc["StudyB", "reliability"])
+    assert at_limit.loc["StudyA", "reliability"] > 0.0
+
+    # A hair below the limit, StudyB is still identified, and near zero.
+    just_under = reliability_ratio(preds, error_variance_inflation=limit * 0.999).set_index("study")
+    assert 0.0 < just_under.loc["StudyB", "reliability"] < 0.01
+
+
+def test_reliability_inflation_sensitivity_refuses_a_factor_at_or_beyond_the_limit() -> None:
+    """The sensitivity grid must halt at the identifiability limit rather than inventing a
+    reliability for a cohort whose assumed error has swallowed its entire observed spread."""
+    preds = pd.DataFrame({
+        "held_out_study": ["StudyA"] * 3 + ["StudyB"] * 3,
+        "study_participant_id": [f"P{i}" for i in range(6)],
+        "session_id": ["SE001"] * 6,
+        "calibration_auc": [0.80, 0.85, 0.75, 0.80, 0.85, 0.75],
+        "n_target_epochs": [600] * 3 + [60] * 3,
+        "n_nontarget_epochs": [6000] * 3 + [600] * 3,
+        "model_role": ["primary"] * 6,
+    })
+    calibration = pd.DataFrame({
+        "held_out_study": ["StudyA", "StudyB"],
+        "slope": [1.0, 1.0],
+        "slope_se": [0.2, 0.2],
+        "se_method": ["cluster"] * 2,
+    })
+    limit = identifiability_limit(preds)
+
+    with pytest.raises(ValueError, match="identifiability limit"):
+        reliability_inflation_sensitivity(preds, calibration, factors=(1.0, limit))
+
+    # A grid that stays strictly below the limit runs to completion.
+    grid = reliability_inflation_sensitivity(preds, calibration, factors=(1.0, limit / 2))
+    assert list(grid["error_variance_inflation_factor"]) == [1.0, limit / 2]
