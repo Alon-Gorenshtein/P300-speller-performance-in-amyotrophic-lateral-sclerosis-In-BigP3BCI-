@@ -15,7 +15,7 @@
 - `scipy.stats.linregress` is broken against this NumPy build. Use `bigp3_als.expanded._simple_regression`.
 - `scipy.stats.pearsonr` rejects object-dtype input. Coerce with `pd.to_numeric` first.
 - Never edit `output/final/`. That directory holds the frozen four-cohort analysis and is the regression baseline.
-- After any change to shared code, re-run the four-cohort regression check in Task 1 and confirm the six headline metrics still reproduce to `0.00e+00`.
+- After any change to `src/bigp3_als/validation.py` or `src/bigp3_als/strengthening.py`, re-run the four-cohort regression guard and confirm it still passes. It is deselected by default, so naming the file is not enough; the invocation is `uv run python -m pytest tests/test_regression_baseline.py -m slow`. Without `-m slow` pytest collects zero tests and reports success.
 - No em dashes anywhere in prose. Run `python3 ~/.claude/skills/de-ai-writing/scripts/scan_ai_writing.py <file>` before every manuscript commit.
 - Journal of Neural Engineering caps the abstract at 300 words and states it may rescind over-length manuscripts.
 - Descriptive language only. No causal claims. Do not write "mechanism" unless a mediation or covariate-adjustment analysis supports it.
