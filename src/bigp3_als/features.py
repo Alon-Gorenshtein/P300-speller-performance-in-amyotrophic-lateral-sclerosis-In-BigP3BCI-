@@ -21,6 +21,7 @@ from bigp3_als.edf import REQUIRED_EVENT_CHANNELS, SHARED_EEG_CHANNELS, parse_so
 
 EPOCH_START_SECONDS = -0.2
 EPOCH_END_SECONDS = 0.8
+BANDPASS_HZ = (0.5, 30.0)
 P300_WINDOW_SECONDS = (0.25, 0.5)
 POSTERIOR_CHANNELS = ("EEG_P3", "EEG_Pz", "EEG_P4", "EEG_PO7", "EEG_PO8", "EEG_Oz")
 ARTIFACT_THRESHOLD_UV = 150.0
@@ -52,13 +53,28 @@ def select_calibration_events(
 DECIMATION_FACTOR = 4
 
 
-def _downsampled_epoch_features(epochs: np.ndarray, decimation_factor: int = DECIMATION_FACTOR) -> np.ndarray:
-    """Return a compact epoch representation without folding the retained passband.
+def minimum_sampling_frequency(decimation_factor: int = DECIMATION_FACTOR) -> float:
+    """Return the lowest sampling frequency at which decimation still spans the passband.
 
-    Taking every nth sample is only safe when the resulting Nyquist frequency stays above the
-    filter passband. Epochs reach this function band-limited to 30 Hz, so a factor of four leaves
-    Nyquist at 32 Hz. Larger factors were used previously and folded 10.7 to 30 Hz onto lower
-    frequencies.
+    Decimating by n leaves a Nyquist frequency of sampling_frequency / n / 2, which has to stay at
+    or above the upper bandpass edge for the retained band to survive.
+    """
+    if decimation_factor < 1:
+        raise ValueError("decimation factor must be at least 1")
+    return 2.0 * BANDPASS_HZ[1] * decimation_factor
+
+
+def _downsampled_epoch_features(epochs: np.ndarray, decimation_factor: int = DECIMATION_FACTOR) -> np.ndarray:
+    """Return a compact epoch representation that does not fold the retained passband.
+
+    Subsampling preserves a band only when the resulting Nyquist frequency stays above it. At
+    256 Hz a factor of four leaves Nyquist at 32 Hz, above the 30 Hz bandpass edge, so no part of
+    the retained band folds; the earlier factor of twelve left Nyquist at 10.7 Hz and folded
+    everything from 10.7 to 30 Hz onto lower frequencies. The bandpass is a fourth-order
+    zero-phase Butterworth rather than a brick wall, so attenuated shoulder content above 32 Hz
+    does still fold onto 24 to 32 Hz: the response is 8.9 dB down at 32 Hz, that shoulder carries
+    about 1.2 percent of output power for a white input, and mains at 60 Hz arrives about 60 dB
+    down.
     """
     if decimation_factor < 1:
         raise ValueError("decimation factor must be at least 1")
@@ -126,7 +142,7 @@ def shrinkage_lda_discriminability(
 
 
 def _bandpass(data: np.ndarray, sampling_frequency: float) -> np.ndarray:
-    sos = butter(4, [0.5, 30.0], btype="bandpass", fs=sampling_frequency, output="sos")
+    sos = butter(4, list(BANDPASS_HZ), btype="bandpass", fs=sampling_frequency, output="sos")
     return sosfiltfilt(sos, data, axis=-1)
 
 
@@ -137,6 +153,13 @@ def _extract_file_epochs(edf_path: Path) -> tuple[np.ndarray, np.ndarray, float,
     if missing:
         raise ValueError(f"missing calibration channels in {edf_path}: {', '.join(missing)}")
     sampling_frequency = float(raw.info["sfreq"])
+    required_rate = minimum_sampling_frequency()
+    if sampling_frequency < required_rate:
+        raise ValueError(
+            f"sampling frequency {sampling_frequency:g} Hz in {edf_path} is below the "
+            f"{required_rate:g} Hz required to decimate by {DECIMATION_FACTOR} without folding "
+            f"the {BANDPASS_HZ[1]:g} Hz passband"
+        )
     eeg = _bandpass(raw.get_data(picks=list(SHARED_EEG_CHANNELS)), sampling_frequency)
     stimulus_begin, stimulus_type, phase = raw.get_data(
         picks=["StimulusBegin", "StimulusType", "PhaseInSequence"]

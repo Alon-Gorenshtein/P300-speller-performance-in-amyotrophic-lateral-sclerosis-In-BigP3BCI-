@@ -1,4 +1,12 @@
-"""The four-cohort result is frozen. Any change to shared code must not move it."""
+"""The four-cohort result is frozen. Any change to shared code must not move it.
+
+This guard is marked slow and takes about three and a half minutes, so the default addopts in
+pyproject.toml deselect it and keep the ordinary test loop fast. Naming this file on the command
+line is not enough to bring it back: the deselection still applies and pytest reports zero tests
+collected, which looks deceptively like a pass. Run it with an explicit marker instead:
+
+    UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 uv run python -m pytest tests/test_regression_baseline.py -m slow
+"""
 
 from __future__ import annotations
 
