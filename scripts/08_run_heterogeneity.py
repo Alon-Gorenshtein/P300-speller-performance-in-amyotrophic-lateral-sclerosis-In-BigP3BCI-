@@ -140,10 +140,13 @@ def variance_inflation_sensitivity(
     rows = []
     for factor in VARIANCE_INFLATION_FACTORS:
         pooled = random_effects(estimates, standard_errors * np.sqrt(factor))
+        low, high = i_squared_interval(pooled["q_statistic"], int(pooled["n_studies"]))
         rows.append({
             "variance_inflation_factor": float(factor),
             "tau": pooled["tau"],
             "i_squared": pooled["i_squared"],
+            "i_squared_ci_low": low,
+            "i_squared_ci_high": high,
             "q_statistic": pooled["q_statistic"],
             "q_p_value": pooled["q_p_value"],
             "prediction_interval_low": pooled["prediction_interval_low"],
@@ -187,9 +190,12 @@ def main() -> None:
             entry[name]["i_squared_ci_low"] = low
             entry[name]["i_squared_ci_high"] = high
             entry[name].update(tau_interval(labelled[name], labelled[f"{name}_se"]))
-        entry["slope_variance_inflation"] = variance_inflation_sensitivity(
-            labelled["slope"], labelled["slope_se"]
-        )
+        # Run for both parameters, so that the document cannot apply a bias correction to the slope
+        # and exempt the intercept from it.
+        for name in ("slope", "intercept"):
+            entry[f"{name}_variance_inflation"] = variance_inflation_sensitivity(
+                labelled[name], labelled[f"{name}_se"]
+            )
         summary[specification] = entry
 
     # The three specifications agree closely once pooled, and that agreement is part of the argument,
@@ -230,12 +236,17 @@ def main() -> None:
               f"naive slope SD {summary[specification]['naive_slope_sd']:.4f}, "
               f"naive intercept SD {summary[specification]['naive_intercept_sd']:.4f}")
 
-    print("\nslope, within-cohort variances inflated by a common factor")
-    for specification in SE_METHODS:
-        for row in summary[specification]["slope_variance_inflation"]:
-            print(f"{specification:14s} x{row['variance_inflation_factor']:<4} "
-                  f"tau {row['tau']:.4f}, I2 {row['i_squared']:.1f}%, Q p {row['q_p_value']:.2e}, "
-                  f"PI [{row['prediction_interval_low']:.3f}, {row['prediction_interval_high']:.3f}]")
+    for name in ("slope", "intercept"):
+        print(f"\n{name}, within-cohort variances inflated by a common factor")
+        for specification in SE_METHODS:
+            for row in summary[specification][f"{name}_variance_inflation"]:
+                print(f"{specification:14s} x{row['variance_inflation_factor']:<4} "
+                      f"tau {row['tau']:.4f}, "
+                      f"I2 {row['i_squared']:.1f}% "
+                      f"[{row['i_squared_ci_low']:.1f}, {row['i_squared_ci_high']:.1f}], "
+                      f"Q p {row['q_p_value']:.2e}, "
+                      f"PI [{row['prediction_interval_low']:.3f}, "
+                      f"{row['prediction_interval_high']:.3f}]")
 
     print("\nper-cohort slope standard error ratios, the level at which the specifications agree")
     for pair, stats_ in summary["per_cohort_slope_se_ratios"].items():

@@ -12,14 +12,24 @@ intercept and from tau, not from the slope I-squared the manuscript currently le
 
 The claim has two halves, and they are not equally delicate.
 
-**The intercept settles it outright.** Under the primary cluster-robust specification the calibration
-intercept has tau = 0.87 (95% CI 0.60 to 1.51) against a pooled intercept of -0.06, I-squared 86.1
-with a **lower confidence limit of 79.5**, and a 95 percent prediction interval of -1.97 to 1.85. The
-I-squared lower limit clears the conventional 75 threshold, so there is no boundary problem here at
-all. A new cohort's calibration intercept can be anywhere from about -2 to about +2 on the log-odds
-scale, which is the difference between a mapping that badly understates accuracy and one that badly
-overstates it. Since "the fitted mapping" is the intercept and slope jointly, the intercept alone is
-sufficient for the headline.
+**The intercept settles it, and it does so without needing a threshold.** Under the primary
+cluster-robust specification the calibration intercept has tau = 0.87 (95% CI 0.60 to 1.51) against a
+pooled intercept of -0.06, and a 95 percent prediction interval of -1.97 to 1.85. A new cohort's
+calibration intercept can be anywhere from about -2 to about +2 on the log-odds scale, which is the
+difference between a mapping that badly understates accuracy and one that badly overstates it. That
+is a statement about tau and the prediction interval, and it survives every perturbation in the
+intercept ladder below: tau stays between 0.72 and 0.87 through a tripling of the within-cohort
+variance, and the prediction interval is still -1.37 to 1.06 at a fivefold inflation. Since "the
+fitted mapping" is the intercept and slope jointly, the intercept alone is sufficient for the
+headline.
+
+The intercept's I-squared is also higher and better determined than the slope's, 86.1 with a lower
+confidence limit of 79.5, so it clears the conventional 75 threshold at its lower bound as estimated.
+**That is not why the intercept leads, and the document does not rest on it.** The same few-clusters
+argument that makes the slope I-squared an upper estimate applies to the intercept: at a 20 percent
+inflation of the within-cohort variances the intercept I-squared lower limit is 74.9, below the
+threshold, exactly as for the slope. The intercept leads because its threshold-free evidence is
+strong, not because its threshold claim is safe.
 
 **The slope agrees but is the more delicate case.** tau = 0.43 (95% CI 0.30 to 0.77) against a pooled
 slope of 1.06, with a 95 percent prediction interval of 0.11 to 2.00. The between-cohort variance is
@@ -142,7 +152,7 @@ common factor:
 | x1.1 | 0.4262 | 77.0 | 4.5e-09 | 0.121 to 1.991 |
 | x1.2 | 0.4203 | 74.9 | 5.3e-08 | 0.131 to 1.978 |
 | x1.5 | 0.4024 | 68.6 | 9.2e-06 | 0.163 to 1.938 |
-| x2.0 | 0.3704 | 58.2 | 1.1e-03 | 0.224 to 1.871 |
+| x2.0 | 0.3704 | 58.2 | 1.0e-03 | 0.224 to 1.871 |
 | x3.0 | 0.2965 | 37.3 | 5.7e-02 | 0.375 to 1.728 |
 | x5.0 | 0.0000 | 0.0 | 5.1e-01 | 0.853 to 1.335 |
 
@@ -150,10 +160,32 @@ The x3.0 row lands at tau 0.2965, within 0.0004 of the Q-profile lower limit, wh
 prediction interval of 0.375 to 1.728 is nearly the 0.394 to 1.704 above. Read the ladder as three
 separate answers:
 
+The same ladder for the intercept, so that no correction is applied to the slope and withheld from
+the parameter that leads the argument. I-squared is shown with its confidence interval, because the
+intercept's threshold claim is the one at issue:
+
+| within-cohort variances inflated by | tau | I-squared (95% CI) | Q p | 95% prediction interval |
+|---|---|---|---|---|
+| x1.0 (as estimated) | 0.8734 | 86.1 (79.5 to 90.6) | 5.0e-18 | -1.968 to 1.854 |
+| x1.1 | 0.8663 | 84.7 (77.2 to 89.8) | 6.5e-16 | -1.955 to 1.840 |
+| x1.2 | 0.8592 | 83.4 (74.9 to 89.0) | 3.6e-14 | -1.942 to 1.825 |
+| x1.5 | 0.8375 | 79.2 (67.8 to 86.6) | 1.9e-10 | -1.902 to 1.780 |
+| x2.0 | 0.8000 | 72.3 (55.5 to 82.7) | 6.5e-07 | -1.834 to 1.699 |
+| x3.0 | 0.7191 | 58.4 (29.9 to 75.3) | 9.8e-04 | -1.692 to 1.520 |
+| x5.0 | 0.5210 | 30.6 (0.0 to 60.8) | 1.1e-01 | -1.367 to 1.061 |
+
+The intercept behaves the same way as the slope in kind and better in degree. Its I-squared lower
+confidence limit falls below 75 at the same x1.2, so the intercept's threshold claim is no safer than
+the slope's and must not be asserted either. But its tau falls only from 0.87 to 0.72 across a
+tripling and its prediction interval is still -1.37 to 1.06 at x5.0, where the slope's tau has already
+gone to zero. That is the asymmetry that makes the intercept the parameter to lead with.
+
+Back to the slope ladder:
+
 - **The slope I-squared threshold falls at a 20 percent understatement of the within-cohort
   variance**, which is small and entirely plausible at 5 to 24 clusters. That claim is not robust and
   must not be asserted.
-- **That heterogeneity exists survives a doubling** (p = 1.1e-03) and only crosses 0.05 near a
+- **That heterogeneity exists survives a doubling** (p = 1.0e-03) and only crosses 0.05 near a
   tripling, which is not a live possibility at these cluster counts.
 - **That the fitted mapping does not transport survives everything short of x5.0**, and survives at
   the lower confidence limit of tau, which is the stronger form of the same statement.
@@ -219,21 +251,49 @@ to search for and the value that replaces it. Current values come from
 |---|---|---|
 | between-cohort SD **0.586** for the slope | `manuscript_expanded.md` lines 20, 118, 124, 150, 152; `cover_letter_expanded.md` lines 11, 13 | tau **0.43** (95% CI 0.30 to 0.77); the naive SD is 0.5596 if a raw spread is quoted at all |
 | between-cohort SD **1.073** for the intercept | `manuscript_expanded.md` line 118 | tau **0.87** (95% CI 0.60 to 1.51); naive SD 1.1749 |
-| slope ranged **0.075 to 2.233** | `manuscript_expanded.md` lines 20, 118, 144, 200, and the Table 2 rows for Study A and Study H; `cover_letter_expanded.md` line 11 | **0.185 to 2.185** (StudyH to StudyS2) |
+| slope ranged **0.075 to 2.233** | `manuscript_expanded.md` lines 20, 118, 144, 200; `cover_letter_expanded.md` line 11 | **0.185 to 2.185** (StudyH to StudyS2) |
 | intercept ranged **-2.445 to 1.870** | `manuscript_expanded.md` lines 20, 118, 144, 200; `cover_letter_expanded.md` line 11 | **-2.169 to 1.995** (StudyA to StudyS1) |
 | new-cohort slope interval **-0.104 to 2.437** | `manuscript_expanded.md` line 118 | **0.111 to 2.005** |
 | new-cohort intercept interval **-2.405 to 2.249** | `manuscript_expanded.md` line 118 | **-1.968 to 1.854** |
+
+**Table 2's per-cohort block must be regenerated, not edited.** All 18 rows are stale in both the
+calibration intercept and the calibration slope columns, at `manuscript_expanded.md` lines 204 to 221.
+Study A and Study H are not special; they are simply the two rows that supplied the old range
+endpoints. Every other row is wrong by a similar margin: Study D prints intercept +0.016 and slope
+0.982 against current 0.389 and 0.839, Study J slope 0.221 against 0.326, Study O 0.709 against 0.583,
+Study S2 intercept -1.224 and slope 1.952 against -2.022 and 2.185. Rebuild the whole block from
+`cohort_calibration.csv` filtered to `se_method == "cluster"`, taking the `intercept` and `slope`
+columns. Editing the two cells named in the range rows above would leave 34 of 36 wrong.
 
 The ALS-subgroup figure of **0.204** and the sensitivity-analysis slope spreads of **0.438**, **0.674**
 and **0.716** are also stale, but they are outputs of the sensitivity scripts rather than of this
 analysis, so this document does not supply replacements. Whoever owns those numbers must regenerate
 them.
 
+### What the output files look like, for whatever reads them
+
+Both files changed shape in this task, and a consumer written against the old shape will silently get
+the wrong numbers rather than an error.
+
+`output/expanded/cohort_calibration.csv` holds **54 rows, not 18**: one 18-row block per
+specification, distinguished by the `se_method` column with values `cluster`, `model` and
+`quasibinomial`. **Every primary number in this document comes from filtering to
+`se_method == "cluster"`.** A consumer that reads the file whole will triplicate every cohort and, if
+it plots or averages without filtering, will mix three different standard errors for the same
+estimate.
+
+`output/expanded/heterogeneity_summary.json` has **four top-level keys, not three**: the three
+specification names, each holding `slope`, `intercept`, the naive standard deviations, the cohort
+counts and the two variance-inflation ladders, plus `per_cohort_slope_se_ratios`, which is not a
+specification. A consumer that iterates the top level expecting only specifications will trip on it.
+
 Beyond the numbers:
 
-1. **Lead the transportability claim with the intercept**, which has tau 0.87, an I-squared lower
-   confidence limit of 79.5, and no boundary problem. Present the slope as the secondary and more
-   delicate case.
+1. **Lead the transportability claim with the intercept**, which has tau 0.87 (95% CI 0.60 to 1.51)
+   and a prediction interval of -1.97 to 1.85 that stays wide through every rung of the inflation
+   ladder. Lead on tau and the prediction interval, not on its I-squared: at a 20 percent inflation of
+   the within-cohort variances the intercept I-squared lower limit is 74.9, so its threshold claim is
+   no safer than the slope's. Present the slope as the secondary and more delicate case.
 2. **Report tau with its Q-profile confidence interval** wherever the between-cohort spread appears,
    and say why the naive standard deviation was dropped: it counts sampling error as if it were
    between-cohort variation.

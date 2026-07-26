@@ -74,11 +74,15 @@ MINIMUM_DISPERSION = 1e-8
 # fitted proportions reproduce the observed ones has residuals of zero, and the clustered sandwich is
 # a sum of one outer product of cluster scores, so it collapses: the slope standard error comes back
 # at 4e-16 rather than at 0, which passes a positivity check while carrying weight 8e30 in an
-# inverse-variance pooling and setting the pooled estimate by itself. The same collapse is possible
-# under the model-based specification. Across the eighteen real cohorts the smallest standard error
-# of any parameter under any specification is 0.058, so this floor sits six orders of magnitude below
-# real data and seven above the degenerate case. It does not fire on the current predictions file;
-# it exists because analyses that subset within a cohort make an exactly fitting cohort reachable.
+# inverse-variance pooling and setting the pooled estimate by itself. The quasi-binomial dispersion
+# collapses on the same cohort for the same reason. The model-based errors do not: they come from the
+# Fisher information, which depends on the fitted values and not on the residuals, and the fitted
+# values are separately guarded by FITTED_BOUNDARY. The floor is applied to all three anyway, because
+# it costs nothing and the argument that no other route exists is not one to bet a pooled estimate on.
+# Across the eighteen real cohorts the smallest standard error of any parameter under any
+# specification is 0.058, so this floor sits six orders of magnitude below real data and seven above
+# the degenerate case. It does not fire on the current predictions file; it exists because analyses
+# that subset within a cohort make an exactly fitting cohort reachable.
 MINIMUM_STANDARD_ERROR = 1e-8
 
 # statsmodels 0.14 does not raise on a non-identified binomial fit, it warns, so PerfectSeparationError
