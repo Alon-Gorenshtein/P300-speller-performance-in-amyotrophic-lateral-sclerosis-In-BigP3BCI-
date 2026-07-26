@@ -49,10 +49,20 @@ def select_calibration_events(
     return samples[valid], event_labels[valid]
 
 
-def _downsampled_epoch_features(epochs: np.ndarray) -> np.ndarray:
-    """Return a fixed, compact epoch representation for calibration classifiers."""
-    downsample_step = max(1, epochs.shape[-1] // 20)
-    return epochs[:, :, ::downsample_step].reshape(len(epochs), -1)
+DECIMATION_FACTOR = 4
+
+
+def _downsampled_epoch_features(epochs: np.ndarray, decimation_factor: int = DECIMATION_FACTOR) -> np.ndarray:
+    """Return a compact epoch representation without folding the retained passband.
+
+    Taking every nth sample is only safe when the resulting Nyquist frequency stays above the
+    filter passband. Epochs reach this function band-limited to 30 Hz, so a factor of four leaves
+    Nyquist at 32 Hz. Larger factors were used previously and folded 10.7 to 30 Hz onto lower
+    frequencies.
+    """
+    if decimation_factor < 1:
+        raise ValueError("decimation factor must be at least 1")
+    return epochs[:, :, ::decimation_factor].reshape(len(epochs), -1)
 
 
 def _grouped_cv_predictions(
