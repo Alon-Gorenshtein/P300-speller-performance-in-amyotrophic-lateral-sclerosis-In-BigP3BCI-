@@ -67,8 +67,10 @@ This matters more than the shift in values, because a change in which sessions s
 the cohort itself rather than the numbers computed on it.
 
 - Row count: 521 before, 521 after. No session key added, none dropped.
-- Sessions passing `MIN_TARGET_EPOCHS` and `MIN_NONTARGET_EPOCHS`: 520 before, 520 after, the same
-  520. None newly surviving, none newly excluded.
+- All 521 sessions clear `MIN_TARGET_EPOCHS` and `MIN_NONTARGET_EPOCHS`, before and after. No session
+  sits near either threshold in a way the correction could have tipped.
+- Sessions carrying a usable feature value, meaning they pass every gate: 520 before, 520 after, the
+  same 520. None newly surviving, none newly excluded.
 - The single excluded session is excluded for the same reason as before, "at least two calibration
   files are required for grouped validation", which is a grouping constraint and not an epoch count.
 - `train_file_count`, `n_target_epochs`, `n_nontarget_epochs`, `n_calibration_epochs`,
@@ -86,24 +88,29 @@ intraclass correlation of 0.4125.
 
 Every regenerated file kept its row count and its columns. Three files came out byte-identical.
 
-| File | Rows before | Rows after | Bytes changed |
-| --- | --- | --- | --- |
-| `output/intermediate/calibration_features_all20.csv` | 521 | 521 | yes |
-| `output/expanded/study_inventory.csv` | 20 | 20 | no |
-| `output/expanded/analysis_records.csv` | 739 | 739 | yes |
-| `output/expanded/external_validation_metrics.csv` | 19 | 19 | yes |
-| `output/expanded/external_validation_predictions.csv` | 739 | 739 | yes |
-| `output/expanded/random_effects_pooling.csv` | 5 | 5 | yes |
-| `output/expanded/als_subgroup_metrics.csv` | 5 | 5 | yes |
-| `output/expanded/transfer_to_als.csv` | 4 | 4 | yes |
-| `output/expanded/als_moderation.csv` | 3 | 3 | yes |
-| `output/expanded/null_benchmark.csv` | 19 | 19 | no |
-| `output/expanded/within_study_association.csv` | 20 | 20 | yes |
-| `output/expanded/participant_level_association.csv` | 1 | 1 | yes |
-| `output/expanded/across_session_pairs.csv` | 139 | 139 | yes |
-| `output/expanded/across_session_association.csv` | 9 | 9 | yes |
-| `output/expanded/sensitivity_analyses.csv` | 6 | 6 | yes |
-| `output/expanded/session_clustering.json` | n/a | n/a | no |
+The pre-rerun state is preserved in `docs/pipeline_rerun_2026-07-26_before_snapshot.json`, which
+records the row count, full column list and SHA-256 of every file below as it stood before this
+rerun. The first 16 hexadecimal digits of each hash are reproduced here so the "bytes changed" column
+can be checked against the current files without opening that snapshot.
+
+| File | Rows before | Rows after | SHA-256 before | SHA-256 after | Bytes changed |
+| --- | --- | --- | --- | --- | --- |
+| `output/intermediate/calibration_features_all20.csv` | 521 | 521 | `e68c144230d3343d` | `e11b9593add73aad` | yes |
+| `output/expanded/study_inventory.csv` | 20 | 20 | `b2915ba309c386b5` | `b2915ba309c386b5` | no |
+| `output/expanded/analysis_records.csv` | 739 | 739 | `d46006a62753c614` | `a298da2b7dab54a2` | yes |
+| `output/expanded/external_validation_metrics.csv` | 19 | 19 | `e5a34fbb89ce0b62` | `d99f3034e256f581` | yes |
+| `output/expanded/external_validation_predictions.csv` | 739 | 739 | `5dda7cc8eaa026e3` | `eb10b993bbbb335e` | yes |
+| `output/expanded/random_effects_pooling.csv` | 5 | 5 | `2d61b70ab7f8fc78` | `cc8a6faf4ec0cb79` | yes |
+| `output/expanded/als_subgroup_metrics.csv` | 5 | 5 | `89d6c87207eee639` | `0b0f3b9f0f7c4ca5` | yes |
+| `output/expanded/transfer_to_als.csv` | 4 | 4 | `01c102c27771084a` | `805c10dda9986670` | yes |
+| `output/expanded/als_moderation.csv` | 3 | 3 | `7a5e508744538f7c` | `e5413a1cbaca2e11` | yes |
+| `output/expanded/null_benchmark.csv` | 19 | 19 | `fd87df7b8c95f762` | `fd87df7b8c95f762` | no |
+| `output/expanded/within_study_association.csv` | 20 | 20 | `c9bf934dd99d2a98` | `802440c9e79a6798` | yes |
+| `output/expanded/participant_level_association.csv` | 1 | 1 | `c550f9dd339b9277` | `c2301db146ea4341` | yes |
+| `output/expanded/across_session_pairs.csv` | 139 | 139 | `eba41dfa6ff47153` | `db9c91063a58aa8b` | yes |
+| `output/expanded/across_session_association.csv` | 9 | 9 | `6773dff108bb1fe5` | `4118d4be4211ccd2` | yes |
+| `output/expanded/sensitivity_analyses.csv` | 6 | 6 | `e5475eb3de5477fe` | `f61880ce54851c91` | yes |
+| `output/expanded/session_clustering.json` | n/a | n/a | `de9a4b03a78ee1e4` | `de9a4b03a78ee1e4` | no |
 
 `study_inventory.csv` and `null_benchmark.csv` are byte-identical because neither reads the
 predictor: the inventory is derived from the trial table, and the null benchmark is the
@@ -117,7 +124,9 @@ Reported here so that Tasks 4 to 15 can see at a glance which manuscript numbers
 from the aliased pipeline. It is quoted at the manuscript's own rounding, because `output/` is not
 version-controlled and the pre-correction analysis CSVs were overwritten by this rerun.
 
-Study-level summary, the quantity the manuscript uses for transportability:
+Study-level summary, the quantity the manuscript uses for transportability. This is supplement
+Table S2 in full, together with the mean absolute error figures quoted at `manuscript.md:20` and
+`:116`:
 
 | Quantity | Before | After |
 | --- | --- | --- |
@@ -125,8 +134,34 @@ Study-level summary, the quantity the manuscript uses for transportability:
 | Between-cohort SD of that error | 0.048 | 0.0472 |
 | 95% CI for the mean | 0.080 to 0.128 | 0.0771 to 0.1240 |
 | 95% prediction interval for a new cohort | 0.001 to 0.208 | -0.0017 to 0.2029 |
-| Between-cohort SD of the calibration slope | 0.586 | 0.5596 |
-| Between-cohort SD of the calibration intercept | 1.073 | 1.1749 |
+| Brier skill, mean across cohorts | 0.167 | 0.1742 |
+| Brier skill, between-cohort SD | 0.210 | 0.2168 |
+| Brier skill, 95% CI for the mean | 0.063 to 0.271 | 0.0664 to 0.2821 |
+| Brier skill, interval for a new cohort | -0.287 to 0.621 | -0.2958 to 0.6443 |
+| Character-weighted AUC, mean across cohorts | 0.710 | 0.7132 |
+| AUC, between-cohort SD | 0.105 | 0.1025 |
+| AUC, 95% CI for the mean | 0.658 to 0.762 | 0.6623 to 0.7642 |
+| AUC, interval for a new cohort | 0.482 to 0.937 | 0.4912 to 0.9353 |
+| Calibration intercept, mean across cohorts | -0.078 | -0.0082 |
+| Calibration intercept, between-cohort SD | 1.073 | 1.1749 |
+| Calibration intercept, 95% CI for the mean | -0.612 to 0.456 | -0.5925 to 0.5761 |
+| Calibration intercept, interval for a new cohort | -2.405 to 2.249 | -2.5550 to 2.5386 |
+| Calibration slope, mean across cohorts | 1.167 | 1.1004 |
+| Calibration slope, between-cohort SD | 0.586 | 0.5596 |
+| Calibration slope, 95% CI for the mean | 0.875 to 1.458 | 0.8221 to 1.3787 |
+| Calibration slope, interval for a new cohort | -0.104 to 2.437 | -0.1126 to 2.3134 |
+
+**One quantity changed character and must not be carried across unexamined.** The 95% prediction
+interval for a new cohort's mean absolute error ran from 0.001 to 0.208 and now runs from -0.0017 to
+0.2029. The lower bound crossed zero. This is not a substantive reversal: a mean absolute error
+cannot be negative, and the bound is the t-based expression mean plus or minus t times the
+between-cohort SD times the square root of one plus one over k, which is not constrained to the
+support of the quantity it describes. It was already close to zero before the correction and the
+interval barely moved. It matters because the positive lower bound appears in the abstract at
+`manuscript.md:20`, in the Results at `:116`, and in supplement Tables S2 and S4, so a later task
+could carry "0.001" forward as though the interval still excluded zero. Whichever task rewrites those
+sentences should either report the bound as negative or say plainly that it is truncated at zero, and
+should not describe the interval as showing that error stays above zero in a new cohort.
 
 Pooled bootstrap summary, conditional on the observed cohorts:
 
@@ -139,6 +174,13 @@ Pooled bootstrap summary, conditional on the observed cohorts:
 | Calibration intercept | 0.080 (-0.290 to 0.464) | 0.0540 (-0.2642 to 0.3946) |
 | Calibration slope | 0.950 (0.754 to 1.146) | 0.9667 (0.7911 to 1.1268) |
 
+**The two reference points did not move at all.** The no-predictor benchmark is 0.146246 and the
+same-cohort oracle is 0.123370, exactly as before, because `null_benchmark.csv` is byte-identical.
+Both are quoted at `manuscript.md:112` as 0.146 and 0.123 and both stand as written. What does move
+is the skill computed against the first of them: one minus the ratio of the pooled error to the
+no-predictor error was 0.298 and is now 0.3274. Any task touching that sentence should change the
+skill and leave the two benchmarks alone.
+
 Other quantities that moved enough to need editing in the text:
 
 - Within-cohort correlation range: 0.083 to 0.920 before, 0.1898 to 0.9278 after, with the median
@@ -150,29 +192,109 @@ Other quantities that moved enough to need editing in the text:
   before, 0.7137 after. Study-centred: 0.652 before, 0.6771 after.
 - Calibration slope across cohorts: 0.075 to 2.233 before, 0.1852 to 2.1847 after. Intercept: -2.445
   to 1.870 before, -2.1694 to 1.9947 after.
-- Cohorts with negative skill against the no-predictor reference: still 2 of 18, still StudyH and
-  StudyK, but the values are now -0.110 and -0.044 rather than -0.281 and -0.093.
 - ALS subgroup: mean absolute error 0.095 to 0.0909, Brier skill 0.287 to 0.3032, AUC 0.828 to
   0.8306, calibration slope 0.991 to 0.9855, and the between-cohort SD of the ALS slope 0.204 to
   0.223, against 0.5596 across all contributing cohorts.
 - Transfer with all ALS cohorts withheld: per-cohort error was 0.089, 0.112, 0.124, 0.142 (mean
-  0.117) before and is 0.1093, 0.1064, 0.0867, 0.1312 (mean 0.1084) after.
-- ALS moderation: slope 1.0019 in other cohorts against 1.6993 in ALS cohorts, interaction 0.6974.
+  0.117) before and is 0.1093, 0.1064, 0.0867, 0.1312 (mean 0.1084) after. Signed bias ranged from
+  -0.085 to 0.063 before and from -0.0860 to 0.0488 after. The comparator that sentence is measured
+  against, the error in the same four cohorts when other ALS cohorts were available for development,
+  was 0.101 and is now 0.1044, so the gap the sentence describes narrows from 0.016 to 0.004.
+- ALS moderation: slope 1.018 in other cohorts before and 1.0019 after, 1.672 in ALS cohorts before
+  and 1.6993 after, interaction 0.655 before and 0.6974 after. Direction and significance are
+  preserved: the ALS slope is still the steeper one and the interaction is still p < 0.001.
 
-Sensitivity analyses, mean absolute error and calibration-slope SD:
+### The negative-skill claim changed, and the metric behind it was misidentified
+
+This bullet replaces an earlier version of this document that reported "still 2 of 18, still StudyH
+and StudyK, values now -0.110 and -0.044 rather than -0.281 and -0.093". That was wrong twice over,
+and the correction matters because the claim appears in the Results at `manuscript.md:120` and in the
+Figure 2 caption at `:225`.
+
+The first error was a metric confusion. The manuscript's -0.281 and -0.093 are the error-reduction
+skill, one minus the ratio of a cohort's mean absolute error to its own no-predictor error, which is
+what Figure 2 plots. The -0.110 and -0.044 previously reported here are `character_brier_skill_score`,
+a different column measuring a different thing. The two were compared as though they were the same
+quantity.
+
+The second error was to call the cohort identities uncheckable. They are recoverable, because
+`null_benchmark.csv` is byte-identical across the rerun and manuscript Table 2 carries the
+pre-correction per-cohort mean absolute error. Dividing the second by the first reconstructs the
+pre-correction skill for every cohort, and reproduces the manuscript's two negative values as -0.277
+and -0.0915 against the published -0.281 and -0.093, the small gap being Table 2's rounding to three
+decimals. No other cohort is anywhere near zero, the next-lowest being 0.089, so the identification is
+unambiguous.
+
+On the manuscript's own metric:
+
+| | Before | After |
+| --- | --- | --- |
+| Cohorts with negative error-reduction skill | 2 of 18: StudyH -0.277, StudyJ -0.093 | 1 of 18: StudyH -0.2683 |
+| StudyJ | -0.093 | +0.0033 |
+| Highest skill in the remainder | 0.668 (StudyS1) | 0.7165 (StudyS1) |
+| The four ALS cohorts | 0.226, 0.370, 0.397, 0.474 | 0.3174, 0.3828, 0.4482, 0.5022 |
+
+**The count changed from two cohorts to one.** StudyJ crossed from -0.093 to +0.0033, which is
+essentially zero but no longer negative. The pre-correction pair was StudyH and StudyJ, not StudyH
+and StudyK.
+
+Three sentences in the current text are therefore false as written and cannot simply be renumbered.
+`manuscript.md:120` says skill "was negative in two of 18 cohorts (-0.281 and -0.093) and ranged up to
+0.667 in the remainder". The Figure 2 caption at `:225` says "two cohorts without a documented ALS
+population were negative". The abstract at `:20` says "skill was negative in two of 18". All four ALS
+cohorts do remain positive, and the one remaining negative cohort is still a cohort without a
+documented ALS population, so the shape of the claim survives; the count does not. Tasks 8, 11 and 14
+own these sentences.
+
+For completeness, since the earlier version of this document quoted them: on
+`character_brier_skill_score` the negative cohorts after the correction are StudyH at -0.1105 and
+StudyK at -0.0436. That is a real property of the regenerated outputs, but it is not the quantity the
+manuscript reports, and the pre-correction values of that column were overwritten by this rerun.
+
+### Two of the four per-cohort extremes changed hands
+
+Unlike the negative-skill identities and the within-cohort correlation floor, these endpoints are
+directly checkable, because manuscript Table 2 lists the calibration intercept and slope for every
+cohort. Task 4 rewrites that table, so the reordering is worth recording rather than rediscovering.
+
+| Endpoint | Before | After |
+| --- | --- | --- |
+| Highest calibration slope | StudyA, 2.233 | **StudyS2, 2.1847** (StudyA now 1.9986) |
+| Lowest calibration slope | StudyH, 0.075 | StudyH, 0.1852 |
+| Highest calibration intercept | StudyH, 1.870 | **StudyS1, 1.9947** (StudyH now 1.7053) |
+| Lowest calibration intercept | StudyA, -2.445 | StudyA, -2.1694 |
+
+The two floors keep their cohorts and the two ceilings do not. The range sentence at
+`manuscript.md:118` and the Table 2 caption at `:200` quote the endpoint values without naming the
+cohorts, so both remain correct once the numbers are replaced, but any text that names the extreme
+cohort would now be wrong.
+
+### Sensitivity analyses
+
+Mean absolute error and calibration-slope SD. Before-values are supplement Table S4:
 
 | Analysis | Before | After |
 | --- | --- | --- |
 | Primary, all contributing cohorts | 0.104, SD 0.586 | 0.1006, SD 0.560 |
 | Cohorts with outcome SD at least 0.10 (12 cohorts) | 0.129, SD 0.674 | 0.1242, SD 0.601 |
 | Artifact rejection at most 20 percent | 0.084, SD 0.438 | 0.0873, SD 0.465 |
-| At least 10 eligible selections | 0.104 | 0.1004, SD 0.560 |
+| At least 10 eligible selections | 0.104, SD 0.586 | 0.1004, SD 0.560 |
 | Other cohorts only (14 cohorts) | 0.104, SD 0.716 | 0.1007, SD 0.663 |
-| ALS cohorts only (4 cohorts) | SD 0.204 | 0.0932, SD 0.223 |
+| ALS cohorts only (4 cohorts) | 0.101, SD 0.204 | 0.0932, SD 0.223 |
 
-No conclusion in the manuscript reverses. The direction and the ordering of every sensitivity are
-preserved, including the one analysis in which transportability improves, artifact screening. Every
-individual figure in the text nonetheless has to be updated to the regenerated value.
+The direction and the ordering of every sensitivity are preserved, including the one analysis in
+which transportability improves, artifact screening. Every individual figure in the text has to be
+updated to the regenerated value.
+
+### What holds and what does not
+
+**One conclusion does change**, and it is the only one: the count of cohorts in which the score does
+worse than that cohort's own mean falls from two to one, as set out above. An earlier version of this
+document said flatly that no conclusion reverses. That was based on the wrong metric and is
+withdrawn. Everything else holds in direction and in ordering: the mapping still fails to transport,
+the between-cohort spread in calibration slope is still large, the ALS subgroup is still more
+favourable and more precise than the full archive, and artifact screening is still the only
+sensitivity that improves transportability.
 
 ## The 256 Hz montage claim, checked against the data
 
