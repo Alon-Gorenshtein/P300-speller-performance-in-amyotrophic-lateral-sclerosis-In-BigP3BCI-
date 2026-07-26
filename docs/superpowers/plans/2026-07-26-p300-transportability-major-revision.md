@@ -235,7 +235,27 @@ uv run python scripts/04_extract_features.py \
 
 Expect roughly 20 minutes and 521 session rows.
 
-- [ ] **Step 2: Record how much the predictor moved**
+- [ ] **Step 2: Rebuild the four-cohort intermediate as a filtered subset**
+
+The Task 1 guard runs on `calibration_features_with_b.csv`. That file is today a bit-identical subset of the 20-study file (115 of 115 rows, verified before this plan was executed), so leaving it aliased would make the guard pass trivially against stale features and prove nothing about the corrected code. Rebuild it by filtering rather than by a second extraction pass:
+
+```bash
+uv run python -c "
+import pandas as pd
+ALS = ['StudyB','StudyF','StudyL','StudyN']
+full = pd.read_csv('output/intermediate/calibration_features_all20.csv')
+subset = full.loc[full['study'].isin(ALS)].reset_index(drop=True)
+old = pd.read_csv('output/intermediate/calibration_features_with_b.csv')
+assert len(subset) == len(old), f'row count changed: {len(subset)} vs {len(old)}'
+assert list(subset.columns) == list(old.columns), 'column layout changed'
+subset.to_csv('output/intermediate/calibration_features_with_b.csv', index=False)
+print(f'rebuilt with_b: {len(subset)} rows across {subset[\"study\"].nunique()} studies')
+"
+```
+
+If either assertion fires, stop and report: the corrected extraction changed which sessions survive the epoch minimums, which is itself a finding that belongs in `docs/pipeline_rerun_2026-07-26.md`.
+
+- [ ] **Step 3: Record how much the predictor moved**
 
 ```bash
 uv run python -c "
@@ -251,19 +271,19 @@ print(f'rank correlation old vs new: {m[[\"calibration_auc_old\",\"calibration_a
 
 Write the output into `docs/pipeline_rerun_2026-07-26.md` under a heading "Effect of the decimation correction on the predictor". If the rank correlation is above 0.98 the corrected pipeline tells a similar story and the revision is mostly about inference; if it is below 0.9 the primary results may change materially and every number in the manuscript must be re-read, not just re-run.
 
-- [ ] **Step 3: Re-run the four-cohort regression guard**
+- [ ] **Step 4: Re-run the four-cohort regression guard**
 
 Run: `uv run python -m pytest tests/test_regression_baseline.py -v -m slow`
 Expected: **FAIL.** The frozen baseline used the aliased features, so it must move. Record the new six values in `docs/pipeline_rerun_2026-07-26.md`, then update `BASELINE` in `tests/test_regression_baseline.py` to the corrected values and add a comment naming this task as the reason the baseline was re-cut.
 
-- [ ] **Step 4: Re-run the expanded analysis and the sensitivities**
+- [ ] **Step 5: Re-run the expanded analysis and the sensitivities**
 
 ```bash
 uv run python scripts/06_run_expanded.py --bootstrap-repetitions 2000 --output-directory output/expanded
 uv run python scripts/07_run_sensitivity.py
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add tests/test_regression_baseline.py docs/pipeline_rerun_2026-07-26.md
