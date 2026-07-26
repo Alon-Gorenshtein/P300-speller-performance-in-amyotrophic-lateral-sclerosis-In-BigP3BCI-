@@ -30,7 +30,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy import stats
+from scipy import optimize, stats
 
 from bigp3_als.heterogeneity import SE_METHODS, cohort_calibration, random_effects
 
@@ -40,6 +40,61 @@ from bigp3_als.heterogeneity import SE_METHODS, cohort_calibration, random_effec
 # would have to be to matter. Factors below 1 are not run: no argument has been made that the within
 # cohort variance is overstated.
 VARIANCE_INFLATION_FACTORS = (1.0, 1.1, 1.2, 1.5, 2.0, 3.0, 5.0)
+
+
+def _generalised_q(tau_squared: float, estimates: np.ndarray, variances: np.ndarray) -> float:
+    """Q evaluated with random-effects weights at a given tau squared, decreasing in tau squared."""
+    weight = 1.0 / (variances + tau_squared)
+    mean = float((weight * estimates).sum() / weight.sum())
+    return float((weight * (estimates - mean) ** 2).sum())
+
+
+def _solve_generalised_q(target: float, estimates: np.ndarray, variances: np.ndarray) -> float:
+    """Smallest non-negative tau squared at which the generalised Q equals `target`.
+
+    The generalised Q falls monotonically in tau squared, so if it is already at or below the target
+    at zero there is no positive solution and zero is returned. Otherwise the upper bracket is
+    doubled until the function crosses, then Brent's method is used.
+    """
+    if _generalised_q(0.0, estimates, variances) <= target:
+        return 0.0
+    upper = 1.0
+    while _generalised_q(upper, estimates, variances) > target:
+        upper *= 2.0
+    return float(
+        optimize.brentq(
+            lambda t: _generalised_q(t, estimates, variances) - target, 0.0, upper, xtol=1e-14
+        )
+    )
+
+
+def tau_interval(estimates: pd.Series, standard_errors: pd.Series) -> dict[str, float]:
+    """Q-profile confidence interval for tau, and the Paule and Mandel point estimate.
+
+    tau is the quantity the transportability claim rests on once I-squared is demoted, so it cannot
+    be reported as a bare point estimate while the demoted statistic carries an interval. The
+    Q-profile method (Viechtbauer 2007) inverts the generalised Q statistic against its chi-squared
+    reference distribution, which is the interval with the best coverage available here and, unlike a
+    Wald interval on tau squared, cannot return a negative lower limit.
+
+    The Paule and Mandel estimate solves the same generalised Q against its expectation, k-1. It is
+    reported beside DerSimonian and Laird because the two disagree systematically when heterogeneity
+    is large, and a reader is entitled to know whether the headline depends on that choice.
+    """
+    frame = pd.DataFrame({"y": estimates, "se": standard_errors}).dropna()
+    frame = frame.loc[frame["se"] > 0]
+    y = frame["y"].to_numpy(dtype=float)
+    variances = frame["se"].to_numpy(dtype=float) ** 2
+    degrees = len(frame) - 1
+
+    lower = _solve_generalised_q(float(stats.chi2.ppf(0.975, degrees)), y, variances)
+    upper = _solve_generalised_q(float(stats.chi2.ppf(0.025, degrees)), y, variances)
+    paule_mandel = _solve_generalised_q(float(degrees), y, variances)
+    return {
+        "tau_ci_low": float(np.sqrt(lower)),
+        "tau_ci_high": float(np.sqrt(upper)),
+        "tau_paule_mandel": float(np.sqrt(paule_mandel)),
+    }
 
 
 def i_squared_interval(q_statistic: float, n_studies: int) -> tuple[float, float]:
@@ -131,14 +186,31 @@ def main() -> None:
             low, high = i_squared_interval(entry[name]["q_statistic"], int(entry[name]["n_studies"]))
             entry[name]["i_squared_ci_low"] = low
             entry[name]["i_squared_ci_high"] = high
+            entry[name].update(tau_interval(labelled[name], labelled[f"{name}_se"]))
         entry["slope_variance_inflation"] = variance_inflation_sensitivity(
             labelled["slope"], labelled["slope_se"]
         )
         summary[specification] = entry
 
-    pd.concat(tables, ignore_index=True).to_csv(
-        arguments.output_directory / "cohort_calibration.csv", index=False
-    )
+    # The three specifications agree closely once pooled, and that agreement is part of the argument,
+    # so the level at which it holds has to be recorded. It is a pooled-level agreement: cohort by
+    # cohort the same standard errors differ by up to 40 percent, and clustering does not even
+    # always widen them.
+    combined = pd.concat(tables, ignore_index=True)
+    ratios = combined.pivot(index="held_out_study", columns="se_method", values="slope_se")
+    summary["per_cohort_slope_se_ratios"] = {
+        f"{numerator}_over_{denominator}": {
+            "minimum": float((ratios[numerator] / ratios[denominator]).min()),
+            "maximum": float((ratios[numerator] / ratios[denominator]).max()),
+            "n_below_one": int(((ratios[numerator] / ratios[denominator]) < 1).sum()),
+            "cohorts_below_one": sorted(
+                ratios.index[(ratios[numerator] / ratios[denominator]) < 1]
+            ),
+        }
+        for numerator, denominator in (("cluster", "quasibinomial"), ("cluster", "model"))
+    }
+
+    combined.to_csv(arguments.output_directory / "cohort_calibration.csv", index=False)
     (arguments.output_directory / "heterogeneity_summary.json").write_text(
         json.dumps(summary, indent=2) + "\n"
     )
@@ -146,7 +218,9 @@ def main() -> None:
     for specification in SE_METHODS:
         for name in ("slope", "intercept"):
             s = summary[specification][name]
-            print(f"{specification:14s} {name:9s} pooled {s['pooled']:.3f}, tau {s['tau']:.4f}, "
+            print(f"{specification:14s} {name:9s} pooled {s['pooled']:.3f}, "
+                  f"tau {s['tau']:.4f} [{s['tau_ci_low']:.4f}, {s['tau_ci_high']:.4f}] "
+                  f"(PM {s['tau_paule_mandel']:.4f}), "
                   f"I2 {s['i_squared']:.1f}% [{s['i_squared_ci_low']:.1f}, {s['i_squared_ci_high']:.1f}], "
                   f"Q {s['q_statistic']:.1f} on {s['n_studies']:.0f}-1 df, Q p {s['q_p_value']:.2e}, "
                   f"PI [{s['prediction_interval_low']:.3f}, {s['prediction_interval_high']:.3f}], "
@@ -162,6 +236,11 @@ def main() -> None:
             print(f"{specification:14s} x{row['variance_inflation_factor']:<4} "
                   f"tau {row['tau']:.4f}, I2 {row['i_squared']:.1f}%, Q p {row['q_p_value']:.2e}, "
                   f"PI [{row['prediction_interval_low']:.3f}, {row['prediction_interval_high']:.3f}]")
+
+    print("\nper-cohort slope standard error ratios, the level at which the specifications agree")
+    for pair, stats_ in summary["per_cohort_slope_se_ratios"].items():
+        print(f"{pair:26s} {stats_['minimum']:.3f} to {stats_['maximum']:.3f}, "
+              f"below 1 in {stats_['n_below_one']} of {len(ratios)}: {stats_['cohorts_below_one']}")
 
     primary = tables[list(SE_METHODS).index("cluster")]
     print("\nper-cohort calibration, cluster-robust")
