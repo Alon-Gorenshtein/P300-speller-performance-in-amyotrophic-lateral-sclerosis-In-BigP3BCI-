@@ -13,7 +13,7 @@ Calibration recordings precede P300-speller sessions, and a score derived from t
 
 ### Approach
 
-Retrospective secondary analysis of BigP3BCI version 1.0.0. Of 20 documented source studies, 18 yielded eligible online outcomes: 271 participants, 410 sessions, 739 session-condition records, 19,611 character selections. The four documented amyotrophic lateral sclerosis (ALS) cohorts were the prespecified primary subgroup. The predictor was grouped cross-validated discriminability of a classifier fitted to calibration epochs only. One source study at a time was withheld from development. Uncertainty is reported conditional on the observed cohorts and, treating the study as the unit of replication, for an unrepresented cohort.
+Retrospective secondary analysis of BigP3BCI version 1.0.0. Of 20 source studies, 18 yielded eligible online outcomes: 271 participants, 410 sessions, 739 session-condition records, 19,611 character selections. The four documented amyotrophic lateral sclerosis (ALS) cohorts were the prespecified primary subgroup. The predictor was grouped cross-validated discriminability of a classifier fitted to calibration epochs only. One source study at a time was withheld from development. Uncertainty is reported conditional on the observed cohorts and, treating the study as the unit of replication, for an unrepresented cohort.
 
 ### Main Results
 
