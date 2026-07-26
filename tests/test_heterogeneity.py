@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from bigp3_als.heterogeneity import cohort_calibration, random_effects
+from bigp3_als.heterogeneity import SE_METHODS, cohort_calibration, random_effects
 
 
 def _predictions(seed: int = 0) -> pd.DataFrame:
@@ -207,6 +207,65 @@ def test_unknown_standard_error_method_is_rejected() -> None:
         cohort_calibration(_predictions(), se_method="robust")
 
 
+def test_quasibinomial_scales_standard_errors_by_the_pearson_dispersion() -> None:
+    """The quasi-binomial fit is the binomial fit with its standard errors multiplied by the square
+    root of the Pearson dispersion, so the estimates cannot move and the ratio of the standard
+    errors is pinned. The dispersion is recomputed here from the fitted probabilities alone, so the
+    test does not simply repeat whatever scaling statsmodels applied."""
+    records = _repeated_within_participant()
+
+    model_based = cohort_calibration(records, se_method="model").iloc[0]
+    quasi = cohort_calibration(records, se_method="quasibinomial").iloc[0]
+
+    probability = records["predicted_probability"].to_numpy(dtype=float)
+    linear = model_based["intercept"] + model_based["slope"] * np.log(probability / (1 - probability))
+    fitted = 1.0 / (1.0 + np.exp(-linear))
+    trials = records["n"].to_numpy(dtype=float)
+    successes = records["correct"].to_numpy(dtype=float)
+    pearson = float((((successes - trials * fitted) ** 2) / (trials * fitted * (1 - fitted))).sum())
+    dispersion = pearson / (len(records) - 2)
+
+    assert dispersion > 1.0
+    assert quasi["se_method"] == "quasibinomial"
+    assert quasi["slope"] == pytest.approx(model_based["slope"], abs=1e-12)
+    assert quasi["intercept"] == pytest.approx(model_based["intercept"], abs=1e-12)
+    assert quasi["slope_se"] == pytest.approx(
+        model_based["slope_se"] * np.sqrt(dispersion), rel=1e-9
+    )
+    assert quasi["intercept_se"] == pytest.approx(
+        model_based["intercept_se"] * np.sqrt(dispersion), rel=1e-9
+    )
+
+
+def test_quasibinomial_needs_no_participant_column() -> None:
+    """Only the clustered specification reads the participant identifier."""
+    records = _predictions().drop(columns=["study_participant_id"])
+
+    result = cohort_calibration(records, se_method="quasibinomial")
+
+    assert not result["slope"].isna().any()
+    assert (result["slope_se"] > 0).all()
+
+
+def test_quasibinomial_yields_no_estimate_for_a_cohort_it_fits_exactly() -> None:
+    """A cohort whose observed proportions the model reproduces exactly has a Pearson dispersion of
+    zero, so its quasi-binomial standard errors collapse. They do not collapse to exactly zero:
+    floating point leaves a slope standard error of about 2e-16, which passes a positivity check
+    and would then carry weight 2e31 in an inverse-variance pooling, so the estimate would set the
+    pooled slope by itself. The cohort is dropped instead. It is still estimable under the other two
+    specifications, which is why dropped labels are reported per specification rather than once."""
+    records = _cohort(
+        held_out_study=["S"] * 6, study_participant_id=[f"S:P{index}" for index in range(6)],
+        n=[10] * 6, correct=[3, 4, 5, 6, 7, 9],
+        predicted_probability=[0.3, 0.4, 0.5, 0.6, 0.7, 0.9],
+    )
+
+    row = cohort_calibration(records, se_method="quasibinomial").iloc[0]
+    assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+
+    assert np.isfinite(cohort_calibration(records, se_method="model").iloc[0]["slope_se"])
+
+
 def test_a_constant_predictor_yields_no_estimate() -> None:
     """The slope is not identified when the predicted probability never varies, yet the fitter
     still returns an arbitrary split of the one quantity that is identified, their sum."""
@@ -215,7 +274,7 @@ def test_a_constant_predictor_yields_no_estimate() -> None:
         n=[20] * 4, correct=[16, 15, 17, 16], predicted_probability=[0.8] * 4,
     )
 
-    for method in ("cluster", "model"):
+    for method in SE_METHODS:
         row = cohort_calibration(records, se_method=method).iloc[0]
         assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
         assert np.isnan(row["intercept"]) and np.isnan(row["intercept_se"])
@@ -229,7 +288,7 @@ def test_a_cohort_without_residual_degrees_of_freedom_yields_no_estimate() -> No
                         n=[20, 20], correct=[15, 18], predicted_probability=[0.7, 0.9])
 
     for records in (single, saturated):
-        for method in ("cluster", "model"):
+        for method in SE_METHODS:
             row = cohort_calibration(records, se_method=method).iloc[0]
             assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
             assert np.isnan(row["intercept"]) and np.isnan(row["intercept_se"])
@@ -262,7 +321,7 @@ def test_a_separated_cohort_yields_no_estimate() -> None:
         n=[20] * 5, correct=[20] * 5, predicted_probability=[0.6, 0.7, 0.8, 0.9, 0.75],
     )
 
-    for method in ("cluster", "model"):
+    for method in SE_METHODS:
         row = cohort_calibration(records, se_method=method).iloc[0]
         assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
 

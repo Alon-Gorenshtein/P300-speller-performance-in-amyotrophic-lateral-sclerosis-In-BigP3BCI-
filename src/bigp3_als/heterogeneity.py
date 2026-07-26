@@ -22,6 +22,15 @@ probability that never varies, or outcomes that are perfectly separated. Every o
 a finite, plausible-looking estimate from the fitter, with a standard error tight enough to earn
 real weight in the pooling. Each is detected explicitly and returned as NaN, because a fabricated
 slope with a tight standard error does more damage to the pooled estimate than a missing one.
+
+A third standard-error option scales the model-based errors by the square root of the Pearson
+dispersion, the quasi-binomial correction. It absorbs excess variance without needing to know where
+that variance came from, so unlike clustering it does not depend on the participant being the right
+unit and it does not need many clusters to behave. The two corrections therefore fail differently,
+and agreement between them says more than either alone. Neither is a bound: clustering is
+downward-biased below roughly thirty clusters, which every cohort here is, and quasi-binomial
+scaling absorbs marginal overdispersion but not correlation within a participant, so both can leave
+the within-cohort variance too small and tau squared too large.
 """
 
 from __future__ import annotations
@@ -36,7 +45,7 @@ from statsmodels.tools.sm_exceptions import PerfectSeparationError, PerfectSepar
 
 PROBABILITY_FLOOR = 1e-6
 CLUSTER_COLUMN = "study_participant_id"
-SE_METHODS = ("cluster", "model")
+SE_METHODS = ("cluster", "model", "quasibinomial")
 
 # Intercept and slope. Named because the identification guards below are stated against it.
 N_CALIBRATION_PARAMETERS = 2
@@ -47,6 +56,15 @@ N_CALIBRATION_PARAMETERS = 2
 # closest any fitted value comes to a boundary is 1.2e-3, so this threshold sits three orders of
 # magnitude clear of real data and four clear of a separated fit.
 FITTED_BOUNDARY = 1e-6
+
+# Smallest quasi-binomial dispersion that can come from real counts rather than from a fit that
+# reproduces its data exactly. Under no overdispersion the Pearson statistic is about its residual
+# degrees of freedom, so the dispersion sits near 1; across the eighteen real cohorts the smallest
+# is 0.74 and the largest 8.79. A cohort the model reproduces exactly returns 1e-32 or so and would
+# otherwise be handed a standard error of 2e-16, which is not zero and so survives the positivity
+# check while taking essentially the entire weight in the pooling. This threshold sits seven orders
+# of magnitude below the smallest real value and more than twenty above the degenerate one.
+MINIMUM_DISPERSION = 1e-8
 
 # statsmodels 0.14 does not raise on a non-identified binomial fit, it warns, so PerfectSeparationError
 # is retained only for older versions and for the discrete models that do still raise. The warning
@@ -66,9 +84,10 @@ def cohort_calibration(predictions: pd.DataFrame, se_method: str = "cluster") ->
     """Fit calibration intercept and slope, with standard errors, inside each withheld cohort.
 
     `se_method` is "cluster" for standard errors clustered on `study_participant_id`, the default
-    because records repeat within participant, or "model" for the model-based binomial standard
-    errors, which are correct only if every record is an independent draw. The method used is
-    returned as a column, so a downstream table cannot mix the two without it being visible.
+    because records repeat within participant, "model" for the model-based binomial standard
+    errors, which are correct only if every record is an independent draw, or "quasibinomial" for
+    the model-based errors scaled by the square root of the Pearson dispersion. The method used is
+    returned as a column, so a downstream table cannot mix them without it being visible.
     """
     if se_method not in SE_METHODS:
         raise ValueError(f"se_method must be one of {list(SE_METHODS)}, got {se_method!r}")
@@ -142,6 +161,20 @@ def _fit_cohort(study: object, group: pd.DataFrame, se_method: str) -> dict[str,
         parameters = np.asarray(model.params, dtype=float)
         errors = np.asarray(model.bse, dtype=float)
         fitted = np.asarray(model.fittedvalues, dtype=float)
+        if se_method == "quasibinomial":
+            # The dispersion is formed here rather than by fitting with scale="X2", which is wrong
+            # for a two-column binomial endog: statsmodels 0.14 weights the Pearson sum by the trial
+            # counts when it reports pearson_chi2 but not when it estimates the X2 scale, so the
+            # scale it returns is that of the proportions and understates the dispersion of the
+            # counts by roughly the trials per record. That would divide these standard errors by
+            # the square root of the selections per record, between three and seven across these
+            # cohorts, and inflate tau squared, the opposite of what this specification is for. Note
+            # also that a dispersion below one shrinks the standard errors instead of widening them,
+            # so this specification is not uniformly conservative either.
+            dispersion = float(model.pearson_chi2) / float(model.df_resid)
+            if not np.isfinite(dispersion) or dispersion <= MINIMUM_DISPERSION:
+                return entry
+            errors = errors * np.sqrt(dispersion)
     except _FIT_FAILURES:
         return entry
 
