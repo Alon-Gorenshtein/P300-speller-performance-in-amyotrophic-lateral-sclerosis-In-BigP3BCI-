@@ -1573,7 +1573,14 @@ from pathlib import Path
 from bigp3_als.expanded import ALS_STUDIES
 from bigp3_als.render_expanded import render_calibration_forest, render_calibration_curves
 d=Path('output/expanded'); out=d/'figures'
-render_calibration_forest(pd.read_csv(d/'cohort_calibration.csv'), json.load(open(d/'heterogeneity_summary.json')), ALS_STUDIES, out)
+# cohort_calibration.csv holds 54 rows in three se_method blocks. Cluster-robust is primary.
+calibration = pd.read_csv(d/'cohort_calibration.csv')
+calibration = calibration.loc[calibration['se_method'] == 'cluster']
+assert len(calibration) == 18, f'expected 18 cluster rows, got {len(calibration)}'
+# heterogeneity_summary.json has four top-level keys: the three specifications plus
+# per_cohort_slope_se_ratios. Pass the cluster block, not the whole file.
+summary = json.load(open(d/'heterogeneity_summary.json'))['cluster']
+render_calibration_forest(calibration, summary, ALS_STUDIES, out)
 render_calibration_curves(pd.read_csv(d/'external_validation_predictions.csv'), ALS_STUDIES, out)
 "
 ```
