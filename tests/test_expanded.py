@@ -1,0 +1,159 @@
+"""Tests for the analyses that the all-source-study design makes possible."""
+
+from __future__ import annotations
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from bigp3_als.expanded import (
+    ALS_STUDIES,
+    als_moderation,
+    label_cohort_type,
+    pool_held_out_metrics,
+    random_effects_pooling,
+    study_inventory,
+    transfer_to_als,
+)
+
+
+def _records() -> pd.DataFrame:
+    """Six studies, four of them the documented ALS cohorts, three participants each."""
+    rows = []
+    studies = [*ALS_STUDIES, "StudyA", "StudyG"]
+    for study in studies:
+        for participant_index in range(3):
+            score = 0.60 + 0.10 * participant_index
+            accuracy = 0.55 + 0.15 * participant_index
+            rows.append(
+                {
+                    "study": study,
+                    "study_participant_id": f"{study}:P_{participant_index:02d}",
+                    "session_id": "SE001",
+                    "condition": "CB",
+                    "n": 20,
+                    "correct": round(accuracy * 20),
+                    "calibration_auc": score,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def _fit_predictions(development: pd.DataFrame, validation: pd.DataFrame, features: tuple[str, ...]):
+    """Stand-in for the primary model: a straight line fit on development records."""
+    x = development[list(features)[0]].to_numpy(dtype=float)
+    y = (development["correct"] / development["n"]).to_numpy(dtype=float)
+    slope, intercept = np.polyfit(x, y, 1)
+    return np.clip(intercept + slope * validation[list(features)[0]].to_numpy(dtype=float), 0.0, 1.0)
+
+
+def test_label_cohort_type_flags_only_the_documented_als_studies() -> None:
+    labelled = label_cohort_type(_records())
+
+    assert set(labelled.loc[labelled["als_cohort"], "study"]) == set(ALS_STUDIES)
+    assert set(labelled.loc[~labelled["als_cohort"], "study"]) == {"StudyA", "StudyG"}
+
+
+def test_label_cohort_type_does_not_mutate_the_input() -> None:
+    records = _records()
+    label_cohort_type(records)
+
+    assert "als_cohort" not in records.columns
+
+
+def test_prediction_interval_is_always_wider_than_the_confidence_interval() -> None:
+    summary = random_effects_pooling(pd.Series([0.11, 0.08, 0.076, 0.13, 0.10]))
+
+    confidence_width = summary["confidence_interval_high"] - summary["confidence_interval_low"]
+    prediction_width = summary["prediction_interval_high"] - summary["prediction_interval_low"]
+    assert prediction_width > confidence_width
+
+
+def test_pooling_reproduces_the_four_study_hand_calculation() -> None:
+    # The four held-out MAEs of the original design, recomputed by the review panel.
+    summary = random_effects_pooling(pd.Series([0.1136, 0.0848, 0.0760, 0.1289]))
+
+    assert summary["mean"] == pytest.approx(0.100825, abs=1e-6)
+    assert summary["between_study_sd"] == pytest.approx(0.0247, abs=5e-4)
+    # The panel reported a new-study prediction interval of roughly 0.013 to 0.189.
+    assert summary["prediction_interval_low"] == pytest.approx(0.013, abs=0.01)
+    assert summary["prediction_interval_high"] == pytest.approx(0.189, abs=0.01)
+
+
+def test_pooling_refuses_a_single_study() -> None:
+    with pytest.raises(ValueError, match="at least two studies"):
+        random_effects_pooling(pd.Series([0.1]))
+
+
+def test_pool_held_out_metrics_ignores_the_pooled_row() -> None:
+    metrics = pd.DataFrame(
+        {
+            "held_out_study": ["StudyA", "StudyB", "StudyF", "Pooled held-out predictions"],
+            "session_mean_absolute_error": [0.10, 0.12, 0.08, 0.099],
+        }
+    )
+
+    pooled = pool_held_out_metrics(metrics, ("session_mean_absolute_error",))
+
+    assert pooled["n_studies"].iloc[0] == 3
+
+
+def test_transfer_to_als_never_trains_on_an_als_cohort() -> None:
+    seen: list[set[str]] = []
+
+    def spy(development, validation, features):
+        seen.append(set(development["study"]))
+        return _fit_predictions(development, validation, features)
+
+    result = transfer_to_als(_records(), spy)
+
+    assert len(result) == 4
+    for development_studies in seen:
+        assert development_studies.isdisjoint(ALS_STUDIES)
+    assert set(result["held_out_study"]) == set(ALS_STUDIES)
+
+
+def test_transfer_to_als_reports_one_row_per_als_cohort_present() -> None:
+    records = _records()
+    records = records.loc[records["study"] != "StudyN"]
+
+    result = transfer_to_als(records, _fit_predictions)
+
+    assert set(result["held_out_study"]) == {"StudyB", "StudyF", "StudyL"}
+
+
+def test_als_moderation_reports_both_cohorts_and_an_interaction_row() -> None:
+    result = als_moderation(_records())
+
+    assert set(result["cohort"]) == {"ALS", "Other", "Interaction (feature x ALS)"}
+    # The planted association is identical in both cohorts, so the interaction is ~0.
+    interaction = result.loc[result["cohort"] == "Interaction (feature x ALS)", "slope"].iloc[0]
+    assert abs(interaction) < 1e-6
+
+
+def test_als_moderation_detects_a_planted_slope_difference() -> None:
+    records = _records()
+    als = records["study"].isin(ALS_STUDIES)
+    # Flatten the ALS relationship so the interaction must be non-zero.
+    records.loc[als, "correct"] = 12
+    result = als_moderation(records)
+
+    interaction = result.loc[result["cohort"] == "Interaction (feature x ALS)", "slope"].iloc[0]
+    assert abs(interaction) > 0.1
+
+
+def test_study_inventory_keeps_studies_that_contribute_no_outcomes() -> None:
+    trials = pd.DataFrame(
+        {
+            "study": ["StudyB"] * 3 + ["StudyC"] * 4,
+            "eligible": [True, True, False, False, False, False, False],
+            "exclusion_reason": [None, None, "feedback_not_displayed"] + ["fake_feedback_override"] * 4,
+        }
+    )
+
+    inventory = study_inventory(trials)
+
+    study_c = inventory.loc[inventory["study"] == "StudyC"].iloc[0]
+    assert study_c["eligible"] == 0
+    assert study_c["contributes_outcomes"] is np.False_ or not study_c["contributes_outcomes"]
+    assert study_c["dominant_exclusion_reason"] == "fake_feedback_override"
