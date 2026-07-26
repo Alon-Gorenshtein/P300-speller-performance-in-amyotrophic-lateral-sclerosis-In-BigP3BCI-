@@ -235,25 +235,11 @@ uv run python scripts/04_extract_features.py \
 
 Expect roughly 20 minutes and 521 session rows.
 
-- [ ] **Step 2: Rebuild the four-cohort intermediate as a filtered subset**
+- [ ] **Step 2: Leave the four-cohort intermediates alone, on purpose**
 
-The Task 1 guard runs on `calibration_features_with_b.csv`. That file is today a bit-identical subset of the 20-study file (115 of 115 rows, verified before this plan was executed), so leaving it aliased would make the guard pass trivially against stale features and prove nothing about the corrected code. Rebuild it by filtering rather than by a second extraction pass:
+Do not regenerate `output/intermediate/*_with_b.csv`. The Task 1 guard reads those stored files, so leaving them frozen is what makes it a clean detector: it isolates the statistical code in `validation.py` and `strengthening.py`, which Tasks 4 through 15 refactor, from the feature pipeline this task changes. If the guard were re-pointed at regenerated features, a change in either layer would trip it and the signal would be useless.
 
-```bash
-uv run python -c "
-import pandas as pd
-ALS = ['StudyB','StudyF','StudyL','StudyN']
-full = pd.read_csv('output/intermediate/calibration_features_all20.csv')
-subset = full.loc[full['study'].isin(ALS)].reset_index(drop=True)
-old = pd.read_csv('output/intermediate/calibration_features_with_b.csv')
-assert len(subset) == len(old), f'row count changed: {len(subset)} vs {len(old)}'
-assert list(subset.columns) == list(old.columns), 'column layout changed'
-subset.to_csv('output/intermediate/calibration_features_with_b.csv', index=False)
-print(f'rebuilt with_b: {len(subset)} rows across {subset[\"study\"].nunique()} studies')
-"
-```
-
-If either assertion fires, stop and report: the corrected extraction changed which sessions survive the epoch minimums, which is itself a finding that belongs in `docs/pipeline_rerun_2026-07-26.md`.
+The cost is that the repository keeps one set of pre-correction feature artifacts. Record that in `docs/pipeline_rerun_2026-07-26.md` under a heading "Why the four-cohort intermediates were not regenerated", and note there that `output/final/` and `output/intermediate/*_with_b.csv` belong to the superseded four-cohort analysis and are not inputs to any manuscript number.
 
 - [ ] **Step 3: Record how much the predictor moved**
 
@@ -274,7 +260,7 @@ Write the output into `docs/pipeline_rerun_2026-07-26.md` under a heading "Effec
 - [ ] **Step 4: Re-run the four-cohort regression guard**
 
 Run: `uv run python -m pytest tests/test_regression_baseline.py -v -m slow`
-Expected: **FAIL.** The frozen baseline used the aliased features, so it must move. Record the new six values in `docs/pipeline_rerun_2026-07-26.md`, then update `BASELINE` in `tests/test_regression_baseline.py` to the corrected values and add a comment naming this task as the reason the baseline was re-cut.
+Expected: **PASS**, because Step 2 left its stored inputs untouched and this task changes only the feature pipeline. A failure here means the decimation change reached code it should not have, most likely because something in `validation.py` was edited alongside it. Investigate before continuing rather than re-cutting the baseline: re-cutting is the one response that would destroy the guard's value for Tasks 4 through 15.
 
 - [ ] **Step 5: Re-run the expanded analysis and the sensitivities**
 
@@ -286,9 +272,11 @@ uv run python scripts/07_run_sensitivity.py
 - [ ] **Step 6: Commit**
 
 ```bash
-git add tests/test_regression_baseline.py docs/pipeline_rerun_2026-07-26.md
+git add docs/pipeline_rerun_2026-07-26.md
 git commit -m "chore: regenerate all features and outputs after the decimation fix"
 ```
+
+The regenerated CSVs under `output/` are gitignored, so the commit carries the rerun record rather than the artifacts.
 
 ---
 
