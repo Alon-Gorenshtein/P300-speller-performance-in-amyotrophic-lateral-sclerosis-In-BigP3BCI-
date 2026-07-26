@@ -7,7 +7,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from bigp3_als.heterogeneity import SE_METHODS, cohort_calibration, random_effects
+from bigp3_als.heterogeneity import (
+    MINIMUM_STANDARD_ERROR,
+    SE_METHODS,
+    cohort_calibration,
+    random_effects,
+)
 
 
 def _predictions(seed: int = 0) -> pd.DataFrame:
@@ -324,6 +329,46 @@ def test_a_separated_cohort_yields_no_estimate() -> None:
     for method in SE_METHODS:
         row = cohort_calibration(records, se_method=method).iloc[0]
         assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+
+
+def test_a_cohort_the_model_fits_exactly_yields_no_clustered_estimate() -> None:
+    """The clustered sandwich is a sum of one outer product of cluster scores, and an exact fit has
+    residuals of zero, so every score is zero and the sandwich collapses. It collapses to
+    floating-point dust rather than to zero, a slope standard error of 4e-16 carrying weight 8e30,
+    which a positivity check would pass and which would then set the pooled slope by itself. This is
+    the same pathology as the quasi-binomial zero dispersion but on the primary specification, so it
+    reaches the pooled numbers the paper reports rather than only a sensitivity.
+    """
+    records = _cohort(
+        held_out_study=["S"] * 6, study_participant_id=[f"S:P{index}" for index in range(6)],
+        n=[10] * 6, correct=[3, 4, 5, 6, 7, 9],
+        predicted_probability=[0.3, 0.4, 0.5, 0.6, 0.7, 0.9],
+    )
+
+    clustered = cohort_calibration(records, se_method="cluster").iloc[0]
+    assert np.isnan(clustered["slope"]) and np.isnan(clustered["slope_se"])
+    assert np.isnan(clustered["intercept"]) and np.isnan(clustered["intercept_se"])
+
+
+def test_a_degenerate_standard_error_is_refused_on_every_specification() -> None:
+    """Stated against the constant rather than against one fixture, because the floor is what keeps
+    a single cohort from taking the entire inverse-variance weight, and it protects all three
+    specifications rather than only the two that have a demonstrated collapse."""
+    records = _cohort(
+        held_out_study=["S"] * 6, study_participant_id=[f"S:P{index}" for index in range(6)],
+        n=[10] * 6, correct=[3, 4, 5, 6, 7, 9],
+        predicted_probability=[0.3, 0.4, 0.5, 0.6, 0.7, 0.9],
+    )
+
+    # Six orders of magnitude below the smallest standard error any of the eighteen real cohorts
+    # produces, 0.058, so no real cohort can be caught by it.
+    assert MINIMUM_STANDARD_ERROR == 1e-8
+
+    for method in SE_METHODS:
+        row = cohort_calibration(records, se_method=method).iloc[0]
+        if np.isfinite(row["slope_se"]):
+            assert row["slope_se"] > MINIMUM_STANDARD_ERROR
+            assert row["intercept_se"] > MINIMUM_STANDARD_ERROR
 
 
 def test_a_cohort_the_model_happens_to_fit_exactly_is_kept() -> None:

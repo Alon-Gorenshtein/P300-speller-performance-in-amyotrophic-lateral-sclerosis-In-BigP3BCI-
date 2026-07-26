@@ -21,7 +21,11 @@ Second, a cohort can fail to identify a calibration slope at all: too few record
 probability that never varies, or outcomes that are perfectly separated. Every one of those returns
 a finite, plausible-looking estimate from the fitter, with a standard error tight enough to earn
 real weight in the pooling. Each is detected explicitly and returned as NaN, because a fabricated
-slope with a tight standard error does more damage to the pooled estimate than a missing one.
+slope with a tight standard error does more damage to the pooled estimate than a missing one. The
+converse case is guarded the same way: a cohort the model reproduces exactly has residuals of zero,
+which collapses the clustered sandwich and the quasi-binomial dispersion to floating-point dust
+rather than to zero, so a positivity check alone would let through a standard error of 4e-16 and let
+one cohort set the pooled estimate by itself.
 
 A third standard-error option scales the model-based errors by the square root of the Pearson
 dispersion, the quasi-binomial correction. It absorbs excess variance without needing to know where
@@ -65,6 +69,17 @@ FITTED_BOUNDARY = 1e-6
 # check while taking essentially the entire weight in the pooling. This threshold sits seven orders
 # of magnitude below the smallest real value and more than twenty above the degenerate one.
 MINIMUM_DISPERSION = 1e-8
+
+# Smallest standard error that can come from a real fit rather than a degenerate one. A cohort whose
+# fitted proportions reproduce the observed ones has residuals of zero, and the clustered sandwich is
+# a sum of one outer product of cluster scores, so it collapses: the slope standard error comes back
+# at 4e-16 rather than at 0, which passes a positivity check while carrying weight 8e30 in an
+# inverse-variance pooling and setting the pooled estimate by itself. The same collapse is possible
+# under the model-based specification. Across the eighteen real cohorts the smallest standard error
+# of any parameter under any specification is 0.058, so this floor sits six orders of magnitude below
+# real data and seven above the degenerate case. It does not fire on the current predictions file;
+# it exists because analyses that subset within a cohort make an exactly fitting cohort reachable.
+MINIMUM_STANDARD_ERROR = 1e-8
 
 # statsmodels 0.14 does not raise on a non-identified binomial fit, it warns, so PerfectSeparationError
 # is retained only for older versions and for the discrete models that do still raise. The warning
@@ -183,7 +198,9 @@ def _fit_cohort(study: object, group: pd.DataFrame, se_method: str) -> dict[str,
     # weight in the pooling but does add one to k, and k enters tau squared through (Q - (k-1)).
     if fitted.min() <= FITTED_BOUNDARY or fitted.max() >= 1.0 - FITTED_BOUNDARY:
         return entry
-    if not (np.all(np.isfinite(parameters)) and np.all(np.isfinite(errors)) and np.all(errors > 0)):
+    if not np.all(np.isfinite(parameters)) or not np.all(np.isfinite(errors)):
+        return entry
+    if not np.all(errors > MINIMUM_STANDARD_ERROR):
         return entry
 
     entry.update(
