@@ -13,13 +13,37 @@ from bigp3_als.heterogeneity import cohort_calibration, random_effects
 def _predictions(seed: int = 0) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     rows = []
-    for study, slope in (("StudyA", 1.0), ("StudyB", 1.0)):
+    for study in ("StudyA", "StudyB"):
         for index in range(40):
             p = float(np.clip(rng.uniform(0.3, 0.95), 0.01, 0.99))
             n = 20
-            rows.append({"held_out_study": study, "n": n,
+            rows.append({"held_out_study": study,
+                         "study_participant_id": f"{study}:P{index % 10:02d}", "n": n,
                          "correct": rng.binomial(n, p), "predicted_probability": p})
     return pd.DataFrame(rows)
+
+
+def _repeated_within_participant(seed: int = 3) -> pd.DataFrame:
+    """One cohort where every participant contributes eight records at one predicted probability.
+
+    Each participant also carries a persistent accuracy offset, so residuals correlate inside a
+    participant. This is the structure of the real predictions file, where conditions recorded in
+    one session share an identical predicted probability.
+    """
+    rng = np.random.default_rng(seed)
+    rows = []
+    for participant in range(12):
+        p = float(rng.uniform(0.35, 0.9))
+        truth = float(np.clip(p + (0.08 if participant % 2 else -0.08), 0.02, 0.98))
+        for _ in range(8):
+            rows.append({"held_out_study": "StudyA",
+                         "study_participant_id": f"StudyA:P{participant:02d}", "n": 20,
+                         "correct": int(rng.binomial(20, truth)), "predicted_probability": p})
+    return pd.DataFrame(rows)
+
+
+def _cohort(**columns: object) -> pd.DataFrame:
+    return pd.DataFrame(columns)
 
 
 def test_cohort_calibration_returns_one_row_per_cohort_with_standard_errors() -> None:
@@ -28,13 +52,14 @@ def test_cohort_calibration_returns_one_row_per_cohort_with_standard_errors() ->
     assert list(result["held_out_study"]) == ["StudyA", "StudyB"]
     assert (result["slope_se"] > 0).all()
     assert (result["intercept_se"] > 0).all()
+    assert set(result["se_method"]) == {"cluster"}
 
 
 def test_calibration_slope_is_near_one_when_predictions_are_correct() -> None:
     result = cohort_calibration(_predictions())
 
     for _, row in result.iterrows():
-        assert row["slope"] == pytest.approx(1.0, abs=0.45)
+        assert row["slope"] == pytest.approx(1.0, abs=0.15)
 
 
 def test_random_effects_reports_no_heterogeneity_for_identical_estimates() -> None:
@@ -70,3 +95,189 @@ def test_prediction_interval_is_wider_than_the_confidence_interval() -> None:
 def test_random_effects_refuses_a_single_study() -> None:
     with pytest.raises(ValueError, match="at least two"):
         random_effects(pd.Series([1.0]), pd.Series([0.1]))
+
+
+def test_random_effects_matches_values_computed_by_hand() -> None:
+    """Estimates 1, 2 and 6 with standard errors 1, 1 and 2, worked through in exact fractions.
+
+    Inverse-variance weights 1, 1 and 1/4 sum to 9/4 and give a fixed-effect mean of exactly 2, so
+    Q = 1 + 0 + 4 = 5. With squared weights summing to 33/16, C = 9/4 - (33/16)/(9/4) = 4/3, and
+    tau squared = (5 - 2)/(4/3) = 9/4. Random-effects weights 4/13, 4/13 and 4/25 then give a
+    pooled estimate of 17/7 and a pooled variance of 325/252. The unequal weights are what make
+    this discriminating: the fixed-effect mean is 2 while the random-effects mean is 17/7, so a
+    summary that centres Q on the wrong mean, or that pools with fixed-effect weights, fails here.
+    """
+    summary = random_effects(pd.Series([1.0, 2.0, 6.0]), pd.Series([1.0, 1.0, 2.0]))
+
+    assert summary["q_statistic"] == pytest.approx(5.0, abs=1e-9)
+    assert summary["tau_squared"] == pytest.approx(2.25, abs=1e-9)
+    assert summary["tau"] == pytest.approx(1.5, abs=1e-9)
+    assert summary["i_squared"] == pytest.approx(60.0, abs=1e-9)
+    assert summary["pooled"] == pytest.approx(17.0 / 7.0, abs=1e-9)
+    assert summary["pooled_se"] == pytest.approx(1.1356419064487449, abs=1e-9)
+    assert summary["q_p_value"] == pytest.approx(np.exp(-2.5), abs=1e-9)
+    assert summary["n_studies"] == 3.0
+
+
+def test_prediction_interval_half_width_is_exactly_the_published_formula() -> None:
+    """Pinned exactly, because a one-sided comparison against the confidence interval gets easier
+    to satisfy as the pooled standard error shrinks, which is the case it looks like it guards.
+
+    On the fixture above, t(0.975, df=2) has the closed form sqrt(722/39), because the t
+    distribution with two degrees of freedom has cumulative distribution
+    1/2 + t / (2 sqrt(2 + t squared)). The half-width is that critical value times
+    sqrt(tau squared + pooled variance) = sqrt(223/63), so it equals
+    sqrt(722/39 * 223/63) = sqrt(161006/2457) = 8.095029804114835.
+    """
+    summary = random_effects(pd.Series([1.0, 2.0, 6.0]), pd.Series([1.0, 1.0, 2.0]))
+
+    expected_half_width = float(np.sqrt(161006.0 / 2457.0))
+    assert expected_half_width == pytest.approx(8.095029804114835, abs=1e-9)
+    assert summary["prediction_interval_high"] - summary["pooled"] == pytest.approx(
+        expected_half_width, abs=1e-9
+    )
+    assert summary["pooled"] - summary["prediction_interval_low"] == pytest.approx(
+        expected_half_width, abs=1e-9
+    )
+    assert summary["prediction_interval_low"] == pytest.approx(-5.666458375543407, abs=1e-9)
+    assert summary["prediction_interval_high"] == pytest.approx(10.523601232686264, abs=1e-9)
+
+
+def test_random_effects_reports_the_cohorts_it_dropped() -> None:
+    labels = ["StudyA", "StudyB", "StudyC", "StudyD"]
+    summary = random_effects(
+        pd.Series([1.0, 1.2, np.nan, 0.9], index=labels),
+        pd.Series([0.1, 0.2, 0.3, 0.0], index=labels),
+    )
+
+    assert summary["dropped_labels"] == ("StudyC", "StudyD")
+    assert summary["n_dropped"] == 2.0
+    assert summary["n_studies"] == 2.0
+
+
+def test_counts_enter_as_grouped_binomial_trials_not_as_proportions() -> None:
+    """Quadrupling every count must leave the slope alone and halve the standard errors.
+
+    A proportion endog would carry no information about how many selections each record summarises,
+    so the standard errors would not move at all.
+    """
+    records = _cohort(
+        held_out_study=["S"] * 6, study_participant_id=[f"S:P{index}" for index in range(6)],
+        n=[10] * 6, correct=[2, 5, 4, 7, 6, 9],
+        predicted_probability=[0.3, 0.4, 0.5, 0.6, 0.7, 0.9],
+    )
+    quadrupled = records.assign(n=records["n"] * 4, correct=records["correct"] * 4)
+
+    base = cohort_calibration(records, se_method="model").iloc[0]
+    scaled = cohort_calibration(quadrupled, se_method="model").iloc[0]
+
+    assert scaled["slope"] == pytest.approx(base["slope"], abs=1e-10)
+    assert scaled["intercept"] == pytest.approx(base["intercept"], abs=1e-10)
+    assert scaled["slope_se"] == pytest.approx(base["slope_se"] / 2.0, rel=1e-9)
+    assert scaled["intercept_se"] == pytest.approx(base["intercept_se"] / 2.0, rel=1e-9)
+
+
+def test_clustering_widens_standard_errors_without_moving_the_estimates() -> None:
+    """Repeated records from one participant are not independent draws, and treating them as
+    independent understates the within-cohort variance, which inflates tau squared."""
+    records = _repeated_within_participant()
+
+    clustered = cohort_calibration(records, se_method="cluster").iloc[0]
+    model_based = cohort_calibration(records, se_method="model").iloc[0]
+
+    assert clustered["slope"] == pytest.approx(model_based["slope"], abs=1e-12)
+    assert clustered["intercept"] == pytest.approx(model_based["intercept"], abs=1e-12)
+    assert clustered["slope_se"] > 1.5 * model_based["slope_se"]
+    assert clustered["intercept_se"] > 1.5 * model_based["intercept_se"]
+    assert clustered["se_method"] == "cluster"
+    assert model_based["se_method"] == "model"
+
+
+def test_clustering_requires_a_participant_column() -> None:
+    records = _predictions().drop(columns=["study_participant_id"])
+
+    with pytest.raises(ValueError, match="study_participant_id"):
+        cohort_calibration(records)
+
+    assert not cohort_calibration(records, se_method="model")["slope"].isna().any()
+
+
+def test_unknown_standard_error_method_is_rejected() -> None:
+    with pytest.raises(ValueError, match="se_method"):
+        cohort_calibration(_predictions(), se_method="robust")
+
+
+def test_a_constant_predictor_yields_no_estimate() -> None:
+    """The slope is not identified when the predicted probability never varies, yet the fitter
+    still returns an arbitrary split of the one quantity that is identified, their sum."""
+    records = _cohort(
+        held_out_study=["S"] * 4, study_participant_id=[f"S:P{index}" for index in range(4)],
+        n=[20] * 4, correct=[16, 15, 17, 16], predicted_probability=[0.8] * 4,
+    )
+
+    for method in ("cluster", "model"):
+        row = cohort_calibration(records, se_method=method).iloc[0]
+        assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+        assert np.isnan(row["intercept"]) and np.isnan(row["intercept_se"])
+        assert row["n_records"] == 4
+
+
+def test_a_cohort_without_residual_degrees_of_freedom_yields_no_estimate() -> None:
+    single = _cohort(held_out_study=["S"], study_participant_id=["S:P0"], n=[20], correct=[15],
+                     predicted_probability=[0.8])
+    saturated = _cohort(held_out_study=["S"] * 2, study_participant_id=["S:P0", "S:P1"],
+                        n=[20, 20], correct=[15, 18], predicted_probability=[0.7, 0.9])
+
+    for records in (single, saturated):
+        for method in ("cluster", "model"):
+            row = cohort_calibration(records, se_method=method).iloc[0]
+            assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+            assert np.isnan(row["intercept"]) and np.isnan(row["intercept_se"])
+
+
+def test_a_cohort_with_one_participant_yields_no_clustered_estimate() -> None:
+    """A clustered covariance is a sum of one outer product per participant, so a single
+    participant cannot support it. statsmodels divides by the number of clusters minus one and
+    raises ZeroDivisionError, which would otherwise abort the whole pass. The same cohort is still
+    estimable without clustering, which is what the model-based sensitivity is for.
+    """
+    records = _cohort(
+        held_out_study=["S"] * 4, study_participant_id=["S:P0"] * 4, n=[20] * 4,
+        correct=[12, 13, 17, 16], predicted_probability=[0.6, 0.6, 0.85, 0.85],
+    )
+
+    clustered = cohort_calibration(records, se_method="cluster").iloc[0]
+    assert np.isnan(clustered["slope"]) and np.isnan(clustered["slope_se"])
+
+    model_based = cohort_calibration(records, se_method="model").iloc[0]
+    assert np.isfinite(model_based["slope"]) and model_based["slope_se"] > 0
+
+
+def test_a_separated_cohort_yields_no_estimate() -> None:
+    """Every selection correct drives the estimate to the boundary. The fitter returns a slope of
+    about zero with a standard error in the tens of thousands, which carries no weight but would
+    still add one to k, and k enters tau squared through (Q - (k-1))."""
+    records = _cohort(
+        held_out_study=["S"] * 5, study_participant_id=[f"S:P{index}" for index in range(5)],
+        n=[20] * 5, correct=[20] * 5, predicted_probability=[0.6, 0.7, 0.8, 0.9, 0.75],
+    )
+
+    for method in ("cluster", "model"):
+        row = cohort_calibration(records, se_method=method).iloc[0]
+        assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+
+
+def test_a_cohort_the_model_happens_to_fit_exactly_is_kept() -> None:
+    """statsmodels warns about perfect separation whenever the fitted proportions reproduce the
+    observed ones, which is also true of a small identified cohort. That warning must not be read
+    as a failure to identify."""
+    records = _cohort(
+        held_out_study=["S"] * 6, study_participant_id=[f"S:P{index}" for index in range(6)],
+        n=[10] * 6, correct=[3, 4, 5, 6, 7, 9],
+        predicted_probability=[0.3, 0.4, 0.5, 0.6, 0.7, 0.9],
+    )
+
+    row = cohort_calibration(records, se_method="model").iloc[0]
+
+    assert row["slope"] == pytest.approx(1.0, abs=1e-9)
+    assert row["slope_se"] == pytest.approx(0.3572791652, abs=1e-9)
