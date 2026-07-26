@@ -527,29 +527,42 @@ def main() -> None:
     parser.add_argument("--output-directory", type=Path, default=Path("output/expanded"))
     arguments = parser.parse_args()
 
-    calibration = cohort_calibration(pd.read_csv(arguments.predictions))
-    for column, estimate, error in (("slope", "slope", "slope_se"), ("intercept", "intercept", "intercept_se")):
-        critical = stats.norm.ppf(0.975)
-        calibration[f"{column}_ci_low"] = calibration[estimate] - critical * calibration[error]
-        calibration[f"{column}_ci_high"] = calibration[estimate] + critical * calibration[error]
-    calibration.to_csv(arguments.output_directory / "cohort_calibration.csv", index=False)
+    predictions = pd.read_csv(arguments.predictions)
+    critical = stats.norm.ppf(0.975)
+    summary: dict[str, object] = {}
+    tables = []
 
-    summary = {
-        "slope": random_effects(calibration["slope"], calibration["slope_se"]),
-        "intercept": random_effects(calibration["intercept"], calibration["intercept_se"]),
-        "naive_slope_sd": float(calibration["slope"].std(ddof=1)),
-        "naive_intercept_sd": float(calibration["intercept"].std(ddof=1)),
-    }
+    # Both specifications are computed. Cluster-robust is primary because the 739 records come from
+    # 271 participants and conditions within a session share a predicted probability, so the
+    # model-based standard errors understate the within-cohort variance and inflate tau-squared.
+    for specification in ("cluster", "model"):
+        calibration = cohort_calibration(predictions, standard_errors=specification)
+        for column in ("slope", "intercept"):
+            calibration[f"{column}_ci_low"] = calibration[column] - critical * calibration[f"{column}_se"]
+            calibration[f"{column}_ci_high"] = calibration[column] + critical * calibration[f"{column}_se"]
+        tables.append(calibration)
+        summary[specification] = {
+            "slope": random_effects(calibration["slope"], calibration["slope_se"]),
+            "intercept": random_effects(calibration["intercept"], calibration["intercept_se"]),
+            "naive_slope_sd": float(calibration["slope"].std(ddof=1)),
+            "naive_intercept_sd": float(calibration["intercept"].std(ddof=1)),
+            "n_cohorts_fitted": int(calibration["slope"].notna().sum()),
+        }
+
+    pd.concat(tables, ignore_index=True).to_csv(
+        arguments.output_directory / "cohort_calibration.csv", index=False
+    )
     (arguments.output_directory / "heterogeneity_summary.json").write_text(
         json.dumps(summary, indent=2) + "\n"
     )
 
-    for name in ("slope", "intercept"):
-        s = summary[name]
-        print(f"{name}: pooled {s['pooled']:.3f}, tau {s['tau']:.3f}, I2 {s['i_squared']:.1f}%, "
-              f"Q p {s['q_p_value']:.2e}, PI [{s['prediction_interval_low']:.3f}, "
-              f"{s['prediction_interval_high']:.3f}]")
-    print(f"naive slope SD {summary['naive_slope_sd']:.3f} vs tau {summary['slope']['tau']:.3f}")
+    for specification in ("cluster", "model"):
+        for name in ("slope", "intercept"):
+            s = summary[specification][name]
+            print(f"{specification:8s} {name:9s} pooled {s['pooled']:.3f}, tau {s['tau']:.3f}, "
+                  f"I2 {s['i_squared']:.1f}%, Q p {s['q_p_value']:.2e}, "
+                  f"PI [{s['prediction_interval_low']:.3f}, {s['prediction_interval_high']:.3f}]")
+        print(f"{specification:8s} naive slope SD {summary[specification]['naive_slope_sd']:.3f}")
 
 
 if __name__ == "__main__":
@@ -562,11 +575,19 @@ Run: `UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 uv run python sc
 
 - [ ] **Step 3: Write the verdict document**
 
-Create `docs/heterogeneity_verdict.md` recording tau, I-squared, the Q test, the prediction interval, and the naive standard deviation, then state which of these three the data support. **This decides the paper's headline. Do not write the Results until it is written down.**
+Create `docs/heterogeneity_verdict.md` recording, **for both specifications**, tau, I-squared, the Q test, the prediction interval, and the naive standard deviation, then state which of these three the data support. **This decides the paper's headline. Do not write the Results until it is written down.**
+
+Apply the thresholds to the **cluster-robust** numbers, which are primary. Report the model-based numbers beside them as a sensitivity and state plainly that they are the more favourable of the two and why.
 
 - **Heterogeneity confirmed** (`I2 > 75%`, `Q p < 0.01`, slope prediction interval excluding a useful range): the current claim stands. Report tau and I-squared instead of the naive standard deviation everywhere.
 - **Heterogeneity moderate** (`I2` 40 to 75%): soften to "calibration varied across cohorts beyond what sampling error explains, though the between-cohort variance is imprecisely estimated". Title becomes the reviewer's suggested wording.
 - **Heterogeneity not established** (`I2 < 40%` or `Q p > 0.05`): **the paper's headline is wrong.** Retitle to the association finding, move calibration variability to a limitation, and state plainly that the observed spread of cohort slopes is compatible with sampling error. Flag this to the author before writing further.
+
+Two things must be recorded explicitly whatever the verdict:
+
+1. **Whether the slope prediction interval includes zero, and whether that answer differs between specifications.** On the pre-fix numbers it did differ: model-based gave [-0.122, 2.256] and cluster-robust [0.111, 2.005]. A sentence such as "we cannot exclude that the score carries no calibration information in a new cohort" is defensible only if the interval includes zero under the primary specification. Do not write it on the strength of the model-based interval alone.
+
+2. **Any cohort that failed to fit** and therefore did not enter the pooling, by name and with the reason. `random_effects` returns the dropped labels for this purpose. The manuscript must not say 18 cohorts while the pooling used fewer.
 
 - [ ] **Step 4: Commit**
 
