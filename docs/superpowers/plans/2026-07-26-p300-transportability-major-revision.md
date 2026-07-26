@@ -987,11 +987,20 @@ Expected: PASS.
 
 - [ ] **Step 5: Fix the two false sentences**
 
+The original sentence was wrong in two ways, not one. It named the wrong benchmark, and after the decimation correction the count is wrong as well. Both benchmarks were recomputed from the regenerated `output/expanded/null_benchmark.csv` and `external_validation_metrics.csv`:
+
+- Against the **development-mean** benchmark, which is what `skill` is actually computed against: negative in **1 of 18** cohorts, StudyH at -0.268. It was 2 of 18 before the correction.
+- Against **each cohort's own mean**: negative in **6 of 18** cohorts, StudyH -0.408, StudyJ -0.008, StudyE -0.286, StudyR -0.263, StudyS2 -0.363, StudyS1 -7.090.
+
+The two counts differ because a cohort's own mean is a much harder target in a near-ceiling cohort. StudyS1 is the extreme case: its own-mean error is 0.005, so any departure produces a large negative ratio. Do not report -7.090 as though it were commensurable with the others; describe it as a ceiling artifact.
+
 In `manuscript/manuscript_expanded.md`, replace the Results mini-headline at line 120:
 
-> **In two cohorts the calibration score estimated accuracy less well than the development-mean benchmark.** Skill against that benchmark was negative in two of 18 cohorts and positive in the remainder (Figure 2). Skill against each cohort's own mean is reported for every cohort in Table 2.
+> **One cohort was estimated less accurately than the development-mean benchmark, and six were estimated less accurately than their own cohort mean.** Skill against the development-mean benchmark was negative in one of 18 cohorts and positive in the remainder (Figure 2). Against the stricter benchmark of each cohort's own mean, skill was negative in six of 18, most severely in cohorts whose accuracy sits near ceiling, where the own-mean benchmark leaves almost no error to reduce.
 
-and in the Discussion at line 144 replace "in two cohorts the score estimated accuracy less well than that cohort's own mean" with "in two cohorts the score estimated accuracy less well than the development-mean benchmark".
+and in the Discussion at line 144 replace "in two cohorts the score estimated accuracy less well than that cohort's own mean" with "in one cohort the score estimated accuracy less well than the development-mean benchmark, and in six it estimated accuracy less well than that cohort's own mean".
+
+This changes a count that appears in three places. Grep for "two of 18", "two cohorts", and "2 of 18" across `manuscript/manuscript_expanded.md` and `supplementary/supplement_expanded.md` and fix every occurrence that refers to negative skill, including the Figure 2 caption. Leave occurrences that refer to something else alone.
 
 - [ ] **Step 6: Regenerate outputs and commit**
 
