@@ -2,7 +2,25 @@
 
 *Journal of Neural Engineering, Paper*
 
-**Authors, affiliations, corresponding author, funding, competing interests, and CRediT roles:** [to be completed by submitting authors]
+**Authors:** Alon Gorenshtein, MD^1,2^; Yosef Adiniaev^2^; Mahmud Omar, MD^2,3^; Yiftach Barash, MD^2,4^; Eyal Klang, MD^2,4^; Oved Daniel, MD^5^
+
+**Affiliations:**
+
+1. Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School
+2. BRIDGE GenAI Lab, Beth Israel Deaconess Medical Center
+3. The Windreich Department of Artificial Intelligence and Human Health, Icahn School of Medicine at Mount Sinai, New York
+4. Department of Radiology, Beth Israel Deaconess Medical Center, Harvard Medical School
+5. Neurology Division, Tel Aviv Sourasky University Medical Center
+
+**Address correspondence to:** Alon Gorenshtein, MD, Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School (agorensh@bidmc.harvard.edu).
+
+**Funding:** None.
+
+**Competing interests:** None declared.
+
+**Ethics approval:** Institutional review board approval was not required; the determination is stated in full in the Methods, under Ethics.
+
+**CRediT author contributions:** [CREDIT ROLES TO BE ASSIGNED BY THE SUBMITTING AUTHORS]
 
 ## Abstract
 
@@ -96,7 +114,7 @@ The significance threshold was P < .05, two-sided. Analyses used Python 3.11 wit
 
 ### Ethics
 
-The study involved no new data collection, participant contact, or intervention. The original source studies' ethics and consent statements are reported in the archive documentation. The submitting institution must confirm its own determination for this secondary analysis of a de-identified public archive.
+This was a secondary analysis of BigP3BCI version 1.0.0 (doi:10.13026/0byy-ry86), a publicly available, fully de-identified archive. It involved no new data collection, no participant contact, and no intervention, and institutional review board approval was therefore not required. The original source studies' ethics approvals and consent statements are reported in the archive documentation.
 
 ### What the Calibration Score Is, and What It Is Not
 
@@ -278,7 +296,7 @@ In 18 independent P300-speller cohorts, calibration-derived decoder discriminabi
 
 ## Data and Code Availability
 
-BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at [REPOSITORY URL TO BE INSERTED BY THE SUBMITTING AUTHORS]. The archive is not redistributed.
+BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/study_bigp3_als_calibration. The archive is not redistributed.
 
 ## References
 

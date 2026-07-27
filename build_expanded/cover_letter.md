@@ -1,5 +1,7 @@
 # Cover letter
 
+27 July 2026
+
 Re: Submission of “Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts” as a Paper
 
 Dear Editors of *Journal of Neural Engineering*,
@@ -20,8 +22,8 @@ We thank the editors for their time and consideration. The work has not been sub
 
 Sincerely,
 
-[Submitting author name, degree]
+Alon Gorenshtein, MD
 
-[Institution, department]
+Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School
 
-[Corresponding-author email]
+agorensh@bidmc.harvard.edu

@@ -28,6 +28,13 @@ COMPARATOR_TABLE = REPOSITORY / "output" / "expanded" / "comparator_metrics.csv"
 needs_sensitivity_table = pytest.mark.skipif(
     not SENSITIVITY_TABLE.exists(), reason="run scripts/07_run_sensitivity.py first"
 )
+# The manuscript sources live outside the published code repository, so the one test that reads
+# the supplement skips on a checkout that carries the code without it.
+SUPPLEMENT_SOURCE = REPOSITORY / "supplementary" / "supplement_expanded.md"
+needs_supplement_source = pytest.mark.skipif(
+    not SUPPLEMENT_SOURCE.exists(),
+    reason="the supplement source is not distributed with the code repository",
+)
 needs_comparator_table = pytest.mark.skipif(
     not COMPARATOR_TABLE.exists(), reason="run scripts/11_run_comparators.py first"
 )
@@ -203,6 +210,7 @@ def test_leave_two_studies_out_drops_records_missing_the_primary_feature(
     assert row["n_records"] == len(records) - 2
 
 
+@needs_supplement_source
 def test_supplement_table_s6_has_a_row_for_every_specification() -> None:
     """Guard the supplement's claim, on tracked files, so it holds on a fresh checkout.
 
