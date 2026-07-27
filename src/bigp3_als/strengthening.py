@@ -7,10 +7,13 @@ analyses here supply the reference points a reader needs.
 ``null_benchmark`` reports two no-predictor benchmarks, each named for the comparison it makes. The
 development-mean benchmark estimates every held-out record at the development-set mean accuracy,
 which is what a deployment without local data would have. The held-out-cohort-mean benchmark
-estimates every held-out record at that cohort's own mean, which no deployment would know; it is the
-stricter target, and beating it means the model is ranking participants inside a cohort rather than
-only tracking differences between cohorts. The skill reported elsewhere is computed against the
-development-mean benchmark, not against the cohort's own mean.
+estimates every held-out record at that cohort's own mean, which no deployment would know; beating it
+means the model is ranking participants inside a cohort rather than only tracking differences between
+cohorts. Pooled it is the harder of the two, but that does not hold cohort by cohort: mean absolute
+error is minimised by the median rather than the mean, so a cohort's own mean carries no guarantee
+against any other constant, and in this archive it is the easier target in 7 of 18 cohorts. The skill
+reported elsewhere is computed against the development-mean benchmark, not against the cohort's own
+mean.
 
 ``within_study_association`` removes each study's mean from both the predictor and the outcome. If
 the association survives that, it is not an artefact of studies differing in both difficulty and

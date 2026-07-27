@@ -71,15 +71,27 @@ def test_benchmark_columns_are_named_for_the_comparison_they_make() -> None:
     assert not any("oracle" in c for c in result.columns)
 
 
-def test_own_mean_benchmark_never_exceeds_the_development_mean_benchmark_within_a_study() -> None:
-    result = null_benchmark(_records())
-    per_study = result.loc[result["held_out_study"] != "Pooled held-out records"]
+def test_a_cohorts_own_mean_can_be_the_worse_absolute_error_benchmark() -> None:
+    """The own-mean benchmark is not guaranteed to beat the development mean.
 
-    # Estimating a study at its own mean cannot be worse than estimating it at another mean.
+    Mean absolute error is minimised by the median, not the mean, so estimating a cohort at its own
+    mean can be worse than estimating it at some other constant. A skewed held-out cohort shows this
+    directly, and the production data behaves the same way in 7 of its 18 cohorts, so no test here
+    may assert the ordering as an invariant.
+    """
+    rows = []
+    for correct in (5, 9, 9, 9):  # accuracies 0.5, 0.9, 0.9, 0.9: mean 0.8, median 0.9
+        rows.append({"study": "StudyF", "n": 10, "correct": correct, "calibration_auc": 0.7})
+    for _ in range(4):  # development cohort sits at 0.9, which is the held-out cohort's median
+        rows.append({"study": "StudyL", "n": 10, "correct": 9, "calibration_auc": 0.7})
+
+    held_out = null_benchmark(pd.DataFrame(rows)).set_index("held_out_study").loc["StudyF"]
+
+    assert held_out["development_mean_benchmark_mae"] == pytest.approx(0.10)
+    assert held_out["held_out_cohort_mean_benchmark_mae"] == pytest.approx(0.15)
     assert (
-        per_study["held_out_cohort_mean_benchmark_mae"]
-        <= per_study["development_mean_benchmark_mae"] + 1e-12
-    ).all()
+        held_out["held_out_cohort_mean_benchmark_mae"] > held_out["development_mean_benchmark_mae"]
+    )
 
 
 def test_null_benchmark_is_zero_when_every_record_sits_at_the_common_mean() -> None:

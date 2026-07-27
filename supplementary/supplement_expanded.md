@@ -97,14 +97,46 @@ Artifact rejection had a median of 0.002 across records, but 110 of 739 records 
 
 Observed session-condition accuracy was at 100% in 228 of 739 records (30.9%). Three cohorts had mean accuracy at or above 0.96, where there is little variation to estimate.
 
-## S7. Comparator predictors
+## S7. The two no-predictor benchmarks, per cohort
+
+Skill in the main text is computed against the development-mean benchmark, which estimates every withheld record at the development-set mean accuracy. A second benchmark estimates every withheld record at that cohort's own mean, which no deployment would know. The two are different comparisons and give different counts of cohorts with negative skill, so both are given here per cohort.
+
+Pooled, the own-mean benchmark is the harder of the two, at 0.123 against 0.146. That ordering does not hold cohort by cohort. Mean absolute error is minimised by the median rather than the mean, so a cohort's own mean is not guaranteed to beat any other constant, and it is in fact the easier target in Study A, Study F, Study K, Study L, Study M, Study N and Study Q.
+
+Skill against the development mean is negative in one cohort, Study H. Skill against the cohort's own mean is negative in six: Study E, Study H, Study J, Study R, Study S1 and Study S2. Study S1's value is an artefact of a near-zero denominator rather than a comparable failure, because its own-mean benchmark errs by 0.005; it is reported for completeness and should not be read on the same scale as the others.
+
+**Table S5. Model error against both no-predictor benchmarks, by withheld cohort.** ALS cohorts are listed first. Skill is one minus the ratio of the model's mean absolute error to that benchmark's.
+
+| Cohort | Mean observed accuracy | Model MAE | Development-mean benchmark MAE | Skill vs development mean | Own-mean benchmark MAE | Skill vs own mean |
+|---|---:|---:|---:|---:|---:|---:|
+| Study B | 0.899 | 0.108 | 0.158 | 0.317 | 0.132 | 0.185 |
+| Study F | 0.778 | 0.101 | 0.203 | 0.502 | 0.221 | 0.543 |
+| Study L | 0.839 | 0.084 | 0.137 | 0.383 | 0.140 | 0.397 |
+| Study N | 0.694 | 0.124 | 0.226 | 0.448 | 0.228 | 0.454 |
+| Study A | 0.786 | 0.126 | 0.173 | 0.271 | 0.178 | 0.291 |
+| Study D | 0.896 | 0.056 | 0.092 | 0.394 | 0.071 | 0.211 |
+| Study E | 0.921 | 0.063 | 0.079 | 0.205 | 0.049 | -0.286 |
+| Study G | 0.886 | 0.066 | 0.113 | 0.417 | 0.099 | 0.336 |
+| Study H | 0.877 | 0.153 | 0.121 | -0.268 | 0.109 | -0.407 |
+| Study I | 0.658 | 0.172 | 0.226 | 0.236 | 0.208 | 0.171 |
+| Study J | 0.708 | 0.186 | 0.187 | 0.003 | 0.185 | -0.008 |
+| Study K | 0.750 | 0.173 | 0.193 | 0.104 | 0.206 | 0.160 |
+| Study M | 0.823 | 0.121 | 0.134 | 0.093 | 0.138 | 0.118 |
+| Study O | 0.884 | 0.067 | 0.081 | 0.181 | 0.070 | 0.046 |
+| Study Q | 0.820 | 0.058 | 0.096 | 0.394 | 0.099 | 0.409 |
+| Study R | 0.963 | 0.059 | 0.131 | 0.547 | 0.047 | -0.263 |
+| Study S1 | 0.997 | 0.043 | 0.151 | 0.717 | 0.005 | -7.090 |
+| Study S2 | 0.976 | 0.048 | 0.141 | 0.657 | 0.035 | -0.363 |
+| Pooled | 0.851 | 0.098 | 0.146 | 0.327 | 0.123 | 0.203 |
+
+## S8. Comparator predictors
 
 Comparator scores were computed from the identical calibration epochs and evaluated under the identical withheld-cohort protocol: regularised linear discriminant analysis area under the curve, grouped cross-validated classification accuracy, mean target-minus-non-target amplitude at Pz between 250 and 500 ms, the same contrast averaged over six posterior channels, and the maximum posterior signed r-squared.
 
-## S8. Reproducibility
+## S9. Reproducibility
 
 The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, and sensitivity analyses. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_moderation.csv`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json` and `sensitivity_analyses.csv`. The repository test suite contains 41 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, and rendering.
 
-## S9. Transparency statement
+## S10. Transparency statement
 
 The study involved no new data collection, participant contact, prospective enrolment, or intervention. It does not establish a diagnostic, prognostic, causal, or treatment effect. Character-level online selection accuracy is an operational endpoint and should not be presented as communication success, quality of life, or a clinical outcome. The source studies vary in protocol, and the archive does not permit cross-study person-level linkage. Four source studies carry a documented ALS population; the remaining cohorts are described as other cohorts because the documentation does not support a positive characterisation, and no participant-level clinical characteristics were available.
