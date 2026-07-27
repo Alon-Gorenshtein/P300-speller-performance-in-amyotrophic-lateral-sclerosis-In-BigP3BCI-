@@ -6,3 +6,5 @@
 - `figures/figure_1_study_flow.*`: cohort and validation design flow.
 - `figures/figure_2_calibration_relationship.*`: calibration discriminability against observed and held-out predicted online accuracy.
 - `figures/figure_3_external_validation_auc.*`: held-out-study and pooled primary-model discrimination.
+- `sensitivity_analyses.csv`: the prespecified sensitivity analyses, one row each, including leave-two-studies-out development.
+- `comparator_metrics.csv`: withheld-cohort performance of every prespecified predictor, with the exploratory specification and the primary score run on its restricted records.

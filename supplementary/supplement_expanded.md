@@ -54,15 +54,15 @@ The participant-cluster bootstrap used 2,000 deterministic replicates. In each r
 
 The study-level summary treats the source study as the unit of replication. The withheld-cohort estimates were summarised by their mean and between-study standard deviation, with a t-distributed interval for the mean on k - 1 degrees of freedom and a prediction interval for an unrepresented cohort computed as the mean plus or minus t times the between-study standard deviation times the square root of one plus one over k.
 
-**Table S2. Study-level summaries.**
+**Table S2. Study-level summaries.** The calibration intercept and slope rows are the uncorrected summary of the 18 cohort estimates, which counts each cohort's sampling error as though it were between-cohort variation. For those two quantities the main text reports the random-effects estimate tau instead, and the intervals here should not be read in its place.
 
 | Quantity | Mean across cohorts | Between-cohort SD | 95% interval for the mean | 95% interval for an unrepresented cohort |
 |---|---:|---:|---|---|
-| Mean absolute error | 0.104 | 0.048 | 0.080 to 0.128 | 0.001 to 0.208 |
-| Brier skill score | 0.167 | 0.210 | 0.063 to 0.271 | -0.287 to 0.621 |
-| Character-weighted AUC | 0.710 | 0.105 | 0.658 to 0.762 | 0.482 to 0.937 |
-| Calibration intercept | -0.078 | 1.073 | -0.612 to 0.456 | -2.405 to 2.249 |
-| Calibration slope | 1.167 | 0.586 | 0.875 to 1.458 | -0.104 to 2.437 |
+| Mean absolute error | 0.101 | 0.047 | 0.077 to 0.124 | -0.002 to 0.203 |
+| Brier skill score | 0.174 | 0.217 | 0.066 to 0.282 | -0.296 to 0.644 |
+| Character-weighted AUC | 0.713 | 0.102 | 0.662 to 0.764 | 0.491 to 0.935 |
+| Calibration intercept | -0.008 | 1.175 | -0.592 to 0.576 | -2.555 to 2.539 |
+| Calibration slope | 1.100 | 0.560 | 0.822 to 1.379 | -0.113 to 2.313 |
 
 ## S5. Association at three levels
 
@@ -107,20 +107,23 @@ Session accuracy clustered within participant with an intraclass correlation of 
 
 ## S6. Sensitivity analyses
 
-**Table S4. Prespecified sensitivity analyses.** Each analysis re-runs the complete withheld-cohort procedure on the retained data.
+**Table S4. Prespecified sensitivity analyses.** Each analysis re-runs the complete withheld-cohort procedure on the retained data. In the last row every pair of cohorts is withheld together, so development runs on 16 cohorts rather than the 17 of the primary analysis; each cohort appears in 17 of the 153 pairs and its 17 estimates are averaged into a single value before the same across-cohort pooling is applied, because a pair shares a cohort with 32 other pairs and the pairs are not independent units. Every row therefore summarises 18 cohort-level values, or fewer where the analysis drops cohorts, and the columns carry the same meaning throughout.
 
 | Analysis | Cohorts | Mean absolute error | Between-cohort SD | Interval for an unrepresented cohort | Calibration-slope SD |
 |---|---:|---:|---:|---|---:|
-| Primary, all contributing cohorts | 18 | 0.104 | 0.048 | 0.001 to 0.208 | 0.586 |
-| Cohorts with outcome SD at least 0.10 | 12 | 0.129 | 0.042 | 0.034 to 0.224 | 0.674 |
-| Records with artifact rejection at most 20% | 18 | 0.084 | 0.033 | 0.012 to 0.157 | 0.438 |
-| Records with at least 10 eligible selections | 18 | 0.104 | 0.048 | 0.001 to 0.207 | 0.586 |
-| Cohorts without a documented ALS population | 14 | 0.104 | 0.052 | -0.012 to 0.219 | 0.716 |
-| ALS cohorts, prespecified primary subgroup | 4 | 0.101 | 0.025 | 0.013 to 0.189 | 0.204 |
+| Primary, all contributing cohorts | 18 | 0.101 | 0.047 | -0.002 to 0.203 | 0.560 |
+| Cohorts with outcome SD at least 0.10 | 12 | 0.124 | 0.042 | 0.029 to 0.220 | 0.601 |
+| Records with artifact rejection at most 20% | 18 | 0.087 | 0.035 | 0.011 to 0.164 | 0.465 |
+| Records with at least 10 eligible selections | 18 | 0.100 | 0.047 | -0.002 to 0.203 | 0.560 |
+| Cohorts without a documented ALS population | 14 | 0.101 | 0.052 | -0.015 to 0.216 | 0.663 |
+| ALS cohorts, prespecified primary subgroup | 4 | 0.093 | 0.016 | 0.035 to 0.151 | 0.223 |
+| Leave-two-studies-out development, 153 splits | 18 | 0.101 | 0.047 | -0.002 to 0.203 | 0.560 |
 
 Artifact rejection had a median of 0.002 across records, but 110 of 739 records exceeded 20% and the maximum was 0.97. The analysis restricted to records at or below 20% rejection is the only one in which both estimation error and calibration-slope variability improved.
 
 Observed session-condition accuracy was at 100% in 228 of 739 records (30.9%). Three cohorts had mean accuracy at or above 0.96, where there is little variation to estimate.
+
+The leave-two-studies-out row is indistinguishable from the primary row at the precision printed above, and that is the result rather than a rounding artefact. At four decimal places the mean absolute error is 0.1007 against 0.1006, its between-cohort standard deviation 0.0473 against 0.0472, and the uncorrected calibration-slope standard deviation 0.5599 against 0.5596. Removing one cohort from a development set of 17 neither raises the estimation error nor widens the between-cohort spread, so the transportability failure is not a consequence of the development set being too small at this scale. It says nothing about development sets much smaller than 16, which this design cannot examine while still leaving enough cohorts to withhold.
 
 ## S7. The two no-predictor benchmarks, per cohort
 
@@ -156,11 +159,34 @@ Skill against the development mean is negative in one cohort, Study H. Skill aga
 
 ## S8. Comparator predictors
 
-Comparator scores were computed from the identical calibration epochs and evaluated under the identical withheld-cohort protocol: regularised linear discriminant analysis area under the curve, grouped cross-validated classification accuracy, mean target-minus-non-target amplitude at Pz between 250 and 500 ms, the same contrast averaged over six posterior channels, and the maximum posterior signed r-squared.
+Comparator scores were computed from the identical calibration epochs and evaluated under the identical withheld-cohort protocol: regularised linear discriminant analysis area under the curve, grouped cross-validated classification accuracy, mean target-minus-non-target amplitude at Pz between 250 and 500 ms, the same contrast averaged over six posterior channels, and the maximum posterior signed r-squared. An exploratory specification adds ALSFRS-R to the primary score.
+
+**Table S6. Withheld-cohort performance of every prespecified predictor.** Pooled values are computed over all withheld predictions, as in the main text. The last four columns summarise the cohort-level results and are the transportability quantities: the interval is for a cohort not represented in the archive, and the calibration-slope spread is uncorrected, as in Table S4. Rows are ordered by pooled error within each role.
+
+| Predictor | Role | Cohorts | Records | Pooled MAE | Brier skill | AUC | Pooled slope | Between-cohort MAE SD | Interval for an unrepresented cohort | Calibration-slope SD | Calibration-slope range |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|---|
+| Calibration-derived decoder discriminability | Primary | 18 | 739 | 0.098 | 0.110 | 0.748 | 0.967 | 0.047 | -0.002 to 0.203 | 0.560 | 0.185 to 2.185 |
+| Shrinkage linear discriminant AUC | Comparator | 18 | 739 | 0.100 | 0.105 | 0.745 | 0.960 | 0.046 | 0.001 to 0.202 | 0.562 | 0.112 to 2.077 |
+| Calibration classification accuracy | Comparator | 18 | 739 | 0.106 | 0.105 | 0.734 | 0.930 | 0.047 | 0.006 to 0.208 | 1.104 | 0.051 to 4.018 |
+| Maximum posterior signed r-squared | Comparator | 18 | 739 | 0.134 | 0.037 | 0.656 | 0.643 | 0.041 | 0.045 to 0.225 | 2.209 | -0.467 to 7.297 |
+| Posterior target-minus-non-target amplitude | Comparator | 18 | 739 | 0.148 | 0.003 | 0.517 | 0.275 | 0.040 | 0.061 to 0.236 | 2.459 | -4.745 to 6.387 |
+| Pz target-minus-non-target amplitude | Comparator | 18 | 739 | 0.150 | 0.001 | 0.465 | -0.238 | 0.040 | 0.063 to 0.238 | 4.490 | -8.235 to 9.007 |
+| Primary score plus ALSFRS-R | Exploratory | 3 | 138 | 0.085 | 0.313 | 0.834 | 0.982 | 0.009 | 0.046 to 0.133 | 0.293 | 0.771 to 1.336 |
+| Primary score, same restricted records | Exploratory reference | 3 | 138 | 0.085 | 0.315 | 0.833 | 0.995 | 0.010 | 0.038 to 0.142 | 0.303 | 0.765 to 1.355 |
+
+No confidence intervals from the participant bootstrap are reported in this table. The primary predictor's intervals are given in the main text from 2,000 replicates, and rerunning that bootstrap at a smaller replicate count for a seven-specification sweep would put a second, slightly different interval for the same primary quantity into the same paper. The uncertainty reported instead is the between-cohort spread, which requires no resampling and is the quantity the transportability question turns on. The primary row reproduces the pooled values reported in the main text on every column shown here, which is the consistency check this table can offer.
+
+The regularised linear discriminant computed from the identical decimated features is indistinguishable from the primary score on every column, including the between-cohort spread of the calibration slope, 0.562 against 0.560. The primary result is therefore a property of how separable the calibration data are and not of the classifier family used to measure that, which is also the reason the decimation deviation recorded in S2 does not drive it.
+
+Scoring the same classifier by classification accuracy rather than by area under the curve costs little in pooled error, 0.106 against 0.098, but doubles the spread of the calibration slope, to 1.104 across a range of 0.051 to 4.018. A thresholded summary of the same calibration data transports worse than the ranking one.
+
+The three summaries computed without fitting a classifier are much weaker. The maximum posterior signed r-squared reaches an area under the curve of 0.656, and neither amplitude contrast separates outcomes in a cohort it was not developed on, at 0.517 and 0.465 with Brier skill of 0.003 and 0.001. Their pooled calibration slopes of 0.275 and -0.238, and per-cohort slope ranges of -4.7 to 6.4 and -8.2 to 9.0, are what the calibration parameters look like when a predictor carries almost no transportable signal. They are reported so that the primary score's own spread is read against that scale rather than in isolation.
+
+The exploratory ALSFRS-R specification is restricted to the 138 records in 3 cohorts that carry an observed value, so its figures are not comparable with the rows above. Against the primary score run on those same 138 records it changes nothing: pooled error 0.085 against 0.085, area under the curve 0.834 against 0.833, Brier skill 0.313 against 0.315, and calibration-slope spread 0.293 against 0.303. The better appearance of both rows relative to the full archive belongs to the restriction and not to ALSFRS-R. At 3 cohorts the interval for an unrepresented cohort rests on two degrees of freedom and carries no transportability claim.
 
 ## S9. Reproducibility
 
-The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, and sensitivity analyses. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `sensitivity_analyses.csv`, `protocol_covariates.csv` and `protocol_meta_regression.json`. The repository test suite contains 142 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, and rendering.
+The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, sensitivity analyses, and the comparator-predictor sweep. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `sensitivity_analyses.csv`, `comparator_metrics.csv`, `protocol_covariates.csv` and `protocol_meta_regression.json`. The repository test suite contains 148 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, the promised sensitivity and comparator analyses, and rendering.
 
 ## S10. Transparency statement
 
