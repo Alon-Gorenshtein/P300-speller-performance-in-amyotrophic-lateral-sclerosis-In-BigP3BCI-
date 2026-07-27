@@ -1211,6 +1211,12 @@ unless Task 5 found heterogeneity not established, in which case use the title r
 
 Task 8 refreshed line 112 to 0.098 (95% CI 0.091 to 0.107), which is correct against the regenerated pooled row, but left line 20 saying 0.103 (0.094 to 0.112) and lines 116 and 140 saying 0.104. Regenerating gives mean 0.1006, between-cohort SD 0.0472, a 95% interval for the mean of about 0.077 to 0.124, and a prediction interval of **-0.0017 to 0.2029**, so the lower bound no longer excludes zero and the printed 0.001 is stale. Fix all four locations, and note that the pooled figure and the mean-across-cohorts figure are different quantities that must not be conflated.
 
+- [ ] **Step 3b: Refresh the stale Sensitivity Analyses paragraph and reconcile Table 2**
+
+The whole sensitivity paragraph at roughly line 142 is stale against `output/expanded/sensitivity_analyses.csv`: it prints 0.104 and 0.048 where the file has 0.1004 and 0.0472, 0.674 where it has 0.6007, 0.084 and 0.438 where it has 0.0873 and 0.4652, and 0.716 where it has 0.663. Also stale: the slope standard deviation 0.586 at lines 20, 124 and 152, now 0.560.
+
+**Table 2's per-cohort slope and intercept columns are stale in all 18 rows and now contradict the Results text arithmetically.** Summing the printed slopes gives an ALS mean of 1.509 and other mean of 1.069, a difference of 0.440, against the 1.479, 0.992 and 0.487 the cohort-type paragraph states. Regenerate the whole per-cohort block from `output/expanded/cohort_calibration.csv` filtered to `se_method == "cluster"`, and then re-check that the cohort-type paragraph's group means follow from the regenerated table.
+
 - [ ] **Step 3: Replace the naive spread everywhere with tau and I-squared**
 
 Every place reporting "between-cohort standard deviation" for slope or intercept must report tau, I-squared, and the Q test from `output/expanded/heterogeneity_summary.json`, and must state the naive standard deviation separately as the uncorrected spread.
@@ -1592,6 +1598,8 @@ render_calibration_curves(pd.read_csv(d/'external_validation_predictions.csv'), 
 - [ ] **Step 5: Renumber every figure callout and commit**
 
 Figure 1 forest, Figure 2 calibration curves, Figure 3 transportability, Figure 4 skill by cohort, eFigure 1 cohort-type scatter.
+
+**Figure 3 asserts what the Methods now call invalid, and this is a blocker rather than a nicety.** `render_cohort_type_relationship` draws separate straight-line fits for the ALS cohorts and the rest, which is the visual form of the record-level interaction Task 10 demoted; the Methods now argue that form overstates precision by roughly an order of magnitude, and the caption at `manuscript_expanded.md:229` still describes it. Replace it rather than relabel it. `cohort_calibration.csv` filtered to `se_method == "cluster"` already carries all 18 slopes with their 95% intervals, so a cohort-type-coloured forest is a cheap substitute that does not assert a fitted interaction.
 
 **`figure_skill_by_cohort.png` is stale in its values, not only its axis label.** It predates the data regeneration and still plots two negative cohorts, StudyJ and StudyH, against a caption that now says one. Nothing under `scripts/` imports `render_expanded`, so no earlier task could have refreshed it. Rebuild it from the regenerated outputs and confirm exactly one cohort is negative against the development-mean benchmark. Update the legends block and every inline callout, then:
 
