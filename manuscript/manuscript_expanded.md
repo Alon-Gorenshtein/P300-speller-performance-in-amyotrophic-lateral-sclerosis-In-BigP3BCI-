@@ -73,7 +73,7 @@ The development model was a logistic regression of character-level correctness o
 
 ### Validation Design
 
-The primary evaluation withheld one source study at a time. Three further analyses used the wider cohort set. The ALS subgroup analysis repeated the same procedure within the four ALS cohorts alone. The transfer analysis developed the mapping on the other cohorts only, with every ALS cohort withheld simultaneously, and evaluated it in each ALS cohort. The moderation analysis tested whether the slope relating calibration score to accuracy differed between ALS and other cohorts, through the interaction between score and cohort type.
+The primary evaluation withheld one source study at a time. Three further analyses used the wider cohort set. The ALS subgroup analysis repeated the same procedure within the four ALS cohorts alone. The transfer analysis developed the mapping on the other cohorts only, with every ALS cohort withheld simultaneously, and evaluated it in each ALS cohort. The moderation analysis tested whether the cohort-specific calibration slope differed between ALS and other cohorts. Cohort type does not vary between the records of a cohort, so the cohort is the unit of that comparison and a record-level interaction would treat a study-level attribute as though it had been measured once per record. The comparison is reported two ways: Welch's two-sample t-test on the 18 cohort-specific slopes, which uses no weighting and is the primary form, and a random-effects meta-regression that weights each cohort by its own standard error plus the residual between-cohort variance, with the Knapp and Hartung adjustment for the small number of cohorts.
 
 ### Statistical Analysis
 
@@ -129,7 +129,9 @@ Because the calibration score is a property of a session, the 739 records carry 
 
 ### Cohort Type as a Moderator
 
-**The slope relating calibration discriminability to online accuracy was steeper in the ALS cohorts.** The fitted slope was 1.672 in ALS cohorts and 1.018 in the remaining cohorts, with an interaction of 0.655 (p < 0.001). The same calibration score therefore implied a different expected accuracy depending on cohort type.
+**With the cohort as the unit of analysis, calibration slope was higher in the ALS cohorts, but not precisely enough to support a claim.** The cohort-specific calibration slope averaged 1.479 in the four ALS cohorts (standard deviation 0.266) and 0.992 in the other 14 (standard deviation 0.580), a difference of 0.487 (standard error 0.204; 95% CI 0.040 to 0.933; Welch t = 2.38, df = 11.7, p = 0.035). A random-effects meta-regression weighting each cohort by its own precision gave a difference of 0.559 (95% CI -0.009 to 1.127, p = 0.053), leaving a residual between-cohort standard deviation of 0.349 against 0.432 with cohort type removed, so cohort type accounts for about a third of the between-cohort variance in the slope and most of that variance remains unexplained. The two tests agree in direction and magnitude and fall on opposite sides of the significance threshold. A slope above one means observed accuracy varied more widely than the estimates did, so in the ALS cohorts the mapping compressed the range it should have spanned. These are the slopes of the primary leave-one-cohort-out model within each cohort, not the pooled slope of 0.991 reported for the ALS subgroup above, which comes from a model developed within the ALS cohorts alone.
+
+Cohort type is a study-level attribute that is entangled with paradigm, hardware and stopping rule, only four studies carry a documented ALS population, and the remaining cohorts are not documented as healthy controls. This comparison is exploratory and cannot separate population from protocol.
 
 ### Predictor From a Preceding Session
 
@@ -151,7 +153,7 @@ The comparison between the four ALS cohorts and the full archive is itself a res
 
 One analysis improved transportability. Excluding records in which more than 20% of calibration epochs exceeded the artifact threshold reduced estimation error from 0.104 to 0.084 and reduced the between-cohort standard deviation of the calibration slope from 0.586 to 0.438. Screening calibration data quality before relying on a calibration-derived estimate is therefore a concrete step, and it is available at no cost because the rejection fraction is computed while the score is computed.
 
-A mapping developed entirely without ALS data estimated accuracy in the ALS cohorts with a mean absolute error of 0.117, against 0.101 when other ALS cohorts were available. The relationship is not specific to the clinical population in the sense of being absent elsewhere. It is population-dependent in a different sense: the slope was steeper in the ALS cohorts than in the others, so the same score implied a different expected accuracy, which is one mechanism by which a single fitted mapping mis-calibrates.
+A mapping developed entirely without ALS data estimated accuracy in the ALS cohorts with a mean absolute error of 0.117, against 0.101 when other ALS cohorts were available. The relationship is not specific to the clinical population in the sense of being absent elsewhere. Whether it is population-dependent in a different sense is not resolved here. The calibration slope averaged higher in the four ALS cohorts than in the other 14, which would be one mechanism by which a single fitted mapping mis-calibrates, but with the cohort as the unit of analysis that difference is imprecise, the two tests of it fall on either side of the conventional threshold, and cohort type cannot be separated from the paradigm, hardware and stopping rule that differ alongside it.
 
 ### Study Limitations
 

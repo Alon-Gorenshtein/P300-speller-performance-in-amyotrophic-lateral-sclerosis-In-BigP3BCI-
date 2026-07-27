@@ -18,8 +18,10 @@ a study that was not observed.
 group faces when it has only neurotypical calibration data and wants to apply the mapping to a
 patient.
 
-``als_moderation`` asks whether the calibration-to-accuracy mapping itself differs by cohort type,
-rather than whether the two cohort types differ in accuracy.
+``als_meta_regression`` asks whether the calibration-to-accuracy mapping itself differs by cohort
+type, rather than whether the two cohort types differ in accuracy. Cohort type is a property of a
+source study, so the study is the unit of that comparison: an earlier record-level interaction
+treated 18 study-level observations as 739 and reported a precision the design cannot support.
 """
 
 from __future__ import annotations
@@ -82,38 +84,6 @@ def _accuracy(records: pd.DataFrame) -> pd.Series:
     return records["correct"] / records["n"]
 
 
-def _simple_regression(x: np.ndarray, y: np.ndarray) -> tuple[float, float, float, float]:
-    """Return slope, intercept, Pearson r and its two-sided p-value.
-
-    Written out rather than taken from ``scipy.stats.linregress`` because that routine fails on the
-    numpy build used here.
-    """
-    x = np.asarray(x, dtype=float)
-    y = np.asarray(y, dtype=float)
-    n = len(x)
-    if n < 3:
-        return float("nan"), float("nan"), float("nan"), float("nan")
-
-    x_centred = x - x.mean()
-    y_centred = y - y.mean()
-    denominator = float(x_centred @ x_centred)
-    if denominator <= 0:
-        return float("nan"), float("nan"), float("nan"), float("nan")
-
-    slope = float((x_centred @ y_centred) / denominator)
-    intercept = float(y.mean() - slope * x.mean())
-    spread = float(np.sqrt(denominator * (y_centred @ y_centred)))
-    r_value = float((x_centred @ y_centred) / spread) if spread > 0 else float("nan")
-
-    p_value = float("nan")
-    if np.isfinite(r_value) and abs(r_value) < 1.0:
-        t_statistic = r_value * np.sqrt((n - 2) / (1.0 - r_value**2))
-        p_value = float(2 * stats.t.sf(abs(t_statistic), df=n - 2))
-    elif np.isfinite(r_value):
-        p_value = 0.0
-    return slope, intercept, r_value, p_value
-
-
 def transfer_to_als(
     records: pd.DataFrame,
     fit_predictions,
@@ -150,78 +120,174 @@ def transfer_to_als(
     return pd.DataFrame(rows)
 
 
-def als_moderation(records: pd.DataFrame, feature: str = "calibration_auc") -> pd.DataFrame:
-    """Test whether the calibration-to-accuracy slope differs between ALS and other cohorts.
+def _cohort_slopes(cohort_calibration: pd.DataFrame, se_method: str) -> pd.DataFrame:
+    """Return one usable calibration slope per cohort, under a single standard-error specification.
 
-    A difference in mean accuracy between cohort types is expected and uninteresting. The question
-    that matters for transporting a mapping is whether the same score implies the same accuracy, so
-    the interaction term is the estimand here.
+    The frozen per-cohort file stacks every standard-error specification, so it carries three rows
+    per cohort. Taking it whole would treat each cohort as three, which is the same unit-of-analysis
+    error at one level down, so the specification is selected here and any remaining repetition is
+    refused rather than silently averaged.
     """
-    labelled = label_cohort_type(records)
-    labelled = labelled.assign(accuracy=_accuracy(labelled))
-    # A session whose calibration block could not support the estimator carries no score; such
-    # records are absent from every model fit and must be absent here too.
-    labelled = labelled.dropna(subset=[feature, "accuracy"])
-    if labelled.empty:
-        raise ValueError(f"no records carry both {feature} and an outcome")
+    frame = cohort_calibration.copy()
+    if "se_method" in frame.columns:
+        available = sorted(str(value) for value in frame["se_method"].dropna().unique())
+        if se_method not in available:
+            raise ValueError(f"cohort calibration carries no {se_method!r} rows; found {available}")
+        frame = frame.loc[frame["se_method"] == se_method]
+    frame = frame.dropna(subset=["slope"])
+    if frame["held_out_study"].duplicated().any():
+        raise ValueError("cohort calibration must carry one row per cohort after selecting se_method")
+    return frame
 
-    rows: list[dict[str, object]] = []
-    for is_als, group in labelled.groupby("als_cohort", sort=True):
-        if len(group) < 3:
-            continue
-        slope, intercept, r_value, p_value = _simple_regression(group[feature], group["accuracy"])
-        rows.append(
-            {
-                "cohort": "ALS" if is_als else "Other",
-                "n_records": int(len(group)),
-                "n_studies": int(group["study"].nunique()),
-                "slope": float(slope),
-                "intercept": float(intercept),
-                "pearson_r": float(r_value),
-                "p_value": float(p_value),
-                "mean_accuracy": float(group["accuracy"].mean()),
-                "mean_feature": float(group[feature].mean()),
-            }
-        )
 
-    interaction = np.nan
-    interaction_p = np.nan
-    if labelled["als_cohort"].nunique() == 2:
-        design = pd.DataFrame(
-            {
-                "intercept": 1.0,
-                "feature": labelled[feature].to_numpy(dtype=float),
-                "als": labelled["als_cohort"].to_numpy(dtype=float),
-            }
-        )
-        design["feature_x_als"] = design["feature"] * design["als"]
-        outcome = labelled["accuracy"].to_numpy(dtype=float)
-        matrix = design.to_numpy(dtype=float)
-        coefficients, residuals, rank, _ = np.linalg.lstsq(matrix, outcome, rcond=None)
-        if rank == matrix.shape[1]:
-            fitted = matrix @ coefficients
-            residual = outcome - fitted
-            degrees = len(outcome) - matrix.shape[1]
-            sigma_squared = float(residual @ residual) / degrees
-            covariance = sigma_squared * np.linalg.inv(matrix.T @ matrix)
-            interaction = float(coefficients[3])
-            standard_error = float(np.sqrt(covariance[3, 3]))
-            interaction_p = float(2 * stats.t.sf(abs(interaction / standard_error), df=degrees))
+def als_meta_regression(
+    cohort_calibration: pd.DataFrame,
+    als_studies: tuple[str, ...] = ALS_STUDIES,
+    se_method: str = "cluster",
+) -> dict[str, object]:
+    """Compare calibration slopes between cohort types with the study as the unit of analysis.
 
-    rows.append(
-        {
-            "cohort": "Interaction (feature x ALS)",
-            "n_records": int(len(labelled)),
-            "n_studies": int(labelled["study"].nunique()),
-            "slope": interaction,
-            "intercept": np.nan,
-            "pearson_r": np.nan,
-            "p_value": interaction_p,
-            "mean_accuracy": np.nan,
-            "mean_feature": np.nan,
-        }
+    Cohort type varies between studies, not between records, so a record-level interaction test
+    would treat a study-level exposure as if it had been measured hundreds of times. With a small
+    number of studies per group this comparison is exploratory.
+
+    Welch's two-sample t-test is used rather than a precision-weighted contrast, because with four
+    studies in one group the unweighted comparison rests on the fewest assumptions. It ignores the
+    per-cohort standard errors; :func:`als_random_effects_meta_regression` uses them, and the two
+    are reported together.
+    """
+    frame = _cohort_slopes(cohort_calibration, se_method)
+    is_als = frame["held_out_study"].isin(als_studies)
+    als = frame.loc[is_als, "slope"].to_numpy(dtype=float)
+    other = frame.loc[~is_als, "slope"].to_numpy(dtype=float)
+    if len(als) < 3 or len(other) < 3:
+        raise ValueError("meta-regression needs at least three studies in each group")
+
+    statistic, p_value = stats.ttest_ind(als, other, equal_var=False)
+    als_term = als.var(ddof=1) / len(als)
+    other_term = other.var(ddof=1) / len(other)
+    pooled_se = float(np.sqrt(als_term + other_term))
+    # Welch-Satterthwaite: with 4 studies against 14 this sits well below the 16 a pooled-variance
+    # test would claim, and the interval widens accordingly.
+    degrees = float(
+        (als_term + other_term) ** 2
+        / (als_term**2 / (len(als) - 1) + other_term**2 / (len(other) - 1))
     )
-    return pd.DataFrame(rows)
+    difference = float(als.mean() - other.mean())
+    critical = float(stats.t.ppf(0.975, df=degrees))
+    return {
+        "n_als_studies": float(len(als)),
+        "n_other_studies": float(len(other)),
+        "mean_slope_als": float(als.mean()),
+        "mean_slope_other": float(other.mean()),
+        "sd_slope_als": float(np.sqrt(als.var(ddof=1))),
+        "sd_slope_other": float(np.sqrt(other.var(ddof=1))),
+        "difference": difference,
+        "difference_se": pooled_se,
+        "difference_ci_low": difference - critical * pooled_se,
+        "difference_ci_high": difference + critical * pooled_se,
+        "t_statistic": float(statistic),
+        "degrees_of_freedom": degrees,
+        "p_value": float(p_value),
+        "se_method": se_method,
+    }
+
+
+def _weighted_least_squares(
+    design: np.ndarray, y: np.ndarray, weights: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return coefficients, their unscaled covariance, and residuals."""
+    weighted = design.T * weights
+    covariance = np.linalg.inv(weighted @ design)
+    coefficients = covariance @ (weighted @ y)
+    return coefficients, covariance, y - design @ coefficients
+
+
+def _moment_tau_squared(design: np.ndarray, y: np.ndarray, variance: np.ndarray) -> float:
+    """DerSimonian and Laird between-study variance for a design that may carry moderators.
+
+    With an intercept-only design this is the estimator :func:`heterogeneity.random_effects` uses.
+    With a moderator the residual degrees of freedom fall from k - 1 to k - p and the denominator
+    becomes the trace of the residual-projection matrix formed under fixed-effect weights.
+    """
+    n_studies, n_parameters = design.shape
+    weight = 1.0 / variance
+    _, covariance, residual = _weighted_least_squares(design, y, weight)
+    residual_q = float((weight * residual**2).sum())
+    trace = float(weight.sum() - np.trace(covariance @ (design.T * weight**2) @ design))
+    if trace <= 0:
+        return 0.0
+    return max(0.0, (residual_q - (n_studies - n_parameters)) / trace)
+
+
+def als_random_effects_meta_regression(
+    cohort_calibration: pd.DataFrame,
+    als_studies: tuple[str, ...] = ALS_STUDIES,
+    se_method: str = "cluster",
+) -> dict[str, object]:
+    """Regress the cohort calibration slope on cohort type, weighting cohorts by their precision.
+
+    The unweighted comparison treats a slope measured in 16 records as it treats one measured in 89.
+    This fit weights each cohort by 1 / (its own variance + the residual between-cohort variance),
+    with that variance estimated by the DerSimonian and Laird moment estimator applied to the
+    residual Q of the two-group fit. It is the same pooling the heterogeneity analysis uses, with
+    cohort type entered as a moderator.
+
+    Inference uses the Knapp and Hartung adjustment: the coefficient covariance is scaled by the
+    weighted residual mean square and referred to a t distribution on k - 2 degrees of freedom. With
+    18 cohorts and a moderator estimated from four of them, a normal test on an assumed-known tau
+    squared would understate the uncertainty. The unadjusted Wald p value is returned beside it so
+    the two can be compared rather than swapped.
+    """
+    frame = _cohort_slopes(cohort_calibration, se_method).dropna(subset=["slope_se"])
+    frame = frame.loc[pd.to_numeric(frame["slope_se"], errors="coerce") > 0]
+    is_als = frame["held_out_study"].isin(als_studies).to_numpy()
+    if is_als.sum() < 3 or (~is_als).sum() < 3:
+        raise ValueError("meta-regression needs at least three studies in each group")
+
+    y = frame["slope"].to_numpy(dtype=float)
+    variance = frame["slope_se"].to_numpy(dtype=float) ** 2
+    design = np.column_stack([np.ones(len(y)), is_als.astype(float)])
+    n_studies, n_parameters = design.shape
+
+    tau_squared = _moment_tau_squared(design, y, variance)
+    # The same estimator with cohort type removed, so that the share of the between-cohort variance
+    # the moderator accounts for can be read off rather than assumed to be all of it.
+    unconditional = _moment_tau_squared(np.ones((n_studies, 1)), y, variance)
+
+    weight = 1.0 / (variance + tau_squared)
+    coefficients, covariance, residual = _weighted_least_squares(design, y, weight)
+    difference = float(coefficients[1])
+    wald_se = float(np.sqrt(covariance[1, 1]))
+    degrees = n_studies - n_parameters
+    scale = float((weight * residual**2).sum()) / degrees
+    adjusted_se = wald_se * float(np.sqrt(scale))
+    critical = float(stats.t.ppf(0.975, df=degrees))
+    return {
+        "n_studies": float(n_studies),
+        "n_als_studies": float(is_als.sum()),
+        "n_other_studies": float((~is_als).sum()),
+        "tau_squared": tau_squared,
+        "tau": float(np.sqrt(tau_squared)),
+        "tau_squared_without_moderator": unconditional,
+        "tau_without_moderator": float(np.sqrt(unconditional)),
+        "between_cohort_variance_explained": float(max(0.0, 1.0 - tau_squared / unconditional))
+        if unconditional > 0
+        else float("nan"),
+        "pooled_slope_other": float(coefficients[0]),
+        "pooled_slope_als": float(coefficients[0] + coefficients[1]),
+        "difference": difference,
+        "difference_se": adjusted_se,
+        "difference_ci_low": difference - critical * adjusted_se,
+        "difference_ci_high": difference + critical * adjusted_se,
+        "t_statistic": difference / adjusted_se if adjusted_se > 0 else float("nan"),
+        "degrees_of_freedom": float(degrees),
+        "p_value": float(2 * stats.t.sf(abs(difference / adjusted_se), df=degrees))
+        if adjusted_se > 0
+        else float("nan"),
+        "p_value_wald": float(2 * stats.norm.sf(abs(difference / wald_se))) if wald_se > 0 else float("nan"),
+        "se_method": se_method,
+    }
 
 
 def study_inventory(trials: pd.DataFrame) -> pd.DataFrame:

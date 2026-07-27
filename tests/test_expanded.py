@@ -8,13 +8,15 @@ import pytest
 
 from bigp3_als.expanded import (
     ALS_STUDIES,
-    als_moderation,
+    als_meta_regression,
+    als_random_effects_meta_regression,
     label_cohort_type,
     pool_held_out_metrics,
     random_effects_pooling,
     study_inventory,
     transfer_to_als,
 )
+from bigp3_als.heterogeneity import random_effects
 
 
 def _records() -> pd.DataFrame:
@@ -122,24 +124,92 @@ def test_transfer_to_als_reports_one_row_per_als_cohort_present() -> None:
     assert set(result["held_out_study"]) == {"StudyB", "StudyF", "StudyL"}
 
 
-def test_als_moderation_reports_both_cohorts_and_an_interaction_row() -> None:
-    result = als_moderation(_records())
+def _cohort_slopes() -> pd.DataFrame:
+    """Seven cohorts, four of them the documented ALS cohorts, with a planted 0.5 difference."""
+    return pd.DataFrame(
+        {
+            "held_out_study": ["StudyB", "StudyF", "StudyL", "StudyN", "StudyA", "StudyG", "StudyM"],
+            "slope": [1.6, 1.5, 1.7, 1.2, 1.0, 0.9, 1.1],
+            "slope_se": [0.2] * 7,
+        }
+    )
 
-    assert set(result["cohort"]) == {"ALS", "Other", "Interaction (feature x ALS)"}
-    # The planted association is identical in both cohorts, so the interaction is ~0.
-    interaction = result.loc[result["cohort"] == "Interaction (feature x ALS)", "slope"].iloc[0]
-    assert abs(interaction) < 1e-6
+
+def test_als_meta_regression_uses_studies_not_records_as_the_unit() -> None:
+    result = als_meta_regression(_cohort_slopes(), ALS_STUDIES)
+
+    assert result["n_als_studies"] == 4
+    assert result["n_other_studies"] == 3
+    assert result["difference"] == pytest.approx(1.5 - 1.0, abs=0.01)
+    assert result["p_value"] > 0.001  # seven studies cannot support a tiny p value
 
 
-def test_als_moderation_detects_a_planted_slope_difference() -> None:
-    records = _records()
-    als = records["study"].isin(ALS_STUDIES)
-    # Flatten the ALS relationship so the interaction must be non-zero.
-    records.loc[als, "correct"] = 12
-    result = als_moderation(records)
+def test_als_meta_regression_refuses_fewer_than_three_studies_per_group() -> None:
+    calibration = pd.DataFrame(
+        {"held_out_study": ["StudyB", "StudyA"], "slope": [1.6, 1.0], "slope_se": [0.2, 0.2]}
+    )
 
-    interaction = result.loc[result["cohort"] == "Interaction (feature x ALS)", "slope"].iloc[0]
-    assert abs(interaction) > 0.1
+    with pytest.raises(ValueError, match="at least three"):
+        als_meta_regression(calibration, ALS_STUDIES)
+
+
+def test_als_meta_regression_counts_each_cohort_once_when_the_file_carries_every_se_method() -> None:
+    """The frozen file stacks three standard-error specifications, so it holds 3 rows per cohort."""
+    stacked = pd.concat(
+        [_cohort_slopes().assign(se_method=method) for method in ("cluster", "model", "quasibinomial")],
+        ignore_index=True,
+    )
+
+    result = als_meta_regression(stacked, ALS_STUDIES)
+
+    assert result["n_als_studies"] == 4
+    assert result["n_other_studies"] == 3
+
+
+def test_als_meta_regression_rejects_repeated_cohorts_it_cannot_disambiguate() -> None:
+    doubled = pd.concat([_cohort_slopes(), _cohort_slopes()], ignore_index=True)
+
+    with pytest.raises(ValueError, match="one row per cohort"):
+        als_meta_regression(doubled, ALS_STUDIES)
+
+
+def test_als_meta_regression_rejects_an_unavailable_standard_error_method() -> None:
+    stacked = _cohort_slopes().assign(se_method="model")
+
+    with pytest.raises(ValueError, match="cluster"):
+        als_meta_regression(stacked, ALS_STUDIES)
+
+
+def test_random_effects_meta_regression_matches_the_group_means_when_precision_is_equal() -> None:
+    # Equal standard errors give equal weights, so the weighted contrast is the difference in means.
+    result = als_random_effects_meta_regression(_cohort_slopes(), ALS_STUDIES)
+
+    assert result["n_studies"] == 7
+    assert result["difference"] == pytest.approx(0.5, abs=1e-8)
+    assert result["p_value"] > 0.001
+
+
+def test_random_effects_meta_regression_reproduces_the_pooling_estimator_without_a_moderator() -> None:
+    """With cohort type removed the moment estimator must be the one the pooling analysis uses."""
+    calibration = _cohort_slopes()
+    calibration["slope_se"] = [0.2, 0.5, 0.15, 0.3, 0.25, 0.4, 0.18]
+
+    result = als_random_effects_meta_regression(calibration, ALS_STUDIES)
+    pooled = random_effects(calibration["slope"], calibration["slope_se"])
+
+    assert result["tau_squared_without_moderator"] == pytest.approx(pooled["tau_squared"], rel=1e-12)
+
+
+def test_random_effects_meta_regression_down_weights_an_imprecise_cohort() -> None:
+    calibration = _cohort_slopes()
+    # Move one ALS cohort far away but measure it badly; it should barely move the contrast.
+    calibration.loc[calibration["held_out_study"] == "StudyN", ["slope", "slope_se"]] = [5.0, 20.0]
+
+    result = als_random_effects_meta_regression(calibration, ALS_STUDIES)
+    unweighted = als_meta_regression(calibration, ALS_STUDIES)
+
+    assert result["difference"] < 0.7
+    assert unweighted["difference"] > 1.0
 
 
 def test_study_inventory_keeps_studies_that_contribute_no_outcomes() -> None:

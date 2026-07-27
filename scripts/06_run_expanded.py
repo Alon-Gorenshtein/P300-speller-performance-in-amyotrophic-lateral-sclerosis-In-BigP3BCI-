@@ -17,12 +17,14 @@ import pandas as pd
 
 from bigp3_als.expanded import (
     ALS_STUDIES,
-    als_moderation,
+    als_meta_regression,
+    als_random_effects_meta_regression,
     label_cohort_type,
     pool_held_out_metrics,
     study_inventory,
     transfer_to_als,
 )
+from bigp3_als.heterogeneity import cohort_calibration
 from bigp3_als.strengthening import (
     across_session_association,
     null_benchmark,
@@ -92,8 +94,18 @@ def main() -> None:
     transfer = transfer_to_als(records, _fit_probability_model)
     transfer.to_csv(arguments.output_directory / "transfer_to_als.csv", index=False)
 
-    moderation = als_moderation(records)
-    moderation.to_csv(arguments.output_directory / "als_moderation.csv", index=False)
+    # Cohort type is a study-level attribute, so the cohort is the unit of this comparison. The
+    # per-cohort calibration slopes are refitted here from the predictions just produced rather than
+    # read back from the heterogeneity script, which runs later and would make the ordering circular.
+    calibration = cohort_calibration(predictions, se_method="cluster")
+    moderation = {
+        "quantity": "cohort calibration slope, cluster-robust",
+        "welch_t_test": als_meta_regression(calibration, ALS_STUDIES),
+        "random_effects_meta_regression": als_random_effects_meta_regression(calibration, ALS_STUDIES),
+    }
+    (arguments.output_directory / "als_meta_regression.json").write_text(
+        json.dumps(moderation, indent=2) + "\n"
+    )
 
     null_benchmark(records).to_csv(arguments.output_directory / "null_benchmark.csv", index=False)
     within_study_association(records).to_csv(arguments.output_directory / "within_study_association.csv", index=False)
