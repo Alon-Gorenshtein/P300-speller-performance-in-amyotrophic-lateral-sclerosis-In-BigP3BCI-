@@ -176,6 +176,11 @@ Pooled bootstrap summary, conditional on the observed cohorts:
 
 **The two reference points did not move at all.** The no-predictor benchmark is 0.146246 and the
 same-cohort oracle is 0.123370, exactly as before, because `null_benchmark.csv` is byte-identical.
+[Correction, 2026-07-27: "same-cohort oracle" is the term this record was written with; it was
+retired from the manuscript and supplement during the revision, because the quantity is a benchmark
+that estimates every withheld record at that cohort's own mean rather than an oracle. It is called
+the held-out-cohort-mean benchmark in the live files. The number is unchanged; only the name is.
+This record is left as written otherwise, because it is a dated log of what was run.]
 Both are quoted at `manuscript.md:112` as 0.146 and 0.123 and both stand as written. What does move
 is the skill computed against the first of them: one minus the ratio of the pooled error to the
 no-predictor error was 0.298 and is now 0.3274. Any task touching that sentence should change the
