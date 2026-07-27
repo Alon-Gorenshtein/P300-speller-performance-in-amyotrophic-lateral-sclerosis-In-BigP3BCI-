@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import itertools
+
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import stats
 
 from bigp3_als.expanded import (
     ALS_STUDIES,
+    als_leave_one_cohort_out,
     als_meta_regression,
+    als_permutation_test,
     als_random_effects_meta_regression,
     label_cohort_type,
     pool_held_out_metrics,
@@ -178,6 +183,90 @@ def test_als_meta_regression_rejects_an_unavailable_standard_error_method() -> N
 
     with pytest.raises(ValueError, match="cluster"):
         als_meta_regression(stacked, ALS_STUDIES)
+
+
+def test_welch_p_value_still_agrees_with_scipy_after_the_statistic_was_factored_out() -> None:
+    """The t-test is hand-rolled so the permutation can studentise with the identical statistic."""
+    calibration = _cohort_slopes()
+    result = als_meta_regression(calibration, ALS_STUDIES)
+    reference = stats.ttest_ind([1.6, 1.5, 1.7, 1.2], [1.0, 0.9, 1.1], equal_var=False)
+
+    assert result["t_statistic"] == pytest.approx(reference.statistic, rel=1e-12)
+    assert result["p_value"] == pytest.approx(reference.pvalue, rel=1e-12)
+
+
+def test_permutation_test_enumerates_every_assignment_exactly() -> None:
+    result = als_permutation_test(_cohort_slopes(), ALS_STUDIES)
+
+    # Seven cohorts, four of them ALS: 35 ways to choose which four carry the label.
+    assert result["exact"] is True
+    assert result["n_assignments"] == 35
+    assert result["p_value"] >= 1 / 35
+
+
+def test_permutation_test_reproduces_an_independent_enumeration() -> None:
+    """Recount the permutation distribution here, from the slopes, without touching the module."""
+    calibration = _cohort_slopes()
+    slopes = [1.6, 1.5, 1.7, 1.2, 1.0, 0.9, 1.1]
+
+    def welch_t(als: list[float], other: list[float]) -> float:
+        return float(stats.ttest_ind(als, other, equal_var=False).statistic)
+
+    observed = welch_t(slopes[:4], slopes[4:])
+    counted = 0
+    total = 0
+    for indices in itertools.combinations(range(7), 4):
+        als = [slopes[i] for i in indices]
+        other = [slopes[i] for i in range(7) if i not in indices]
+        total += 1
+        if abs(welch_t(als, other)) >= abs(observed) - 1e-12:
+            counted += 1
+
+    result = als_permutation_test(calibration, ALS_STUDIES)
+
+    assert result["n_assignments"] == total
+    assert result["p_value"] == pytest.approx(counted / total, rel=1e-12)
+
+
+def test_permutation_test_sits_at_its_floor_when_the_groups_do_not_overlap() -> None:
+    calibration = _cohort_slopes()
+    # Push every ALS slope above every other slope, and keep the spreads equal so that no
+    # relabelling can produce a larger studentised contrast than the true one.
+    calibration.loc[calibration["held_out_study"].isin(ALS_STUDIES), "slope"] = [5.0, 5.1, 5.2, 5.3]
+    calibration.loc[~calibration["held_out_study"].isin(ALS_STUDIES), "slope"] = [1.0, 1.1, 1.2]
+
+    result = als_permutation_test(calibration, ALS_STUDIES)
+
+    assert result["p_value"] == pytest.approx(1 / 35, abs=1e-12)
+
+
+def test_permutation_test_samples_when_enumeration_would_be_too_large() -> None:
+    result = als_permutation_test(_cohort_slopes(), ALS_STUDIES, max_enumerated=10)
+
+    assert result["exact"] is False
+    assert result["n_assignments"] == 10
+    assert result["n_possible_assignments"] == 35
+    # The observed labelling is always in the reference set, so the p value cannot be zero.
+    assert result["p_value"] > 0
+
+
+def test_leave_one_cohort_out_keeps_every_cohort_and_marks_the_ones_it_cannot_refit() -> None:
+    result = als_leave_one_cohort_out(_cohort_slopes(), ALS_STUDIES)
+
+    assert len(result) == 7
+    assert set(result.loc[result["dropped_is_als"], "dropped_study"]) == set(ALS_STUDIES)
+    # Four ALS and three other cohorts: dropping one of the three leaves too few to compare.
+    assert result.loc[result["dropped_is_als"], "p_value"].notna().all()
+    assert result.loc[~result["dropped_is_als"], "p_value"].isna().all()
+
+
+def test_leave_one_cohort_out_reproduces_the_full_test_on_the_reduced_frame() -> None:
+    calibration = _cohort_slopes()
+    result = als_leave_one_cohort_out(calibration, ALS_STUDIES)
+
+    row = result.loc[result["dropped_study"] == "StudyN"].iloc[0]
+    direct = als_meta_regression(calibration.loc[calibration["held_out_study"] != "StudyN"], ALS_STUDIES)
+    assert row["p_value"] == pytest.approx(direct["p_value"], rel=1e-12)
 
 
 def test_random_effects_meta_regression_matches_the_group_means_when_precision_is_equal() -> None:

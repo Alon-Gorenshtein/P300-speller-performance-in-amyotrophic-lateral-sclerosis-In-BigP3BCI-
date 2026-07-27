@@ -17,7 +17,9 @@ import pandas as pd
 
 from bigp3_als.expanded import (
     ALS_STUDIES,
+    als_leave_one_cohort_out,
     als_meta_regression,
+    als_permutation_test,
     als_random_effects_meta_regression,
     label_cohort_type,
     pool_held_out_metrics,
@@ -101,7 +103,9 @@ def main() -> None:
     moderation = {
         "quantity": "cohort calibration slope, cluster-robust",
         "welch_t_test": als_meta_regression(calibration, ALS_STUDIES),
+        "exact_permutation_test": als_permutation_test(calibration, ALS_STUDIES),
         "random_effects_meta_regression": als_random_effects_meta_regression(calibration, ALS_STUDIES),
+        "leave_one_cohort_out": als_leave_one_cohort_out(calibration, ALS_STUDIES).to_dict(orient="records"),
     }
     (arguments.output_directory / "als_meta_regression.json").write_text(
         json.dumps(moderation, indent=2) + "\n"

@@ -22,9 +22,22 @@ patient.
 type, rather than whether the two cohort types differ in accuracy. Cohort type is a property of a
 source study, so the study is the unit of that comparison: an earlier record-level interaction
 treated 18 study-level observations as 739 and reported a precision the design cannot support.
+
+Three tests of that difference are reported rather than one. Welch's t-test is the simplest and
+makes the fewest assumptions about the cohorts, but with four studies in one group it buys its
+degrees of freedom from a variance ratio estimated on three degrees of freedom, and a different
+draw of four studies could have moved its p value substantially. ``als_permutation_test``
+enumerates every relabelling and assumes no distribution at all, and
+``als_random_effects_meta_regression`` weights cohorts by their own precision.
+``als_leave_one_cohort_out`` then shows how far a single cohort moves the answer. Reporting one of
+these alone would let the choice of test carry the conclusion.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterable
+from itertools import combinations
+from math import comb
 
 import numpy as np
 import pandas as pd
@@ -140,6 +153,40 @@ def _cohort_slopes(cohort_calibration: pd.DataFrame, se_method: str) -> pd.DataF
     return frame
 
 
+def _welch(als: np.ndarray, other: np.ndarray) -> tuple[float, float, float, float]:
+    """Return the Welch difference, its standard error, the t statistic and the Satterthwaite df.
+
+    Shared by the t-test and the permutation test so that the permutation studentises with exactly
+    the statistic the t-test reports, rather than an independently coded near-copy of it.
+    """
+    als_term = als.var(ddof=1) / len(als)
+    other_term = other.var(ddof=1) / len(other)
+    difference = float(als.mean() - other.mean())
+    standard_error = float(np.sqrt(als_term + other_term))
+    if standard_error <= 0:
+        # Reachable only under a permuted assignment in which both groups are constant.
+        statistic = 0.0 if difference == 0 else float(np.inf) * np.sign(difference)
+        return difference, standard_error, statistic, float("nan")
+    degrees = float(
+        (als_term + other_term) ** 2
+        / (als_term**2 / (len(als) - 1) + other_term**2 / (len(other) - 1))
+    )
+    return difference, standard_error, difference / standard_error, degrees
+
+
+def _split_by_cohort_type(
+    cohort_calibration: pd.DataFrame, als_studies: tuple[str, ...], se_method: str
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return the ALS and other calibration slopes, refusing a group too small to compare."""
+    frame = _cohort_slopes(cohort_calibration, se_method)
+    is_als = frame["held_out_study"].isin(als_studies)
+    als = frame.loc[is_als, "slope"].to_numpy(dtype=float)
+    other = frame.loc[~is_als, "slope"].to_numpy(dtype=float)
+    if len(als) < 3 or len(other) < 3:
+        raise ValueError("meta-regression needs at least three studies in each group")
+    return als, other
+
+
 def als_meta_regression(
     cohort_calibration: pd.DataFrame,
     als_studies: tuple[str, ...] = ALS_STUDIES,
@@ -153,27 +200,15 @@ def als_meta_regression(
 
     Welch's two-sample t-test is used rather than a precision-weighted contrast, because with four
     studies in one group the unweighted comparison rests on the fewest assumptions. It ignores the
-    per-cohort standard errors; :func:`als_random_effects_meta_regression` uses them, and the two
-    are reported together.
-    """
-    frame = _cohort_slopes(cohort_calibration, se_method)
-    is_als = frame["held_out_study"].isin(als_studies)
-    als = frame.loc[is_als, "slope"].to_numpy(dtype=float)
-    other = frame.loc[~is_als, "slope"].to_numpy(dtype=float)
-    if len(als) < 3 or len(other) < 3:
-        raise ValueError("meta-regression needs at least three studies in each group")
+    per-cohort standard errors; :func:`als_random_effects_meta_regression` uses them.
 
-    statistic, p_value = stats.ttest_ind(als, other, equal_var=False)
-    als_term = als.var(ddof=1) / len(als)
-    other_term = other.var(ddof=1) / len(other)
-    pooled_se = float(np.sqrt(als_term + other_term))
-    # Welch-Satterthwaite: with 4 studies against 14 this sits well below the 16 a pooled-variance
-    # test would claim, and the interval widens accordingly.
-    degrees = float(
-        (als_term + other_term) ** 2
-        / (als_term**2 / (len(als) - 1) + other_term**2 / (len(other) - 1))
-    )
-    difference = float(als.mean() - other.mean())
+    It also buys its degrees of freedom from a variance ratio estimated on three degrees of freedom
+    in the smaller group, which is why :func:`als_permutation_test` is reported beside it: the
+    permutation makes no distributional assumption at all and does not depend on that ratio.
+    """
+    als, other = _split_by_cohort_type(cohort_calibration, als_studies, se_method)
+    difference, pooled_se, statistic, degrees = _welch(als, other)
+    p_value = float(2 * stats.t.sf(abs(statistic), df=degrees))
     critical = float(stats.t.ppf(0.975, df=degrees))
     return {
         "n_als_studies": float(len(als)),
@@ -191,6 +226,113 @@ def als_meta_regression(
         "p_value": float(p_value),
         "se_method": se_method,
     }
+
+
+def als_permutation_test(
+    cohort_calibration: pd.DataFrame,
+    als_studies: tuple[str, ...] = ALS_STUDIES,
+    se_method: str = "cluster",
+    max_enumerated: int = 200_000,
+    seed: int = 0,
+) -> dict[str, object]:
+    """Test the cohort-type difference by relabelling cohorts, assuming no distribution at all.
+
+    Welch's test spends its degrees of freedom on a variance ratio that four studies cannot pin
+    down: here the smaller group's variance is estimated on three degrees of freedom, and had it
+    come out larger the same data would have given a substantially larger p value. This test asks a
+    question that does not depend on that ratio, namely how often a relabelling of which four of the
+    18 cohorts are the ALS ones produces a contrast at least as extreme as the observed one.
+
+    Two statistics are permuted. The studentised one is the Welch t, and is the p value to report:
+    permuting a raw mean difference across groups of unequal size and unequal spread is the case in
+    which a permutation test is known to lose its exactness, and studentising restores it. The raw
+    mean difference is returned beside it because the gap between the two is itself informative
+    about how much the result rests on the variance estimate.
+
+    Every assignment is enumerated when there are at most ``max_enumerated`` of them, which at 18
+    cohorts and 4 ALS cohorts means all 3,060. Beyond that, assignments are sampled with the given
+    seed and the observed one is included, and ``exact`` records which happened.
+    """
+    als, other = _split_by_cohort_type(cohort_calibration, als_studies, se_method)
+    slopes = np.concatenate([als, other])
+    n_studies = len(slopes)
+    n_als = len(als)
+    observed_difference, _, observed_statistic, _ = _welch(als, other)
+
+    total = int(comb(n_studies, n_als))
+    exact = total <= max_enumerated
+    if exact:
+        assignments: Iterable[tuple[int, ...]] = combinations(range(n_studies), n_als)
+        n_assignments = total
+    else:
+        generator = np.random.default_rng(seed)
+        sampled = [tuple(range(n_als))]  # the observed labelling, which must be in the reference set
+        sampled.extend(
+            tuple(sorted(generator.choice(n_studies, size=n_als, replace=False)))
+            for _ in range(max_enumerated - 1)
+        )
+        assignments = sampled
+        n_assignments = len(sampled)
+
+    # A permuted assignment can reproduce the observed statistic to the last bit, so the comparison
+    # is made with a tolerance; without it the observed labelling itself could fail to count.
+    tolerance = 1e-12
+    at_least_as_extreme = 0
+    at_least_as_extreme_unstudentised = 0
+    for indices in assignments:
+        mask = np.zeros(n_studies, dtype=bool)
+        mask[list(indices)] = True
+        difference, _, statistic, _ = _welch(slopes[mask], slopes[~mask])
+        if abs(statistic) >= abs(observed_statistic) - tolerance:
+            at_least_as_extreme += 1
+        if abs(difference) >= abs(observed_difference) - tolerance:
+            at_least_as_extreme_unstudentised += 1
+
+    return {
+        "n_als_studies": float(n_als),
+        "n_other_studies": float(n_studies - n_als),
+        "n_assignments": float(n_assignments),
+        "n_possible_assignments": float(total),
+        "exact": exact,
+        "difference": observed_difference,
+        "t_statistic": observed_statistic,
+        "p_value": at_least_as_extreme / n_assignments,
+        "p_value_unstudentised": at_least_as_extreme_unstudentised / n_assignments,
+        "se_method": se_method,
+    }
+
+
+def als_leave_one_cohort_out(
+    cohort_calibration: pd.DataFrame,
+    als_studies: tuple[str, ...] = ALS_STUDIES,
+    se_method: str = "cluster",
+) -> pd.DataFrame:
+    """Refit the study-level comparison with each cohort dropped in turn.
+
+    With four cohorts in one group, a single cohort can carry the result. This reports how far it
+    moves when each one is removed, so that dependence is visible rather than left for a reader to
+    suspect. A cohort whose removal would leave fewer than three studies in either group keeps its
+    row with a missing estimate, so the table always lists every cohort.
+    """
+    frame = _cohort_slopes(cohort_calibration, se_method)
+    rows: list[dict[str, object]] = []
+    for study in frame["held_out_study"]:
+        reduced = frame.loc[frame["held_out_study"] != study]
+        is_als = reduced["held_out_study"].isin(als_studies)
+        row: dict[str, object] = {
+            "dropped_study": study,
+            "dropped_is_als": bool(study in als_studies),
+            "n_als_studies": int(is_als.sum()),
+            "n_other_studies": int((~is_als).sum()),
+            "difference": np.nan,
+            "p_value": np.nan,
+        }
+        if row["n_als_studies"] >= 3 and row["n_other_studies"] >= 3:
+            result = als_meta_regression(reduced, als_studies, se_method)
+            row["difference"] = result["difference"]
+            row["p_value"] = result["p_value"]
+        rows.append(row)
+    return pd.DataFrame(rows)
 
 
 def _weighted_least_squares(
