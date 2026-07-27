@@ -62,13 +62,23 @@ def test_null_benchmark_reports_one_row_per_study_plus_a_pooled_row() -> None:
     assert result["n_records"].iloc[-1] == 24
 
 
-def test_null_benchmark_oracle_never_exceeds_the_null_within_a_study() -> None:
+def test_benchmark_columns_are_named_for_the_comparison_they_make() -> None:
+    result = null_benchmark(_records())
+
+    assert "development_mean_benchmark_mae" in result.columns
+    assert "held_out_cohort_mean_benchmark_mae" in result.columns
+    assert "null_mean_absolute_error" not in result.columns
+    assert not any("oracle" in c for c in result.columns)
+
+
+def test_own_mean_benchmark_never_exceeds_the_development_mean_benchmark_within_a_study() -> None:
     result = null_benchmark(_records())
     per_study = result.loc[result["held_out_study"] != "Pooled held-out records"]
 
     # Estimating a study at its own mean cannot be worse than estimating it at another mean.
     assert (
-        per_study["same_study_oracle_mean_absolute_error"] <= per_study["null_mean_absolute_error"] + 1e-12
+        per_study["held_out_cohort_mean_benchmark_mae"]
+        <= per_study["development_mean_benchmark_mae"] + 1e-12
     ).all()
 
 
@@ -77,7 +87,7 @@ def test_null_benchmark_is_zero_when_every_record_sits_at_the_common_mean() -> N
     records["correct"] = 8  # every record 0.8 accuracy, so no variation anywhere
     result = null_benchmark(records)
 
-    assert result["null_mean_absolute_error"].iloc[-1] == pytest.approx(0.0)
+    assert result["development_mean_benchmark_mae"].iloc[-1] == pytest.approx(0.0)
 
 
 def test_within_study_association_recovers_a_planted_positive_association() -> None:

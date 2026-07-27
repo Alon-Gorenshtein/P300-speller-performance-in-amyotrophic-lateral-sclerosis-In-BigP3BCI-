@@ -8,9 +8,10 @@ would be expected to fall in. Drawing the confidence interval and the prediction
 same axis is the point: they answer different questions and only the second is relevant to a reader
 deciding what to expect in their own setting.
 
-``render_skill_by_cohort`` reports each cohort's error against its own no-predictor benchmark, so
+``render_skill_by_cohort`` reports each cohort's error against the development-mean benchmark, so
 that cohorts where the score adds nothing, or costs something, are visible rather than absorbed into
-a pooled average.
+a pooled average. That benchmark, not the cohort's own mean, is the one the plotted skill is computed
+against.
 """
 
 from __future__ import annotations
@@ -104,13 +105,13 @@ def render_skill_by_cohort(
     directory: Path,
     metric: str = "session_mean_absolute_error",
 ) -> None:
-    """Plot each cohort's error reduction against its own no-predictor benchmark."""
+    """Plot each cohort's error reduction against the development-mean benchmark."""
     per_study = metrics.loc[~metrics["held_out_study"].astype(str).str.startswith("Pooled")]
     null = benchmark.loc[benchmark["held_out_study"] != "Pooled held-out records"]
     merged = per_study.merge(
-        null[["held_out_study", "null_mean_absolute_error"]], on="held_out_study", how="inner"
-    ).dropna(subset=[metric, "null_mean_absolute_error"])
-    merged["skill"] = 1.0 - merged[metric] / merged["null_mean_absolute_error"]
+        null[["held_out_study", "development_mean_benchmark_mae"]], on="held_out_study", how="inner"
+    ).dropna(subset=[metric, "development_mean_benchmark_mae"])
+    merged["skill"] = 1.0 - merged[metric] / merged["development_mean_benchmark_mae"]
     merged = merged.sort_values("skill")
 
     positions = np.arange(len(merged))
@@ -121,7 +122,7 @@ def render_skill_by_cohort(
     ax.barh(positions, merged["skill"], color=colours, height=0.62, zorder=2)
     ax.set_yticks(positions)
     ax.set_yticklabels([_cohort_label(s) for s in merged["held_out_study"]])
-    ax.set_xlabel("Error reduction against the cohort's own no-predictor benchmark")
+    ax.set_xlabel("Error reduction against the development-mean benchmark")
     ax.set_ylim(-0.6, len(merged) - 0.4)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)

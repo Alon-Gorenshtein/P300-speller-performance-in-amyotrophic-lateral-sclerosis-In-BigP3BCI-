@@ -4,10 +4,13 @@ The primary validation reports how closely a held-out study's session-condition 
 estimated. On its own that number cannot be judged, because no reference point is given. Four
 analyses here supply the reference points a reader needs.
 
-``null_benchmark`` asks what the same held-out design achieves with no predictor at all, by
-estimating every held-out record at the development-set mean accuracy. It also reports an oracle that
-is told each held-out study's own mean, which isolates how much of the model's advantage comes from
-ranking participants within a study rather than from tracking differences between studies.
+``null_benchmark`` reports two no-predictor benchmarks, each named for the comparison it makes. The
+development-mean benchmark estimates every held-out record at the development-set mean accuracy,
+which is what a deployment without local data would have. The held-out-cohort-mean benchmark
+estimates every held-out record at that cohort's own mean, which no deployment would know; it is the
+stricter target, and beating it means the model is ranking participants inside a cohort rather than
+only tracking differences between cohorts. The skill reported elsewhere is computed against the
+development-mean benchmark, not against the cohort's own mean.
 
 ``within_study_association`` removes each study's mean from both the predictor and the outcome. If
 the association survives that, it is not an artefact of studies differing in both difficulty and
@@ -63,12 +66,13 @@ def collapse_to_sessions(records: pd.DataFrame, feature: str = "calibration_auc"
 
 
 def null_benchmark(records: pd.DataFrame) -> pd.DataFrame:
-    """Report source-study-held-out error for a no-predictor model and for a same-study oracle.
+    """Report source-study-held-out error for the two no-predictor benchmarks.
 
-    The null estimates every held-out record at the development-set mean accuracy. The oracle is
-    given the held-out study's own mean, which no real deployment would know. A model that beats the
-    oracle is ranking participants inside the study, which is the property that would make a
-    session-level check useful.
+    ``development_mean_benchmark_mae`` estimates every held-out record at the development-set mean
+    accuracy. ``held_out_cohort_mean_benchmark_mae`` estimates every held-out record at that study's
+    own mean, which no real deployment would know. A model that beats the second is ranking
+    participants inside the study, which is the property that would make a session-level check
+    useful. The two are different comparisons and are not interchangeable.
     """
     required = ["study", "n", "correct"]
     missing = [key for key in required if key not in records.columns]
@@ -79,8 +83,8 @@ def null_benchmark(records: pd.DataFrame) -> pd.DataFrame:
     frame["accuracy"] = frame["correct"] / frame["n"]
 
     rows: list[dict[str, object]] = []
-    null_errors: list[float] = []
-    oracle_errors: list[float] = []
+    development_mean_errors: list[float] = []
+    own_mean_errors: list[float] = []
     for study in sorted(frame["study"].unique()):
         development = frame.loc[frame["study"] != study]
         held_out = frame.loc[frame["study"] == study]
@@ -89,10 +93,10 @@ def null_benchmark(records: pd.DataFrame) -> pd.DataFrame:
 
         development_mean = float(development["accuracy"].mean())
         own_mean = float(held_out["accuracy"].mean())
-        null_error = (held_out["accuracy"] - development_mean).abs()
-        oracle_error = (held_out["accuracy"] - own_mean).abs()
-        null_errors.extend(null_error.tolist())
-        oracle_errors.extend(oracle_error.tolist())
+        development_mean_error = (held_out["accuracy"] - development_mean).abs()
+        own_mean_error = (held_out["accuracy"] - own_mean).abs()
+        development_mean_errors.extend(development_mean_error.tolist())
+        own_mean_errors.extend(own_mean_error.tolist())
 
         rows.append(
             {
@@ -100,8 +104,8 @@ def null_benchmark(records: pd.DataFrame) -> pd.DataFrame:
                 "n_records": int(len(held_out)),
                 "development_mean_accuracy": development_mean,
                 "held_out_mean_accuracy": own_mean,
-                "null_mean_absolute_error": float(null_error.mean()),
-                "same_study_oracle_mean_absolute_error": float(oracle_error.mean()),
+                "development_mean_benchmark_mae": float(development_mean_error.mean()),
+                "held_out_cohort_mean_benchmark_mae": float(own_mean_error.mean()),
             }
         )
 
@@ -111,8 +115,8 @@ def null_benchmark(records: pd.DataFrame) -> pd.DataFrame:
             "n_records": int(len(frame)),
             "development_mean_accuracy": np.nan,
             "held_out_mean_accuracy": float(frame["accuracy"].mean()),
-            "null_mean_absolute_error": float(np.mean(null_errors)),
-            "same_study_oracle_mean_absolute_error": float(np.mean(oracle_errors)),
+            "development_mean_benchmark_mae": float(np.mean(development_mean_errors)),
+            "held_out_cohort_mean_benchmark_mae": float(np.mean(own_mean_errors)),
         }
     )
     return pd.DataFrame(rows)

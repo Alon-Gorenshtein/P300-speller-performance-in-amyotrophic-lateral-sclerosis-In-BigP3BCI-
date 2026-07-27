@@ -50,8 +50,8 @@ def main() -> None:
 
     pooled = benchmark.loc[benchmark["held_out_study"] == "Pooled held-out records"].iloc[0]
     centred = within.loc[within["analysis"] == "pooled_study_centred"].iloc[0]
-    print(f"null MAE {pooled['null_mean_absolute_error']:.4f}")
-    print(f"same-study oracle MAE {pooled['same_study_oracle_mean_absolute_error']:.4f}")
+    print(f"development-mean benchmark MAE {pooled['development_mean_benchmark_mae']:.4f}")
+    print(f"held-out-cohort-mean benchmark MAE {pooled['held_out_cohort_mean_benchmark_mae']:.4f}")
     print(f"pooled study-centred r {centred['pearson_r']:.3f}")
     print(f"participant-level r {participant['pearson_r'].iloc[0]:.3f} (n={participant['n_participants'].iloc[0]})")
     across_row = across.loc[across["analysis"] == "across_session_prior_to_later"]
