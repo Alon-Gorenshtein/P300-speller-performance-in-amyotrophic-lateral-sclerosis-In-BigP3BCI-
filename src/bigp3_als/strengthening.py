@@ -24,10 +24,14 @@ cannot be produced by repeated sessions from the same person.
 
 ``across_session_association`` is the clinically meaningful ordering: a calibration recording from one
 session is used to anticipate the accuracy of a later session, rather than of the session it came
-from.
+from. Which session is the earlier one is taken from the lexical order of the session identifiers,
+because every timestamp in the archive is de-identified; that ordering is an assumption, and the
+function refuses identifier formats for which lexical order could not carry it.
 """
 
 from __future__ import annotations
+
+import re
 
 import numpy as np
 import pandas as pd
@@ -239,10 +243,53 @@ def session_accuracy_icc(records: pd.DataFrame, feature: str = "calibration_auc"
     }
 
 
+def _identifier_sort_key(identifier: str) -> tuple[tuple[int, int, str], ...]:
+    """Return a numeric-aware sort key for a session identifier.
+
+    Digit runs compare as numbers and everything else as text, so SE2 precedes SE10 under this key
+    even though it follows it lexically. The key exists only to detect that disagreement, not to
+    replace the lexical order the analysis actually uses.
+    """
+    parts = [part for part in re.split(r"(\d+)", str(identifier)) if part != ""]
+    return tuple((0, int(part), "") if part.isdigit() else (1, 0, part) for part in parts)
+
+
+def _ordered_by_identifier(group: pd.DataFrame) -> pd.DataFrame:
+    """Sort one participant's sessions into recording order, refusing identifiers that cannot be.
+
+    Ordering is lexical, and lexical order tracks recording order only while a participant's
+    identifiers are formatted alike, as the zero-padded SE001 form in this archive is. Two failures
+    would silently reverse a pair rather than announce themselves, so both are refused here. SE2 and
+    SE10 sort lexically into the wrong order, and SE1 and SE01 denote the same position and so carry
+    no strict order at all.
+    """
+    identifiers = group["session_id"].astype(str).tolist()
+    keys = [_identifier_sort_key(identifier) for identifier in identifiers]
+    if len(set(keys)) != len(keys):
+        raise ValueError(
+            "session identifiers within a participant do not form a strict order: "
+            f"{sorted(identifiers)}"
+        )
+    lexical = sorted(identifiers)
+    numeric_aware = [identifier for _, identifier in sorted(zip(keys, identifiers))]
+    if lexical != numeric_aware:
+        raise ValueError(
+            "lexical order of session identifiers within a participant contradicts their numeric "
+            f"order, so recording order cannot be inferred from them: {sorted(identifiers)}"
+        )
+    return group.sort_values("session_id").reset_index(drop=True)
+
+
 def across_session_association(records: pd.DataFrame, feature: str = "calibration_auc") -> tuple[pd.DataFrame, pd.DataFrame]:
     """Use one session's calibration recording to anticipate a later session's accuracy.
 
-    Sessions are ordered by their identifier, which is assigned in recording order in this archive.
+    Sessions are ordered by the lexical order of their identifiers, which the archive assigns
+    sequentially within a participant. Every recording timestamp in the archive is de-identified and
+    so cannot confirm that ordering, which makes it an assumption this analysis rests on rather than
+    a property of the data it can check. What can be checked is whether lexical order is capable of
+    carrying recording order at all, and ``_ordered_by_identifier`` refuses the identifier formats
+    for which it is not.
+
     Consecutive pairs are formed within participant, so the predictor always precedes the outcome and
     never comes from the session being estimated.
     """
@@ -250,7 +297,7 @@ def across_session_association(records: pd.DataFrame, feature: str = "calibratio
 
     pairs: list[dict[str, object]] = []
     for (study, participant), group in sessions.groupby(["study", "study_participant_id"], sort=True):
-        ordered = group.sort_values("session_id").reset_index(drop=True)
+        ordered = _ordered_by_identifier(group)
         for index in range(len(ordered) - 1):
             earlier = ordered.loc[index]
             later = ordered.loc[index + 1]

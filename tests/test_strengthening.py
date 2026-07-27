@@ -188,6 +188,40 @@ def test_across_session_returns_a_stub_when_no_participant_has_two_sessions() ->
     assert summary["n_pairs"].iloc[0] == 0
 
 
+def test_across_session_refuses_identifiers_whose_lexical_order_is_the_wrong_order() -> None:
+    """Unpadded identifiers sort lexically into an order that is not the recording order.
+
+    SE10 precedes SE2 lexically, so pairing on that order would take the later session's calibration
+    recording as the predictor for the earlier session's accuracy. The analysis has no timestamp with
+    which to notice that, so the function refuses the input rather than silently reversing the pair.
+    """
+    records = _records()
+    records["session_id"] = records["session_id"].replace({"SE001": "SE2", "SE002": "SE10"})
+
+    with pytest.raises(ValueError, match="contradicts their numeric"):
+        across_session_association(records)
+
+
+def test_across_session_refuses_identifiers_that_carry_no_strict_order() -> None:
+    """SE1 and SE01 name the same position, so no ordering of them can be the recording order."""
+    records = _records()
+    records["session_id"] = records["session_id"].replace({"SE001": "SE1", "SE002": "SE01"})
+
+    with pytest.raises(ValueError, match="do not form a strict order"):
+        across_session_association(records)
+
+
+def test_across_session_accepts_the_zero_padded_identifiers_this_archive_uses() -> None:
+    """The guard must not reject the format the analysis actually runs on."""
+    records = _records()
+    records["session_id"] = records["session_id"].replace({"SE002": "SE012"})
+
+    pairs, _ = across_session_association(records)
+
+    assert (pairs["predictor_session"] == "SE001").all()
+    assert (pairs["outcome_session"] == "SE012").all()
+
+
 def test_across_session_predictor_is_never_taken_from_the_outcome_session() -> None:
     records = _records()
     # Make the second session's score distinctive so leakage would be visible.
