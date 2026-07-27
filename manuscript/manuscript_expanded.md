@@ -91,7 +91,7 @@ The study involved no new data collection, participant contact, or intervention.
 
 ### Relationship Between the Predictor and the Deployed Decoder
 
-In these copy-spelling protocols the classifier used online during the Test phase was itself fitted on the Train-phase files from which the calibration score is computed. The quantity evaluated here is therefore the cross-validated fit quality of the decoder that was actually deployed, measured against that decoder's subsequent online accuracy, rather than an independent physiological marker of user aptitude. This is stated because it explains the strength of the within-session relationship and because it is the property a session-level operational check would exploit.
+In these copy-spelling protocols the Train phase supplies the data from which an online classifier is derived before the Test phase begins. The archive does not document the online classifier for every source study, so the score is described here as the cross-validated learnability of that session's calibration data rather than as a property of the specific decoder deployed. This is why the quantity is reported as decoder-calibration quality and not as a physiological marker of user aptitude.
 
 ## Results
 
@@ -157,7 +157,7 @@ A mapping developed entirely without ALS data estimated accuracy in the ALS coho
 
 First, calibration and online blocks come from the same recording session throughout. Every timestamp in the archive is de-identified, so temporal precedence within a session cannot be verified from the data, and the separation enforced here is between protocol phases rather than demonstrated ordering. The analysis using a preceding session's calibration recording is the closest available approximation and shows an attenuated association.
 
-Second, the online classifier deployed during the Test phase was fitted on the same Train-phase files from which the calibration score is derived. The quantity evaluated is therefore the cross-validated fit quality of the decoder that was actually used, measured against that decoder's own subsequent accuracy, rather than an independent physiological marker of user aptitude.
+Second, the archive documents the calibration-then-test structure of these protocols at the level of the collection but does not name the online classifier used in any source study, and the underlying BCI2000 parameter files, which would carry the decoder specification, were withheld from the release. Whether the classifier applied during a given Test phase was fitted on exactly the distributed Train-phase files of that session therefore cannot be verified. The quantity evaluated is the cross-validated learnability of that session's calibration data, measured against the online accuracy recorded in the same session, rather than an independent physiological marker of user aptitude.
 
 Third, the cohorts differ in speller matrix, stimulus paradigm, electrode type, and stopping rule, and paradigm is largely nested within source study, so withholding a cohort also withholds its paradigms. Cohort and paradigm effects cannot be separated in this design. Stimulus presentation and stopping rule are known to change speller accuracy substantially,[28,29,30] so some of the between-cohort variability reported here is attributable to protocol rather than to population.
 
