@@ -20,7 +20,7 @@
 
 **Ethics approval:** Institutional review board approval was not required; the determination is stated in full in the Methods, under Ethics.
 
-**CRediT author contributions:** [CREDIT ROLES TO BE ASSIGNED BY THE SUBMITTING AUTHORS]
+**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. M.O.: methodology, software, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
 
 ## Abstract
 
