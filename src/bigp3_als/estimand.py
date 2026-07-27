@@ -24,24 +24,29 @@ prediction but makes every standard error and deviance-based test on the fitted 
 Second, this module returns predictions and never the fitted object, so no inference is drawn from
 a fit whose weights are a convention rather than a count of observations.
 
-One caveat belongs on the `session` row rather than in a reviewer's letter. A session appears once
-per spelling condition, so `session` weighting gives one unit to each session-condition record, and
-a session evaluated under four conditions therefore carries four units while `n_units` counts it as
-one session. On these data that is 410 sessions behind 739 records, sessions carrying between one
-and four. Weighting strictly per session instead, at one over the records in that session, moves
-the pooled mean absolute error from 0.0968 to 0.0963 and the calibration slope from 0.872 to 0.878,
-against a character-to-session gap in that slope of 0.094. So the row answers a question about a
-randomly chosen session-condition record rather than a randomly chosen session, and the difference
-between those two questions is far smaller than the difference this table exists to show.
+A session appears once per spelling condition, so one unit per session and one unit per
+session-condition record are not the same thing: 410 sessions carry 739 records here, between one
+and four each. `session` weighting is strictly per session, at one over the records in that
+session, so the row's label, its `n_units` and its weights all name the same unit, and the three
+weightings form a ladder in which each level equalises the level below it. The looser convention of
+one unit per record was the alternative and it changes little: mean absolute error 0.0968 rather
+than 0.0963, character-scale slope 0.8719 rather than 0.8779, matched-scale slope 0.9871 rather
+than 0.9816. The stricter one is used because it is the one whose name is true of the fit.
 
-The two reported quantities are held fixed across the three weightings on purpose. `weighting`
-names what the *fit* treats as one unit of evidence; the evaluation is deliberately not re-weighted
-alongside it, because a column that moved for both reasons could not say which one moved it. The
-two evaluation metrics are the two the manuscript already reports for the same held-out
-predictions: an unweighted mean absolute error over session-condition records
-(`session_mean_absolute_error`) and a character-weighted calibration slope (`calibration_slope`).
-So the character row is directly comparable to the existing pipeline, and the other two rows say
-what happens to those same numbers when the fit stops being character-weighted.
+Two calibration slopes are reported per row, and the gap between them is the reason both are here.
+`calibration_slope` scores every fit on the character scale. That is the scale the manuscript
+already reports, so it puts the three rows on one axis and makes the character row directly
+comparable to the published number. But a fit optimised for one weighting will look miscalibrated
+when scored under another, and that is exactly what happens: the session-weighted fit scores 0.878
+on the character scale. Read alone, that column says the per-session estimand is badly calibrated,
+which is false. `calibration_slope_matched_scale` scores each fit on the scale it was fitted for,
+which is the slope that row's estimand actually claims, and there the session fit is the better
+calibrated of the two, 0.982 against 0.966. The character-scale column measures the mismatch, not
+the calibration, for any row other than the character row.
+
+`mean_absolute_error` needs no such pairing. It is an unweighted mean over held-out
+session-condition records for every row, which is the manuscript's `session_mean_absolute_error`,
+and it moves by less than 0.002 across the three weightings.
 """
 
 from __future__ import annotations
@@ -51,19 +56,43 @@ import pandas as pd
 import statsmodels.api as sm
 
 WEIGHTINGS = ("character", "session", "participant")
+SESSION_KEY = ("study", "study_participant_id", "session_id")
+PARTICIPANT_KEY = ("study", "study_participant_id")
 PROBABILITY_CLIP = 1e-6
 
 
 def _unit_weights(records: pd.DataFrame, weighting: str) -> np.ndarray:
-    """How much evidence one session-condition record carries under each estimand."""
+    """How much evidence one session-condition record carries under each estimand.
+
+    Under `session` and `participant` the weights of the records belonging to one session or one
+    participant sum to exactly one, so the unit named is the unit weighted. Both group on the full
+    key rather than on `study_participant_id` alone: the identifiers carry a study prefix on these
+    data, so the two agree here, but an unprefixed scheme would silently merge a participant across
+    studies and the rest of the codebase groups on the full key for the same reason.
+    """
     if weighting == "character":
         return records["n"].to_numpy(dtype=float)
     if weighting == "session":
-        return np.ones(len(records), dtype=float)
+        counts = records.groupby(list(SESSION_KEY))["n"].transform("size")
+        return (1.0 / counts).to_numpy(dtype=float)
     if weighting == "participant":
-        counts = records.groupby("study_participant_id")["n"].transform("size")
+        counts = records.groupby(list(PARTICIPANT_KEY))["n"].transform("size")
         return (1.0 / counts).to_numpy(dtype=float)
     raise ValueError(f"unknown weighting: {weighting}; expected one of {WEIGHTINGS}")
+
+
+def _frequency_weights(records: pd.DataFrame, weighting: str) -> np.ndarray:
+    """Frequency weights that leave each record contributing exactly its unit weight.
+
+    statsmodels multiplies a frequency weight back through the grouped denominator, so dividing by
+    the denominator first cancels that. Rescaling to mean one changes no coefficient and keeps the
+    residual degrees of freedom of the fitted object from going negative; see the module docstring.
+    """
+    trials = records["n"].to_numpy(dtype=float)
+    if (trials <= 0).any():
+        raise ValueError("every record needs at least one character trial")
+    scale = _unit_weights(records, weighting) / trials
+    return scale * (len(scale) / scale.sum())
 
 
 def fit_grouped_binomial(
@@ -74,6 +103,12 @@ def fit_grouped_binomial(
         raise ValueError(f"unknown weighting: {weighting}; expected one of {WEIGHTINGS}")
 
     development = development.dropna(subset=[feature])
+    # A missing predictor in a held-out record would otherwise return a silent NaN probability that
+    # travels into a mean absolute error as a dropped record rather than as a refusal. Development
+    # rows are dropped because they carry no information; validation rows are refused because the
+    # caller asked for a prediction that cannot be made.
+    if validation[feature].isna().any():
+        raise ValueError(f"validation records carry a missing {feature}; no prediction is defined")
     mean = float(development[feature].mean())
     deviation = float(development[feature].std(ddof=0)) or 1.0
 
@@ -82,21 +117,12 @@ def fit_grouped_binomial(
     )
     successes = development["correct"].to_numpy(dtype=float)
     trials = development["n"].to_numpy(dtype=float)
-    if (trials <= 0).any():
-        raise ValueError("every development record needs at least one character trial")
-    weights = _unit_weights(development, weighting)
-    # statsmodels multiplies a frequency weight back through the grouped denominator, so dividing
-    # by the denominator first leaves each record contributing its unit weight and nothing else.
-    # Rescaling to mean one changes no coefficient and keeps the residual degrees of freedom of the
-    # fitted object from going negative; see the module docstring.
-    scale = weights / trials
-    scale = scale * (len(scale) / scale.sum())
 
     model = sm.GLM(
         np.column_stack([successes, trials - successes]),
         x_dev,
         family=sm.families.Binomial(),
-        freq_weights=scale,
+        freq_weights=_frequency_weights(development, weighting),
     ).fit()
 
     x_val = sm.add_constant(
@@ -105,14 +131,17 @@ def fit_grouped_binomial(
     return np.asarray(model.predict(x_val), dtype=float)
 
 
-def _calibration_slope(records: pd.DataFrame, predicted: np.ndarray) -> float:
-    """Character-weighted slope of observed accuracy on the predicted log odds.
+def _calibration_slope(
+    records: pd.DataFrame, predicted: np.ndarray, weighting: str = "character"
+) -> float:
+    """Slope of observed accuracy on the predicted log odds, weighted as asked.
 
-    Grouped successes and failures against an unweighted binomial GLM is exactly the fit
-    `bigp3_als.validation` performs on character-expanded Bernoulli rows, so this reproduces the
-    manuscript's `calibration_slope` rather than defining a second, subtly different one. A
-    degenerate design, where every held-out prediction is identical and the slope is therefore not
-    recoverable, returns a missing value instead of raising, matching the same convention there.
+    Under `character`, grouped successes and failures against an unweighted binomial GLM is exactly
+    the fit `bigp3_als.validation` performs on character-expanded Bernoulli rows, so the default
+    reproduces the manuscript's `calibration_slope` rather than defining a second, subtly different
+    one. A degenerate design, where every held-out prediction is identical and the slope is
+    therefore not recoverable, returns a missing value instead of raising, matching the same
+    convention there.
     """
     clipped = np.clip(predicted, PROBABILITY_CLIP, 1 - PROBABILITY_CLIP)
     design = sm.add_constant(np.log(clipped / (1 - clipped)), has_constant="add")
@@ -123,6 +152,7 @@ def _calibration_slope(records: pd.DataFrame, predicted: np.ndarray) -> float:
             np.column_stack([successes, trials - successes]),
             design,
             family=sm.families.Binomial(),
+            freq_weights=_frequency_weights(records, weighting),
         ).fit()
         return float(model.params[1])
     except (
@@ -155,18 +185,21 @@ def compare_estimands(records: pd.DataFrame, feature: str = "calibration_auc") -
             predictions.append(predicted)
         units = {
             "character": int(records["n"].sum()),
-            "session": records.groupby(["study", "study_participant_id", "session_id"]).ngroups,
-            "participant": records["study_participant_id"].nunique(),
+            "session": records.groupby(list(SESSION_KEY)).ngroups,
+            "participant": records.groupby(list(PARTICIPANT_KEY)).ngroups,
         }[weighting]
-        slope = (
-            _calibration_slope(pd.concat(held_out), np.concatenate(predictions))
-            if held_out
-            else float("nan")
-        )
+        if held_out:
+            evaluated = pd.concat(held_out)
+            pooled = np.concatenate(predictions)
+            slope = _calibration_slope(evaluated, pooled)
+            matched = _calibration_slope(evaluated, pooled, weighting)
+        else:
+            slope = matched = float("nan")
         rows.append({
             "weighting": weighting,
             "mean_absolute_error": float(np.mean(errors)) if errors else float("nan"),
             "calibration_slope": slope,
+            "calibration_slope_matched_scale": matched,
             "n_units": units,
         })
     return pd.DataFrame(rows)

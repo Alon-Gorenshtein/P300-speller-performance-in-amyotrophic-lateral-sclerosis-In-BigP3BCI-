@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 import statsmodels.api as sm
 
-from bigp3_als.estimand import compare_estimands, fit_grouped_binomial
+from bigp3_als.estimand import _unit_weights, compare_estimands, fit_grouped_binomial
 
 
 def _records() -> pd.DataFrame:
@@ -129,7 +129,12 @@ def test_character_weighting_reproduces_the_character_expanded_fit() -> None:
 
 
 def test_session_weighting_matches_a_one_trial_per_record_fit() -> None:
-    """Dividing the frequency weight by the denominator buys back one unit per record."""
+    """Dividing the frequency weight by the denominator buys back one unit per record.
+
+    `_unequal_records` gives every session exactly one condition record, so one unit per session and
+    one unit per record are the same thing there and the mechanism can be checked in isolation.
+    `test_weights_sum_to_one_within_each_session` is what pins the two apart.
+    """
     records = _unequal_records()
     development = records.loc[records["study"] != "StudyB"]
     validation = records.loc[records["study"] == "StudyB"]
@@ -191,15 +196,87 @@ def test_participant_weighting_differs_from_session_weighting_when_records_are_u
     assert not np.allclose(by_session, by_participant)
 
 
+def _multi_condition_records() -> pd.DataFrame:
+    """Sessions carrying one to three conditions, with a participant identifier reused across studies.
+
+    Two properties need this shape. Sessions with unequal numbers of conditions are what tell one
+    unit per session apart from one unit per session-condition record. And `P0` appearing in both
+    studies is what tells grouping on the full participant key apart from grouping on the bare
+    identifier, which would merge two people into one.
+    """
+    rows = []
+    for study in ("StudyA", "StudyB"):
+        for participant in range(4):
+            for session in range(2):
+                for condition in ("CB", "RC", "DC")[: 1 + (participant + session) % 3]:
+                    n = 4 if participant < 2 else 30
+                    rows.append({
+                        "study": study,
+                        "study_participant_id": f"P{participant}",
+                        "session_id": f"SE{session:03d}",
+                        "condition": condition,
+                        "n": n,
+                        "correct": int(round(n * min(0.95, 0.4 + 0.1 * participant))),
+                        "calibration_auc": 0.55 + 0.06 * participant + 0.01 * session,
+                    })
+    return pd.DataFrame(rows)
+
+
+def test_weights_sum_to_one_within_each_session() -> None:
+    """One unit per session, not one per session-condition record."""
+    records = _multi_condition_records()
+    weights = pd.Series(_unit_weights(records, "session"), index=records.index)
+
+    totals = weights.groupby([records["study"], records["study_participant_id"],
+                              records["session_id"]]).sum()
+    assert len(totals) == 16
+    assert np.allclose(totals.to_numpy(dtype=float), 1.0)
+
+
+def test_weights_sum_to_one_within_each_participant() -> None:
+    """One unit per participant, and a participant is a study and an identifier, not an identifier."""
+    records = _multi_condition_records()
+    weights = pd.Series(_unit_weights(records, "participant"), index=records.index)
+
+    totals = weights.groupby([records["study"], records["study_participant_id"]]).sum()
+    assert len(totals) == 8
+    assert np.allclose(totals.to_numpy(dtype=float), 1.0)
+    # Grouping on the bare identifier would merge `P0` across the two studies and halve these.
+    assert not np.allclose(weights.groupby(records["study_participant_id"]).sum().to_numpy(), 1.0)
+
+
 def test_compare_estimands_counts_the_units_it_says_it_weights() -> None:
-    result = compare_estimands(_unequal_records(), "calibration_auc").set_index("weighting")
-    records = _unequal_records()
+    records = _multi_condition_records()
+    result = compare_estimands(records, "calibration_auc").set_index("weighting")
 
     assert result.loc["character", "n_units"] == records["n"].sum()
-    assert result.loc["session", "n_units"] == len(records)
-    assert result.loc["participant", "n_units"] == records["study_participant_id"].nunique()
-    assert result.loc["character", "n_units"] > result.loc["session", "n_units"]
+    assert result.loc["session", "n_units"] == 16
+    assert result.loc["participant", "n_units"] == 8
+    assert result.loc["character", "n_units"] > len(records) > result.loc["session", "n_units"]
     assert result.loc["session", "n_units"] > result.loc["participant", "n_units"]
+
+
+def test_matched_scale_slope_equals_the_fixed_slope_only_for_character_weighting() -> None:
+    """The shipped slope scores every fit on the character scale; the matched one does not."""
+    result = compare_estimands(_multi_condition_records(), "calibration_auc").set_index("weighting")
+
+    assert result.loc["character", "calibration_slope_matched_scale"] == pytest.approx(
+        result.loc["character", "calibration_slope"]
+    )
+    for weighting in ("session", "participant"):
+        assert result.loc[weighting, "calibration_slope_matched_scale"] != pytest.approx(
+            result.loc[weighting, "calibration_slope"]
+        )
+
+
+def test_a_missing_predictor_in_a_held_out_record_is_refused_not_predicted() -> None:
+    records = _records()
+    development = records.loc[records["study"] != "StudyC"]
+    validation = records.loc[records["study"] == "StudyC"].copy()
+    validation.loc[validation.index[0], "calibration_auc"] = np.nan
+
+    with pytest.raises(ValueError, match="missing calibration_auc"):
+        fit_grouped_binomial(development, validation, "calibration_auc", "character")
 
 
 def test_compare_estimands_reports_a_character_weighted_calibration_slope() -> None:
