@@ -149,7 +149,7 @@ def test_sensitivity_table_carries_the_leave_two_studies_out_row() -> None:
 
 
 @needs_comparator_table
-def test_comparator_table_reports_every_prespecified_predictor() -> None:
+def test_comparator_table_reports_every_named_predictor() -> None:
     table = pd.read_csv(COMPARATOR_TABLE)
     assert set(MODEL_SPECS_NAMES) <= set(table["predictor"])
     assert (table["role"] == "exploratory reference").sum() == 1
@@ -215,7 +215,7 @@ def test_supplement_table_s6_has_a_row_for_every_specification() -> None:
     rows = [line for line in body.splitlines() if line.startswith("|")]
     header, separator, *data = rows
     assert separator.startswith("|---")
-    # one row per prespecified predictor plus the matched reference for the exploratory one
+    # one row per named predictor plus the matched reference for the exploratory one
     assert len(data) == len(MODEL_SPECS) + 1
     assert sum(1 for line in data if "Exploratory reference" in line) == 1
 

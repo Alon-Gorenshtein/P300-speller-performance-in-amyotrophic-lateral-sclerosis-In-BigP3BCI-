@@ -1,4 +1,4 @@
-"""Tests for prespecified sensitivity analysis boundaries."""
+"""Tests for sensitivity analysis boundaries."""
 
 from __future__ import annotations
 

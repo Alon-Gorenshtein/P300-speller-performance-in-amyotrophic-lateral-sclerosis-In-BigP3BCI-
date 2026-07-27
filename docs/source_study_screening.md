@@ -1,6 +1,6 @@
 # BigP3BCI Source-Study Screening
 
-All 20 source studies in the BigP3BCI v1.0.0 documentation were screened before defining the revised clinical cohort. The dataset documentation identifies ALS study populations only for Studies B, F, L, and N. Their EDF files provide the shared 16-channel montage and both Train and Test phases required for the prespecified analysis. The remaining source studies were excluded because the public documentation does not identify an ALS study population, not because of downstream performance or outcome data.
+All 20 source studies in the BigP3BCI v1.0.0 documentation were screened before defining the revised clinical cohort. The dataset documentation identifies ALS study populations only for Studies B, F, L, and N. Their EDF files provide the shared 16-channel montage and both Train and Test phases required for the originally targeted four-cohort analysis. No analysis plan was registered, so nothing here is prespecified in the sense a registered plan would establish; see `statistical_analysis_plan.md`. The remaining source studies were excluded because the public documentation does not identify an ALS study population, not because of downstream performance or outcome data.
 
 | Study | Documented participants | ALS study population documented | Matrix / paradigm | Primary-cohort decision | Reason |
 |---|---:|---|---|---|---|

@@ -3,7 +3,7 @@
 The four-cohort version of this analysis could not put an interval on transportability, because a
 between-study variance estimated on three degrees of freedom is not usable. This script widens the
 design to every source study with eligible feedback outcomes, keeps the documented ALS cohorts as the
-prespecified primary subgroup, and adds the transfer and moderation questions that only become
+originally targeted primary subgroup, and adds the transfer and moderation questions that only become
 answerable once non-ALS cohorts are present.
 """
 

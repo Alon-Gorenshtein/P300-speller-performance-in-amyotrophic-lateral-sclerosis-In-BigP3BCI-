@@ -129,7 +129,7 @@ def calibration_discriminability(
 def calibration_classification_accuracy(
     epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray
 ) -> float:
-    """Estimate grouped-CV calibration classification accuracy at a prespecified 0.5 threshold."""
+    """Estimate grouped-CV calibration classification accuracy at a fixed 0.5 threshold."""
     predictions = _grouped_cv_predictions(epochs, labels, groups, "logistic")
     return float(np.mean((predictions >= 0.5) == np.asarray(labels, dtype=int)))
 

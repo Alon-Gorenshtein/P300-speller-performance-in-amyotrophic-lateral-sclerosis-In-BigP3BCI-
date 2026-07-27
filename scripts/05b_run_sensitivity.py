@@ -1,4 +1,8 @@
-"""Run prespecified robustness checks after the primary analysis is frozen."""
+"""Run the robustness checks of the original four-cohort design, after the primary analysis is frozen.
+
+These were listed before they were run, but no analysis plan was registered, so they are not
+prespecified in the sense a registered plan would establish.
+"""
 
 from __future__ import annotations
 

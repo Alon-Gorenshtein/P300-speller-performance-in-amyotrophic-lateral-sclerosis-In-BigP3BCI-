@@ -77,7 +77,7 @@ def _find_member(archive: zipfile.ZipFile, suffix: str) -> str:
 def build_manifest(
     archive_path: Path, studies: frozenset[str] | None = None
 ) -> list[ArchiveMember]:
-    """Select verified EDF members from prespecified or explicitly requested ALS studies."""
+    """Select verified EDF members from the documented or explicitly requested ALS studies."""
     selected_studies = CLINICAL_STUDIES if studies is None else studies
     if not selected_studies or not selected_studies <= CLINICAL_STUDIES:
         raise ProvenanceError("requested studies must be a nonempty subset of the ALS source studies")

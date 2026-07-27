@@ -1,4 +1,8 @@
-"""Withheld-cohort performance of every prespecified comparator predictor.
+"""Withheld-cohort performance of every comparator predictor named in the Methods.
+
+The comparators were listed in the Methods before they were run on the widened cohort, but
+after the primary widened analysis had been fitted, and no analysis plan was registered, so
+they are not prespecified in the sense a registered plan would establish.
 
 The Methods name five comparator scores and one exploratory score alongside the primary one, so the
 supplement has to report what they did rather than only that they were computed. Each specification
@@ -74,7 +78,7 @@ def main() -> None:
     arguments = parser.parse_args()
 
     records = pd.read_csv(arguments.records)
-    # No specification is caught and skipped. The supplement claims results for every prespecified
+    # No specification is caught and skipped. The supplement claims results for every named
     # predictor, so a specification that silently dropped out would make that claim false while the
     # table still looked complete. A failure here has to stop the run.
     rows = [_comparator_row(records, specification) for specification in MODEL_SPECS]

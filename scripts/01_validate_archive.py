@@ -27,7 +27,7 @@ def main() -> None:
         "--studies",
         nargs="+",
         default=None,
-        help="Optional subset of prespecified ALS source studies, for resumable ingestion.",
+        help="Optional subset of the documented ALS source studies, for resumable ingestion.",
     )
     parser.add_argument(
         "--stage",

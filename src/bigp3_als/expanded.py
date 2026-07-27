@@ -6,8 +6,10 @@ every source study that yields eligible online outcomes turns the study into the
 and makes three further questions answerable.
 
 ``ALS_STUDIES`` records which cohorts the archive documentation identifies as amyotrophic lateral
-sclerosis populations. They remain the prespecified primary subgroup; the remaining cohorts are what
-makes the transportability statement estimable.
+sclerosis populations. They remain the originally targeted primary subgroup, fixed in the project
+documentation before the design was widened beyond them; no analysis plan was registered, so they are
+not prespecified in the sense a registered plan would establish. The remaining cohorts are what makes
+the transportability statement estimable.
 
 ``random_effects_pooling`` treats the per-study estimates as exchangeable draws and reports the
 interval that matters for a reader deciding whether to expect this performance in their own cohort:

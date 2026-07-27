@@ -1,4 +1,8 @@
-"""Prespecified robustness analyses for the ALS calibration validation study."""
+"""Robustness analyses for the ALS calibration validation study.
+
+Listed before they were run, but no analysis plan was registered, so they are not prespecified
+in the sense a registered plan would establish; see `docs/statistical_analysis_plan.md`.
+"""
 
 from __future__ import annotations
 

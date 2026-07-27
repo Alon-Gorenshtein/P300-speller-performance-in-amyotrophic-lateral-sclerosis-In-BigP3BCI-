@@ -1,4 +1,9 @@
-"""Prespecified sensitivity analyses for the widened design.
+"""Sensitivity analyses for the widened design.
+
+No analysis plan was registered for this study. These four analyses were listed in the Methods
+before any of them was run on the widened cohort, but after the primary widened analysis had been
+fitted, so they are not prespecified in the sense a registered plan would establish. The Methods
+say so, and this docstring is written to match rather than to overstate.
 
 Each analysis removes one explanation for the primary result and re-runs the whole withheld-cohort
 procedure on what remains. The reported quantity is the study-level summary rather than the
@@ -176,7 +181,7 @@ def main() -> None:
     rows.append(
         _summarise(
             records.loc[records["als_cohort"]],
-            "ALS cohorts only (prespecified primary subgroup)",
+            "ALS cohorts only (originally targeted primary subgroup)",
             arguments.bootstrap_repetitions,
         )
     )

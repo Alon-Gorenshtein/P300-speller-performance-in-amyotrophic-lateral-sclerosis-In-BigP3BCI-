@@ -1,4 +1,8 @@
-"""Run prespecified external-study validation models."""
+"""Run the external-study validation models of the original four-cohort design.
+
+No analysis plan was registered for this study, so these models are not prespecified in the
+sense a registered plan would establish; see `docs/statistical_analysis_plan.md`.
+"""
 
 from __future__ import annotations
 
@@ -25,7 +29,7 @@ def main() -> None:
         "--models",
         nargs="+",
         default=["calibration_auc"],
-        help="Prespecified model names. The primary model is the default.",
+        help="Model names. The primary model is the default.",
     )
     parser.add_argument("--bootstrap-repetitions", type=int, default=BOOTSTRAP_REPETITIONS)
     arguments = parser.parse_args()
