@@ -44,7 +44,7 @@ For each Test-phase transition to phase 3, the intended character was the final 
 
 ## S3. Model specification
 
-The development model was a logistic regression of character-level correctness on the standardised calibration score, fitted on character-expanded records from the development studies, with standardisation using development-study means and standard deviations only. For a session with calibration score s, the estimated accuracy is the inverse logit of a + b (s - m) / d, where m and d are the development mean and standard deviation of the score. The four numbers are given for all 18 folds in Table S7, with a worked recomputation.
+The development model was a logistic regression of character-level correctness on the standardised calibration score, fitted on character-expanded records from the development studies, with standardisation using development-study means and standard deviations only. For a session with calibration score s, the estimated accuracy is the inverse logit of a + b (s - m) / d, where m and d are the development mean and standard deviation of the score. The four numbers are given for all 18 folds in Table S9, with a worked recomputation.
 
 Expanding each record into one row per character weights a session by the number of characters it supplied, so the quantity estimated is the accuracy of a randomly chosen character selection. That choice is stated rather than left implicit, and the reported error does not rest on it. Repeating the whole leave-one-cohort-out evaluation with each session weighted equally, and again with each participant weighted equally, gave a pooled mean absolute error of 0.096 and 0.097 against 0.098 for the character weighting. Scored on its own scale each of the three fits had a calibration slope near one, at 0.966, 0.982 and 0.977; those three slopes are on three different scales by construction, so each is comparable to one and not to the others. The three rows are written to `output/expanded/estimand_comparison.csv` by `scripts/09_run_estimand.py`.
 
@@ -113,7 +113,7 @@ Session accuracy clustered within participant with an intraclass correlation of 
 
 ## S6. Sensitivity analyses
 
-**Table S4. Sensitivity analyses.** The four analyses named in the Methods, restriction to cohorts with meaningful outcome variance, exclusion of records with high artifact rejection, exclusion of small-denominator records, and leave-two-studies-out development, were listed before any of them was run on the widened cohort; none was registered. The primary row and the two cohort-subset rows are shown beside them for comparison. Each analysis re-runs the complete withheld-cohort procedure on the retained data. In the last row every pair of cohorts is withheld together, so development runs on 16 cohorts rather than the 17 of the primary analysis; each cohort appears in 17 of the 153 pairs and its 17 estimates are averaged into a single value before the same across-cohort pooling is applied, because a pair shares a cohort with 32 other pairs and the pairs are not independent units. Every row therefore summarises 18 cohort-level values, or fewer where the analysis drops cohorts, and the columns carry the same meaning throughout.
+**Table S4. Sensitivity analyses.** The four analyses named in the Methods, restriction to cohorts with meaningful outcome variance, exclusion of records with high artifact rejection, exclusion of small-denominator records, and leave-two-studies-out development, were listed before any of them was run on the widened cohort; none was registered. The primary row and the two cohort-subset rows are shown beside them for comparison. Each analysis re-runs the complete withheld-cohort procedure on the retained data. In the last row every pair of cohorts is withheld together, so development runs on 16 cohorts rather than the 17 of the primary analysis; each cohort appears in 17 of the 153 pairs and its 17 estimates are averaged into a single value before the same across-cohort pooling is applied, because a pair shares a cohort with 32 other pairs and the pairs are not independent units. Every row therefore summarises 18 cohort-level values, or fewer where the analysis drops cohorts, and the columns carry the same meaning throughout. The mean absolute error column is the mean of the cohort-level errors, not the pooled error over records, and the two are different quantities: the ALS row reads 0.093 here, the mean of that subgroup's four cohort errors, where the main text reports 0.091 for the same analysis pooled over all of its withheld records. Table S6 draws the same distinction between its pooled and cohort-mean columns.
 
 | Analysis | Cohorts | Mean absolute error | Between-cohort SD | Interval for an unrepresented cohort | Calibration-slope SD |
 |---|---:|---:|---:|---|---:|
@@ -190,11 +190,62 @@ The three summaries computed without fitting a classifier are much weaker. The m
 
 The exploratory ALSFRS-R specification is restricted to the 138 records in 3 cohorts that carry an observed value, so its numbers are not comparable with the rows above. Against the primary score run on those same 138 records it changes nothing: pooled error 0.085 against 0.085, area under the curve 0.834 against 0.833, Brier skill 0.313 against 0.315, and calibration-slope spread 0.293 against 0.303. The better appearance of both rows relative to the full archive belongs to the restriction and not to ALSFRS-R. At 3 cohorts the interval for an unrepresented cohort rests on two degrees of freedom and carries no transportability claim.
 
-## S9. Reproducibility
+## S9. Predictor reliability and disattenuated heterogeneity
+
+The calibration score is not measured equally well in every cohort. Sessions differ several-fold in calibration files, cross-validation folds and surviving epochs, and the standard error of the score itself ranges from 0.008 to 0.031 across cohorts, a fourfold spread, tabulated per cohort in `predictor_precision.csv`. Measurement error in a predictor attenuates a fitted slope toward zero, so unequal measurement error is a competing explanation for part of the between-cohort variation in calibration slope, and it is not one that collecting more cohorts would remove. This section quantifies it rather than leaving it acknowledged.
+
+The quantity that answers the objection is the reliability ratio, lambda: the share of the observed between-session variance in a cohort's calibration score that is true signal rather than measurement error, computed as one minus the mean per-session error variance divided by the between-session variance of the score within that cohort. Per-session error variance is the Hanley and McNeil variance of an area under the curve. Classical attenuation theory gives the corrected slope as the observed slope divided by lambda, and by the delta method its standard error is divided by the same factor, so that measurement error identical in every cohort leaves the heterogeneity statistic unchanged. The 18 corrected estimates were then re-pooled with the same random-effects estimator used for the headline result, which makes the two directly comparable.
+
+**Table S7. Reliability of the calibration score and the disattenuated calibration slope, by cohort.** ALS cohorts are listed first. Sessions are the sessions that entered that cohort's fit. Reliability is the share of the observed between-session variance in the score that is not measurement error; a value of 1 would mean the score was measured without error. The disattenuated slope is the observed slope divided by that cohort's reliability.
+
+| Cohort | Sessions | Reliability | Observed slope | Disattenuated slope |
+|---|---:|---:|---:|---:|
+| Study B | 56 | 0.984 | 1.578 | 1.602 |
+| Study F | 30 | 0.987 | 1.418 | 1.437 |
+| Study L | 11 | 0.992 | 1.775 | 1.789 |
+| Study N | 16 | 0.977 | 1.145 | 1.173 |
+| Study A | 13 | 0.987 | 1.999 | 2.025 |
+| Study D | 17 | 0.979 | 0.839 | 0.857 |
+| Study E | 8 | 0.982 | 0.782 | 0.797 |
+| Study G | 20 | 0.969 | 1.399 | 1.443 |
+| Study H | 16 | 0.848 | 0.185 | 0.218 |
+| Study I | 13 | 0.965 | 1.044 | 1.082 |
+| Study J | 20 | 0.950 | 0.326 | 0.344 |
+| Study K | 8 | 0.957 | 0.480 | 0.501 |
+| Study M | 21 | 0.983 | 0.888 | 0.904 |
+| Study O | 34 | 0.964 | 0.583 | 0.605 |
+| Study Q | 53 | 0.949 | 1.108 | 1.167 |
+| Study R | 40 | 0.976 | 0.763 | 0.782 |
+| Study S1 | 10 | 0.977 | 1.312 | 1.343 |
+| Study S2 | 24 | 0.953 | 2.185 | 2.292 |
+
+Reliability ran from 0.848 to 0.992 with a median of 0.976, and 16 of the 18 cohorts were at or above 0.95. Every cohort's reliability was identified; none was floored, clipped or dropped. The lowest, Study H at 0.848, is the cohort with the flattest slope and the least precisely measured score, so the correction acts most strongly exactly where the Discussion says the competing explanation is most plausible. It moves that cohort's slope from 0.185 to 0.218, which is not the region of 1 that a transportable mapping would occupy.
+
+Correcting all 18 cohorts moved the between-cohort standard deviation of the slope from tau = 0.4319 to 0.4222 and I-squared from 79.09 to 77.17, with the Q test at p = 3.6 x 10^-9 against p = 2.3 x 10^-10. The range of the cohort slopes widened rather than narrowed, from 0.185 to 2.185 observed to 0.218 to 2.292 disattenuated, because the cohorts with the flattest slopes are also the ones the correction lifts most and they were already the far end of the spread. Disattenuation therefore removes about 2 percentage points of I-squared and does not change the conclusion.
+
+That correction rests on the Hanley and McNeil standard error, which assumes the epochs behind an area under the curve are independent draws. They are not, because they come from repeated stimulus sequences within a cross-validated session, so the true error variance is larger than assumed and every reliability above is an overestimate. The stress test below asks how much larger it would have to be. Each factor multiplies the assumed error variance before the ratio is formed. The series stops at 6.5 because the identifiability limit is 6.58: past it, at least one cohort's assumed measurement error would exceed its entire observed spread in calibration area under the curve, which amounts to declaring that cohort's score pure noise, and the method has nothing left to say there.
+
+**Table S8. Disattenuated heterogeneity of the calibration slope under increasing assumed measurement error.** The first row is the nominal Hanley and McNeil error variance and reproduces the disattenuated result above.
+
+| Assumed error variance, multiple of nominal | Lowest cohort reliability | tau | I-squared | Q | p |
+|---:|---:|---:|---:|---:|---|
+| 1.0 | 0.848 | 0.422 | 77.2 | 74.5 | 3.6 x 10^-9 |
+| 2.0 | 0.696 | 0.412 | 75.0 | 68.1 | 4.5 x 10^-8 |
+| 3.0 | 0.544 | 0.402 | 72.8 | 62.4 | 4.1 x 10^-7 |
+| 4.0 | 0.392 | 0.393 | 70.5 | 57.7 | 2.5 x 10^-6 |
+| 5.0 | 0.240 | 0.388 | 68.5 | 54.0 | 9.8 x 10^-6 |
+| 6.0 | 0.088 | 0.388 | 67.2 | 51.8 | 2.2 x 10^-5 |
+| 6.5 | 0.012 | 0.392 | 66.9 | 51.4 | 2.6 x 10^-5 |
+
+At the far end of that range the calibration score of one cohort is being treated as almost entirely measurement error, and the between-cohort standard deviation has still only fallen from 0.432 to 0.392, I-squared is still 66.9, and the Q test has never risen above p = 2.6 x 10^-5. Measurement error in the predictor is a real contributor to the between-cohort spread and a minor one, and it does not explain the failure of the mapping to transport.
+
+Two limits of this analysis should be read alongside it. Reliability is estimated per cohort from as few as 8 sessions, so each ratio is itself imprecise, and the correction treats lambda as known. And attenuation is the only mechanism modelled: it addresses measurement error in the predictor and says nothing about differences in protocol, population or stopping rule, which are treated separately in the moderator analysis.
+
+## S10. Reproducibility
 
 ### Recomputing any estimate
 
-**Table S7. Fitted coefficients of every development fold.** One row per withheld cohort. The estimate for a session with calibration score s in the fold that withheld a given cohort is the inverse logit of a + b (s - m) / d, using that row's four numbers. Coefficients are on the standardised scale, so b is the change in log odds per development standard deviation of the score.
+**Table S9. Fitted coefficients of every development fold.** One row per withheld cohort. The estimate for a session with calibration score s in the fold that withheld a given cohort is the inverse logit of a + b (s - m) / d, using that row's four numbers. Coefficients are on the standardised scale, so b is the change in log odds per development standard deviation of the score.
 
 | Withheld cohort | Development records | Development selections | a | b | m | d |
 |---|---:|---:|---:|---:|---:|---:|
@@ -223,8 +274,8 @@ Recomputing all 739 held-out estimates from the printed values reproduces the fr
 
 ### Pipeline and outputs
 
-The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, per-cohort calibration and heterogeneity, predictor precision, the estimand comparison, the protocol-moderator analysis, sensitivity analyses, the comparator-predictor sweep, the fold-coefficient export, and the rendering of every figure from those frozen outputs. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `cohort_calibration.csv`, `heterogeneity_summary.json`, `predictor_precision.csv`, `predictor_reliability.csv`, `estimand_comparison.csv`, `sensitivity_analyses.csv`, `comparator_metrics.csv`, `fold_coefficients.csv`, `protocol_covariates.csv` and `protocol_meta_regression.json`. The repository test suite contains 162 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, the promised sensitivity, comparator and fold-coefficient analyses, the session-ordering assumption behind the preceding-session analysis, and rendering.
+The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, per-cohort calibration and heterogeneity, predictor precision and reliability with the disattenuated heterogeneity of S9, the estimand comparison, the protocol-moderator analysis, sensitivity analyses, the comparator-predictor sweep, the fold-coefficient export, and the rendering of every figure from those frozen outputs. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `cohort_calibration.csv`, `heterogeneity_summary.json`, `predictor_precision.csv`, `predictor_reliability.csv`, `estimand_comparison.csv`, `sensitivity_analyses.csv`, `comparator_metrics.csv`, `fold_coefficients.csv`, `protocol_covariates.csv` and `protocol_meta_regression.json`. The repository test suite contains 162 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, the promised sensitivity, comparator and fold-coefficient analyses, the session-ordering assumption behind the preceding-session analysis, and rendering.
 
-## S10. Transparency statement
+## S11. Transparency statement
 
 The study involved no new data collection, participant contact, prospective enrolment, or intervention. It does not establish a diagnostic, prognostic, causal, or treatment effect. Character-level online selection accuracy is an operational endpoint and should not be presented as communication success, quality of life, or a clinical outcome. The source studies vary in protocol, and the archive does not permit cross-study person-level linkage. Four source studies carry a documented ALS population; the remaining cohorts are described as other cohorts because the documentation does not support a positive characterisation, and no participant-level clinical characteristics were available.
