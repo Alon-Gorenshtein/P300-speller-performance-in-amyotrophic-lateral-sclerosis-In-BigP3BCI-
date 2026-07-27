@@ -200,7 +200,7 @@ The quantity that answers the objection is the reliability ratio, lambda: the sh
 
 | Cohort | Sessions | Reliability | Observed slope | Disattenuated slope |
 |---|---:|---:|---:|---:|
-| Study B | 56 | 0.984 | 1.578 | 1.602 |
+| Study B | 56 | 0.984 | 1.578 | 1.603 |
 | Study F | 30 | 0.987 | 1.418 | 1.437 |
 | Study L | 11 | 0.992 | 1.775 | 1.789 |
 | Study N | 16 | 0.977 | 1.145 | 1.173 |
