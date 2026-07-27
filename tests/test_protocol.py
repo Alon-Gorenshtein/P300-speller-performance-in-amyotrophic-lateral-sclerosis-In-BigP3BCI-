@@ -9,10 +9,12 @@ import pytest
 from bigp3_als.protocol import (
     _holm,
     explains_heterogeneity,
+    family_composition_sensitivity,
     joint_moderator_fit,
     leave_one_cohort_out,
     protocol_covariates,
     protocol_report,
+    stopping_rule_subgroups,
 )
 
 
@@ -63,6 +65,95 @@ def test_explains_heterogeneity_returns_one_row_per_covariate() -> None:
 
     assert set(result["covariate"]) >= {"mean_accuracy", "accuracy_sd", "fraction_at_ceiling"}
     assert result["spearman_rho"].abs().max() <= 1.0
+
+
+def _timed_trials() -> pd.DataFrame:
+    """Two studies, two files each, with the selection timestamps a stopping rule leaves behind.
+
+    StudyA is paced at exactly 20 s in one file and 30 s in the other, so its per-file medians are
+    20 and 30 and its study median is 25. StudyB runs at 10 s throughout. The first trial of each
+    file has no predecessor and contributes no interval.
+    """
+    rows = []
+    for study, path, start, gap, count in [
+        ("StudyA", "a/one.edf", 5.0, 20.0, 4),
+        ("StudyA", "a/two.edf", 7.0, 30.0, 4),
+        ("StudyB", "b/one.edf", 3.0, 10.0, 4),
+        ("StudyB", "b/two.edf", 9.0, 10.0, 4),
+    ]:
+        for index in range(count):
+            rows.append({
+                "study": study,
+                "relative_path": path,
+                "trial_number": index + 1,
+                "phase3_time_seconds": start + gap * index,
+                "condition": "CB",
+                "target": float(1 + index),
+                "eligible": True,
+            })
+    return pd.DataFrame(rows)
+
+
+def test_inter_selection_interval_is_the_within_file_gap() -> None:
+    table = protocol_covariates(_timed_trials(), _records()).set_index("study")
+
+    assert table.loc["StudyA", "median_inter_selection_interval"] == pytest.approx(25.0)
+    assert table.loc["StudyB", "median_inter_selection_interval"] == pytest.approx(10.0)
+
+
+def test_the_gap_between_two_files_is_never_counted_as_a_selection_interval() -> None:
+    """Files are separate recordings, so the elapsed time between them is not a pacing measurement.
+
+    Without the within-file grouping, StudyB's second file starting at 9 s after a first file ending
+    at 33 s would enter as an interval of -24 s and move the median.
+    """
+    trials = _timed_trials()
+    trials.loc[trials["relative_path"] == "b/two.edf", "phase3_time_seconds"] += 1000.0
+
+    table = protocol_covariates(trials, _records()).set_index("study")
+
+    assert table.loc["StudyB", "median_inter_selection_interval"] == pytest.approx(10.0)
+
+
+def test_a_constant_interval_survives_timestamp_dust_but_not_a_real_change() -> None:
+    """Fixed-repetition pacing arrives as 18.499993 s, not as 18.5, because timestamps come from
+    sample indices. An equality test would call every cohort data-dependent."""
+    trials = _timed_trials()
+    dusty = trials["relative_path"] == "a/one.edf"
+    trials.loc[dusty, "phase3_time_seconds"] += np.array([0.0, 1e-13, 0.0, 1e-13])[: dusty.sum()]
+
+    table = protocol_covariates(trials, _records()).set_index("study")
+    assert bool(table.loc["StudyA", "constant_within_file_interval"])
+
+    varying = trials.copy()
+    changed = varying["relative_path"] == "a/one.edf"
+    varying.loc[changed, "phase3_time_seconds"] = [5.0, 25.0, 40.0, 75.0]
+
+    assert not bool(
+        protocol_covariates(varying, _records())
+        .set_index("study")
+        .loc["StudyA", "constant_within_file_interval"]
+    )
+
+
+def test_matrix_proxies_come_from_the_target_index() -> None:
+    trials = _timed_trials()
+    trials.loc[trials["study"] == "StudyB", "target"] = [1.0, 4.0, 4.0, 9.0, 1.0, 1.0, 2.0, 2.0]
+
+    table = protocol_covariates(trials, _records()).set_index("study")
+
+    assert table.loc["StudyA", "max_target_index"] == 4
+    assert table.loc["StudyA", "n_distinct_targets"] == 4
+    assert table.loc["StudyB", "max_target_index"] == 9
+    assert table.loc["StudyB", "n_distinct_targets"] == 4
+
+
+def test_covariates_without_timing_columns_still_produce_the_rest() -> None:
+    """The archive's trial file carries timestamps; a caller's need not, and must not crash."""
+    table = protocol_covariates(_trials(), _records())
+
+    assert "median_inter_selection_interval" not in table
+    assert set(table["study"]) == {"StudyA", "StudyB"}
 
 
 def _cohort_covariates(n_studies: int) -> pd.DataFrame:
@@ -201,6 +292,65 @@ def test_a_cohort_without_a_usable_standard_error_is_named_not_silently_dropped(
     assert set(str(row["dropped_labels"]).split(",")) == {"Study02", "Study05"}
 
 
+def test_a_constant_moderator_reports_the_cohorts_it_had_and_why_it_could_not_use_them() -> None:
+    """Zero cohorts fitted beside zero dropped is self-contradictory, and the contract forbids it."""
+    n_studies = 8
+    covariates = _cohort_covariates(n_studies)
+    covariates["n_conditions"] = 2
+    calibration = _cohort_calibration(
+        n_studies, np.linspace(0.5, 2.0, n_studies), np.full(n_studies, 0.2)
+    )
+
+    row = explains_heterogeneity(covariates, calibration).set_index("covariate").loc["n_conditions"]
+
+    assert row["n_studies_meta"] == n_studies
+    assert row["n_dropped"] == 0
+    assert np.isnan(row["meta_p_value"])
+    assert "does not vary" in str(row["unidentified_reason"])
+
+
+def test_family_composition_sensitivity_reports_every_definition() -> None:
+    descriptors = pd.DataFrame({
+        "covariate": ["a", "b", "c"],
+        "kind": ["protocol descriptor", "protocol descriptor", "outcome summary"],
+        "meta_p_value": [0.01, 0.40, 0.02],
+        "p_value": [0.03, 0.50, 0.04],
+    })
+
+    sensitivity = family_composition_sensitivity(descriptors)
+
+    everything = next(row for row in sensitivity if row["family"] == "all descriptors")
+    protocol = next(row for row in sensitivity if row["family"] == "protocol descriptors")
+    assert everything["n_tests"] == 3
+    assert everything["meta_p_holm"]["a"] == pytest.approx(0.03)
+    assert protocol["n_tests"] == 2
+    assert protocol["meta_p_holm"]["a"] == pytest.approx(0.02)
+    # Pooling the two analyses is the least favourable definition, and must be the largest.
+    pooled = next(row for row in sensitivity if row["family"] == "both analyses pooled")
+    assert pooled["n_tests"] == 6
+    assert pooled["meta_p_holm"]["a"] >= everything["meta_p_holm"]["a"]
+
+
+def test_stopping_rule_subgroups_split_on_whether_the_interval_was_data_dependent() -> None:
+    n_studies = 12
+    covariates = _cohort_covariates(n_studies)
+    covariates["median_inter_selection_interval"] = np.linspace(8.0, 40.0, n_studies)
+    covariates["constant_within_file_interval"] = [True] * 6 + [False] * 6
+    rng = np.random.default_rng(3)
+    calibration = _cohort_calibration(
+        n_studies,
+        0.4 + 0.03 * covariates["median_inter_selection_interval"].to_numpy(float)
+        + rng.normal(0, 0.2, n_studies),
+        np.full(n_studies, 0.2),
+    )
+
+    subgroups = stopping_rule_subgroups(covariates, calibration)
+
+    assert {row["subgroup"] for row in subgroups} == {"constant interval", "variable interval"}
+    assert all(row["n_studies_meta"] == 6 for row in subgroups)
+    assert all(row["coefficients_per_sd"][0] > 0 for row in subgroups)
+
+
 def test_holm_multiplies_the_smallest_p_value_by_the_number_of_tests() -> None:
     adjusted = _holm(np.array([0.01, 0.02, 0.30, 0.60, 0.90]))
 
@@ -230,8 +380,11 @@ def test_report_carries_the_unmoderated_heterogeneity_and_what_it_dropped() -> N
     assert report["baseline_heterogeneity"]["n_dropped"] == 0.0
     assert report["baseline_heterogeneity"]["dropped_labels"] == []
     assert len(report["descriptors"]) == 5
-    assert len(report["joint_fits"]) == 2
+    assert len(report["joint_fits"]) == 4
     assert len(report["leave_one_cohort_out"]) == 5
+    assert {row["family"] for row in report["family_composition"]} == {
+        "all descriptors", "protocol descriptors", "outcome summaries", "both analyses pooled"
+    }
 
 
 def test_the_joint_test_of_one_moderator_agrees_with_its_own_t_test() -> None:
