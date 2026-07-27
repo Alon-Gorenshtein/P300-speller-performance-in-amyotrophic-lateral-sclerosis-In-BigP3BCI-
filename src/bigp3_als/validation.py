@@ -19,7 +19,12 @@ BOOTSTRAP_REPETITIONS = 2000
 
 @dataclass(frozen=True)
 class ModelSpecification:
-    """A prespecified calibration-derived score and its manuscript role."""
+    """A calibration-derived score named in the Methods, and its manuscript role.
+
+    Every score in ``MODEL_SPECS`` was fixed before it was run, but no analysis plan was registered,
+    so none is prespecified in the sense a registered plan would establish; see
+    `docs/statistical_analysis_plan.md`.
+    """
 
     name: str
     features: tuple[str, ...]
