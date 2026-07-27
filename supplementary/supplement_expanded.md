@@ -46,6 +46,8 @@ For each Test-phase transition to phase 3, the intended character was the final 
 
 The development model was a logistic regression of character-level correctness on the standardised calibration score, fitted on character-expanded records from the development studies, with standardisation using development-study means and standard deviations only. For a session with calibration score s, the estimated accuracy is the inverse logit of a + b (s - m) / d, where m and d are the development mean and standard deviation of the score. The four numbers are given for all 18 folds in Table S7, with a worked recomputation.
 
+Expanding each record into one row per character weights a session by the number of characters it supplied, so the quantity estimated is the accuracy of a randomly chosen character selection. That choice is stated rather than left implicit, and the reported error does not rest on it. Repeating the whole leave-one-cohort-out evaluation with each session weighted equally, and again with each participant weighted equally, gave a pooled mean absolute error of 0.096 and 0.097 against 0.098 for the character weighting. Scored on its own scale each of the three fits had a calibration slope near one, at 0.966, 0.982 and 0.977; those three slopes are on three different scales by construction, so each is comparable to one and not to the others. The three rows are written to `output/expanded/estimand_comparison.csv` by `scripts/09_run_estimand.py`.
+
 ## S4. Uncertainty
 
 Two uncertainty statements are reported and are not interchangeable.
