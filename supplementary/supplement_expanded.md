@@ -66,17 +66,42 @@ The study-level summary treats the source study as the unit of replication. The 
 
 ## S5. Association at three levels
 
-**Table S3. Association between calibration discriminability and observed accuracy.**
+**Table S3. Association between calibration-derived decoder discriminability and observed accuracy, by level and by cohort.** Pearson intervals are two-sided 95% intervals on the Fisher z scale.
 
-| Level | n | Pearson r | Spearman rho |
-|---|---:|---:|---:|
-| Sessions, pooled | 410 | 0.699 | 0.700 |
-| Sessions, centred within cohort | 410 | 0.652 | 0.628 |
-| Participants | 271 | 0.701 | 0.749 |
-| Preceding session to later session | 139 pairs | 0.525 | 0.440 |
-| Same session, reference for the row above | 139 pairs | 0.702 | 0.620 |
+*By level.*
 
-Within-cohort Pearson r ranged from 0.083 to 0.920 with a median of 0.630 and was computed in all 18 contributing cohorts.
+| Level | n | Pearson r | 95% CI | Spearman rho |
+|---|---:|---:|---|---:|
+| Sessions, pooled | 410 | 0.716 | 0.665 to 0.760 | 0.718 |
+| Sessions, centred within cohort | 410 | 0.677 | 0.621 to 0.726 | 0.646 |
+| Participants | 271 | 0.714 | 0.650 to 0.768 | 0.756 |
+| Preceding session to later session | 139 pairs | 0.513 | 0.379 to 0.626 | 0.462 |
+| Same session, reference for the row above | 139 pairs | 0.728 | 0.639 to 0.798 | 0.651 |
+
+*By cohort.* ALS cohorts are listed first. The unit is the participant-session, so n is smaller than the record count in Table S2.
+
+| Cohort | Sessions | Pearson r | 95% CI |
+|---|---:|---:|---|
+| Study B | 56 | 0.678 | 0.505 to 0.798 |
+| Study F | 30 | 0.924 | 0.846 to 0.964 |
+| Study L | 11 | 0.922 | 0.719 to 0.980 |
+| Study N | 16 | 0.823 | 0.553 to 0.937 |
+| Study A | 13 | 0.928 | 0.771 to 0.979 |
+| Study D | 17 | 0.610 | 0.183 to 0.843 |
+| Study E | 8 | 0.683 | -0.042 to 0.937 |
+| Study G | 20 | 0.757 | 0.473 to 0.899 |
+| Study H | 16 | 0.190 | -0.338 to 0.627 |
+| Study I | 13 | 0.513 | -0.053 to 0.830 |
+| Study J | 20 | 0.359 | -0.099 to 0.692 |
+| Study K | 8 | 0.401 | -0.424 to 0.862 |
+| Study M | 21 | 0.660 | 0.320 to 0.850 |
+| Study O | 34 | 0.364 | 0.030 to 0.625 |
+| Study Q | 53 | 0.773 | 0.636 to 0.863 |
+| Study R | 40 | 0.425 | 0.131 to 0.651 |
+| Study S1 | 10 | 0.316 | -0.392 to 0.789 |
+| Study S2 | 24 | 0.609 | 0.273 to 0.813 |
+
+The point estimate was positive in all 18 contributing cohorts. Within-cohort Pearson r ranged from 0.190 to 0.928 with a median of 0.635, and the 95% interval included zero in 6 of the 18: Study E, Study H, Study I, Study J, Study K and Study S1. All six carry 20 sessions or fewer, so the imprecision is largely a matter of cohort size rather than of a different relationship.
 
 Session accuracy clustered within participant with an intraclass correlation of 0.412 across 410 sessions in 271 participants, giving approximately 338 effective independent sessions. The predictor is constant within a session, so the 739 session-condition records carry 410 distinct predictor values.
 
