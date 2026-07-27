@@ -138,14 +138,32 @@ def _correlations(x: pd.Series, y: pd.Series, label: str, n_label: str) -> dict[
     y = paired["y"].to_numpy(dtype=float)
     pearson, pearson_p = stats.pearsonr(x, y)
     spearman, spearman_p = stats.spearmanr(x, y)
+    low, high = _fisher_z_interval(float(pearson), len(x))
     return {
         "analysis": label,
         n_label: int(len(x)),
         "pearson_r": float(pearson),
+        "pearson_ci_low": low,
+        "pearson_ci_high": high,
         "pearson_p_value": float(pearson_p),
         "spearman_rho": float(spearman),
         "spearman_p_value": float(spearman_p),
     }
+
+
+def _fisher_z_interval(r: float, n: int, confidence: float = 0.95) -> tuple[float, float]:
+    """Two-sided interval for a Pearson correlation on the Fisher z scale.
+
+    A cohort-level correlation read without its interval invites the reader to treat a coefficient
+    from eight sessions as though it were measured as well as one from fifty-six. The variance of z
+    is 1 / (n - 3), so the interval needs at least four observations and is undefined below that.
+    """
+    if n < 4 or not np.isfinite(r) or abs(r) >= 1.0:
+        return float("nan"), float("nan")
+
+    z = np.arctanh(r)
+    half_width = stats.norm.ppf(0.5 + confidence / 2.0) / np.sqrt(n - 3)
+    return float(np.tanh(z - half_width)), float(np.tanh(z + half_width))
 
 
 def within_study_association(records: pd.DataFrame, feature: str = "calibration_auc") -> pd.DataFrame:

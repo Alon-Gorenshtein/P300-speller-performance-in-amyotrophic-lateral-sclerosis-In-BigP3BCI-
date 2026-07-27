@@ -110,6 +110,50 @@ def test_within_study_association_recovers_a_planted_positive_association() -> N
     assert centred["n_sessions"] == 12
 
 
+def _noisy_records(n_participants: int, seed: int = 0) -> pd.DataFrame:
+    """One study, one session each, with a positive association blurred by noise."""
+    generator = np.random.default_rng(seed)
+    rows = []
+    for index in range(n_participants):
+        score = float(generator.uniform(0.55, 0.95))
+        accuracy = float(np.clip(score + generator.normal(0.0, 0.15), 0.05, 0.95))
+        rows.append(
+            {
+                "study": "StudyF",
+                "study_participant_id": f"StudyF:P_{index:03d}",
+                "session_id": "SE001",
+                "condition": "CB",
+                "n": 100,
+                "correct": round(accuracy * 100),
+                "calibration_auc": score,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def test_correlation_interval_contains_the_estimate_and_narrows_as_the_cohort_grows() -> None:
+    small = within_study_association(_noisy_records(12)).iloc[0]
+    large = within_study_association(_noisy_records(200)).iloc[0]
+
+    for row in (small, large):
+        assert row["pearson_ci_low"] <= row["pearson_r"] <= row["pearson_ci_high"]
+        assert -1.0 <= row["pearson_ci_low"] and row["pearson_ci_high"] <= 1.0
+
+    small_width = small["pearson_ci_high"] - small["pearson_ci_low"]
+    large_width = large["pearson_ci_high"] - large["pearson_ci_low"]
+    assert large_width < small_width
+
+
+def test_correlation_interval_is_missing_when_three_observations_leave_no_variance() -> None:
+    # The variance of the Fisher z transform is 1 / (n - 3), so three sessions carry a coefficient
+    # but no interval. Reporting a width there would invent precision the data cannot supply.
+    result = within_study_association(_noisy_records(3)).iloc[0]
+
+    assert result["n_sessions"] == 3
+    assert np.isnan(result["pearson_ci_low"])
+    assert np.isnan(result["pearson_ci_high"])
+
+
 def test_participant_level_association_uses_one_row_per_participant() -> None:
     result = participant_level_association(_records()).iloc[0]
 
