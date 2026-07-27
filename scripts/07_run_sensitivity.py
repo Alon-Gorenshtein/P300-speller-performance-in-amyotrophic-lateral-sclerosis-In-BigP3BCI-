@@ -71,6 +71,10 @@ def _leave_two_studies_out(records: pd.DataFrame, label: str) -> dict[str, objec
     on.
     """
     primary = next(spec for spec in MODEL_SPECS if spec.role == "primary")
+    # Every other row reaches the model through run_source_study_held_out_validation, which drops
+    # records missing the predictor. Dropping them here too keeps this row on the same data, rather
+    # than diverging silently if the primary feature ever acquires a missing value.
+    records = records.dropna(subset=list(primary.features))
     studies = sorted(records["study"].unique())
     collected: dict[str, dict[str, list[float]]] = {study: {"mae": [], "slope": []} for study in studies}
     n_splits = 0

@@ -8,3 +8,4 @@
 - `figures/figure_3_external_validation_auc.*`: held-out-study and pooled primary-model discrimination.
 - `sensitivity_analyses.csv`: the prespecified sensitivity analyses, one row each, including leave-two-studies-out development.
 - `comparator_metrics.csv`: withheld-cohort performance of every prespecified predictor, with the exploratory specification and the primary score run on its restricted records.
+- `fold_coefficients.csv`: the intercept, slope and standardisation constants of each development fold, enough to recompute any held-out estimate.

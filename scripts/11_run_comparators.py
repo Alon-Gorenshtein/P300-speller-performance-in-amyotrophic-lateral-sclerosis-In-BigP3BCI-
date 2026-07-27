@@ -74,13 +74,10 @@ def main() -> None:
     arguments = parser.parse_args()
 
     records = pd.read_csv(arguments.records)
-    rows: list[dict[str, object]] = []
-    for specification in MODEL_SPECS:
-        try:
-            rows.append(_comparator_row(records, specification))
-        except Exception as error:  # noqa: BLE001 - a specification that cannot run is reported, not fatal
-            print(f"skipped {specification.name}: {error}")
-            continue
+    # No specification is caught and skipped. The supplement claims results for every prespecified
+    # predictor, so a specification that silently dropped out would make that claim false while the
+    # table still looked complete. A failure here has to stop the run.
+    rows = [_comparator_row(records, specification) for specification in MODEL_SPECS]
 
     exploratory = next((spec for spec in MODEL_SPECS if spec.role == "exploratory"), None)
     if exploratory is not None:
