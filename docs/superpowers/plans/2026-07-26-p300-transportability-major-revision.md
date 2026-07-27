@@ -1620,6 +1620,12 @@ git commit -m "feat: show the calibration failure directly with a forest plot an
 **Interfaces:**
 - Consumes: nothing new.
 
+- [ ] **Step 0: Delete an unmet analysis promise, and correct the decimation description around it**
+
+`manuscript_expanded.md:58` promises "a sensitivity analysis at the documented decimation is reported in the supplement". No such analysis exists anywhere in `output/expanded/`, in Table S4, or in the supplement. **Delete the promise rather than merely refreshing the numbers around it**: the same paragraph and `supplement_expanded.md:13` still describe the pre-correction decimator (every twelfth sample, 352 features, an effective 21.3 Hz) and call the deviation "reported rather than corrected", when `features.py` now sets `DECIMATION_FACTOR = 4`. Once the decimator is described correctly there is no deviation left for such an analysis to address, so the sentence must go, not be re-pointed.
+
+Rewrite both passages to describe the corrected pipeline: every fourth sample of a 256 Hz signal band-limited to 30 Hz, 64 samples per channel, 1,024 features, an effective 64 Hz rate and a 32 Hz Nyquist above the passband edge. `docs/feature_specification.md` already carries the corrected description and can be used as the source.
+
 - [ ] **Step 1: Rename the design**
 
 Replace "external validation" with "internal-external cross-validation across source studies" throughout, citing Debray 2015 and Riley 2016, because every cohort comes from one harmonised archive.
