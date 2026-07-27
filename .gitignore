@@ -4,8 +4,16 @@ __pycache__/
 *.py[cod]
 
 data/
-output/
 tmp/
+
+# Analysis outputs are not tracked, with one deliberate exception. The manuscript's availability
+# statement promises the frozen outputs alongside the code, and the supplement lists all 24 of them
+# by filename, so `output/expanded/` is tracked: the promise is kept on a fresh checkout, and any
+# silent drift in the outputs the paper is written from shows up as a diff. `output/*` rather than
+# `output/` because git cannot re-include a path whose parent directory is itself excluded.
+# The intermediate, final, smoke-test and reference outputs stay untracked.
+output/*
+!output/expanded/
 
 # Rendered delivery artifacts are reproducible from tracked manuscript sources.
 manuscript/*.pdf

@@ -1,0 +1,10 @@
+analysis,n_pairs,pearson_r,pearson_ci_low,pearson_ci_high,pearson_p_value,spearman_rho,spearman_p_value
+across_session_prior_to_later,139,0.5127506125384553,0.37856957326604057,0.6258228049780219,1.0953317596491827e-10,0.46214779240551607,1.022079794876721e-08
+same_session_reference,139,0.7276669031101839,0.6385283568139275,0.7975400495624148,3.4554986380163655e-24,0.6514704155934534,3.822240463580079e-18
+across_session_pairs:StudyB,38,,,,,,
+across_session_pairs:StudyF,20,,,,,,
+across_session_pairs:StudyK,3,,,,,,
+across_session_pairs:StudyN,8,,,,,,
+across_session_pairs:StudyO,17,,,,,,
+across_session_pairs:StudyQ,33,,,,,,
+across_session_pairs:StudyR,20,,,,,,

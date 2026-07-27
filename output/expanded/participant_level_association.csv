@@ -1,0 +1,2 @@
+analysis,n_participants,pearson_r,pearson_ci_low,pearson_ci_high,pearson_p_value,spearman_rho,spearman_p_value
+participant_level,271,0.7136878350115451,0.6497906447813028,0.7675691924684657,1.7393636431227915e-43,0.7559992374393383,1.9933396627660008e-51

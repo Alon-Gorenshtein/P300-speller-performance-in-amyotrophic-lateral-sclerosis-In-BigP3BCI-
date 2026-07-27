@@ -1,0 +1,198 @@
+{
+  "quantity": "cohort calibration slope, cluster-robust",
+  "welch_t_test": {
+    "n_als_studies": 4.0,
+    "n_other_studies": 14.0,
+    "mean_slope_als": 1.4789405641287363,
+    "mean_slope_other": 0.9922435195627372,
+    "sd_slope_als": 0.2662456374519294,
+    "sd_slope_other": 0.5800437971160105,
+    "difference": 0.48669704456599916,
+    "difference_se": 0.20433767478130138,
+    "difference_ci_low": 0.040178115531747716,
+    "difference_ci_high": 0.9332159736002505,
+    "t_statistic": 2.381827262578482,
+    "degrees_of_freedom": 11.691739809510418,
+    "p_value": 0.035148753305921904,
+    "se_method": "cluster"
+  },
+  "exact_permutation_test": {
+    "n_als_studies": 4.0,
+    "n_other_studies": 14.0,
+    "n_assignments": 3060.0,
+    "n_possible_assignments": 3060.0,
+    "exact": true,
+    "difference": 0.48669704456599916,
+    "t_statistic": 2.381827262578482,
+    "p_value": 0.05784313725490196,
+    "p_value_unstudentised": 0.1284313725490196,
+    "se_method": "cluster"
+  },
+  "random_effects_meta_regression": {
+    "n_studies": 18.0,
+    "n_als_studies": 4.0,
+    "n_other_studies": 14.0,
+    "tau_squared": 0.12203573832250854,
+    "tau": 0.3493361394452463,
+    "tau_squared_without_moderator": 0.1865559953815794,
+    "tau_without_moderator": 0.4319212837793241,
+    "between_cohort_variance_explained": 0.34584928201906295,
+    "pooled_slope_other": 0.914447042887131,
+    "pooled_slope_als": 1.473107271276288,
+    "difference": 0.5586602283891571,
+    "difference_se": 0.26790371951545106,
+    "difference_ci_low": -0.0092702862927323,
+    "difference_ci_high": 1.1265907430710465,
+    "t_statistic": 2.085302247387935,
+    "degrees_of_freedom": 16.0,
+    "p_value": 0.05341747103049305,
+    "p_value_wald": 0.021230304087389962,
+    "se_method": "cluster"
+  },
+  "leave_one_cohort_out": [
+    {
+      "dropped_study": "StudyA",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.5641088219349875,
+      "p_value": 0.015893624458019333
+    },
+    {
+      "dropped_study": "StudyB",
+      "dropped_is_als": true,
+      "n_als_studies": 3,
+      "n_other_studies": 14,
+      "difference": 0.4538253035593153,
+      "p_value": 0.11132180012226535
+    },
+    {
+      "dropped_study": "StudyD",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4748984583373024,
+      "p_value": 0.04564238490386248
+    },
+    {
+      "dropped_study": "StudyE",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4705584645617875,
+      "p_value": 0.04710777596925244
+    },
+    {
+      "dropped_study": "StudyF",
+      "dropped_is_als": true,
+      "n_als_studies": 3,
+      "n_other_studies": 14,
+      "difference": 0.5069702285943646,
+      "p_value": 0.08692631676435066
+    },
+    {
+      "dropped_study": "StudyG",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.5179561130015808,
+      "p_value": 0.030376864427388656
+    },
+    {
+      "dropped_study": "StudyH",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4246142182911268,
+      "p_value": 0.05997776780763098
+    },
+    {
+      "dropped_study": "StudyI",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4906428015870655,
+      "p_value": 0.04013895291210917
+    },
+    {
+      "dropped_study": "StudyJ",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4354771805325113,
+      "p_value": 0.05748975936857292
+    },
+    {
+      "dropped_study": "StudyK",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4472800741751015,
+      "p_value": 0.05434975663745226
+    },
+    {
+      "dropped_study": "StudyL",
+      "dropped_is_als": true,
+      "n_als_studies": 3,
+      "n_other_studies": 14,
+      "difference": 0.3879772819539492,
+      "p_value": 0.08318723658468184
+    },
+    {
+      "dropped_study": "StudyM",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.47871542070684736,
+      "p_value": 0.04433195443401679
+    },
+    {
+      "dropped_study": "StudyN",
+      "dropped_is_als": true,
+      "n_als_studies": 3,
+      "n_other_studies": 14,
+      "difference": 0.5980153641563676,
+      "p_value": 0.007565394549392149
+    },
+    {
+      "dropped_study": "StudyO",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4551990103703436,
+      "p_value": 0.05202309084652632
+    },
+    {
+      "dropped_study": "StudyQ",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.4955821578190853,
+      "p_value": 0.03837389781588101
+    },
+    {
+      "dropped_study": "StudyR",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.46902931415039895,
+      "p_value": 0.04761711026442055
+    },
+    {
+      "dropped_study": "StudyS1",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.5112746601709989,
+      "p_value": 0.03274643223773215
+    },
+    {
+      "dropped_study": "StudyS2",
+      "dropped_is_als": false,
+      "n_als_studies": 4,
+      "n_other_studies": 13,
+      "difference": 0.57842192828485,
+      "p_value": 0.012564731758256417
+    }
+  ]
+}
