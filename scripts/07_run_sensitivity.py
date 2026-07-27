@@ -90,6 +90,11 @@ def _leave_two_studies_out(records: pd.DataFrame, label: str) -> dict[str, objec
             labels, probabilities = _expanded_binary(cohort)
             collected[study]["slope"].append(_fit_calibration_model(labels, probabilities)[1])
 
+    if n_splits == 0:
+        # Below five cohorts no pair leaves three to develop on, so the analysis has nothing to
+        # report. Say so in the same shape the other rows use rather than raise inside the pooling.
+        return {"analysis": label, "n_studies": len(studies), "note": "too few cohorts"}
+
     per_cohort_mae = pd.Series({study: float(np.mean(values["mae"])) for study, values in collected.items()})
     per_cohort_slope = pd.Series({study: float(np.nanmean(values["slope"])) for study, values in collected.items()})
     mae = random_effects_pooling(per_cohort_mae, label=METRIC)

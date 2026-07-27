@@ -160,3 +160,17 @@ def test_comparator_table_restricts_the_exploratory_specification_to_its_own_rec
     assert exploratory["n_cohorts"].nunique() == 1
     assert exploratory["n_records"].nunique() == 1
     assert int(exploratory["n_cohorts"].iloc[0]) < 18
+
+
+def test_leave_two_studies_out_reports_rather_than_fails_below_five_cohorts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_sensitivity_script()
+    records = _synthetic_records(n_studies=4)
+    monkeypatch.setattr(
+        module, "_fit_probability_model", lambda development, validation, features: np.full(len(validation), 0.8)
+    )
+    row = module._leave_two_studies_out(records, "leave-two-studies-out development")
+
+    assert row["note"] == "too few cohorts"
+    assert row["n_studies"] == 4
