@@ -1207,6 +1207,10 @@ Set the title to:
 
 unless Task 5 found heterogeneity not established, in which case use the title recorded in `docs/heterogeneity_verdict.md`.
 
+- [ ] **Step 3a: Reconcile the pooled mean absolute error, which the manuscript now states three ways**
+
+Task 8 refreshed line 112 to 0.098 (95% CI 0.091 to 0.107), which is correct against the regenerated pooled row, but left line 20 saying 0.103 (0.094 to 0.112) and lines 116 and 140 saying 0.104. Regenerating gives mean 0.1006, between-cohort SD 0.0472, a 95% interval for the mean of about 0.077 to 0.124, and a prediction interval of **-0.0017 to 0.2029**, so the lower bound no longer excludes zero and the printed 0.001 is stale. Fix all four locations, and note that the pooled figure and the mean-across-cohorts figure are different quantities that must not be conflated.
+
 - [ ] **Step 3: Replace the naive spread everywhere with tau and I-squared**
 
 Every place reporting "between-cohort standard deviation" for slope or intercept must report tau, I-squared, and the Q test from `output/expanded/heterogeneity_summary.json`, and must state the naive standard deviation separately as the uncorrected spread.
@@ -1587,7 +1591,9 @@ render_calibration_curves(pd.read_csv(d/'external_validation_predictions.csv'), 
 
 - [ ] **Step 5: Renumber every figure callout and commit**
 
-Figure 1 forest, Figure 2 calibration curves, Figure 3 transportability, Figure 4 skill by cohort, eFigure 1 cohort-type scatter. Update the legends block and every inline callout, then:
+Figure 1 forest, Figure 2 calibration curves, Figure 3 transportability, Figure 4 skill by cohort, eFigure 1 cohort-type scatter.
+
+**`figure_skill_by_cohort.png` is stale in its values, not only its axis label.** It predates the data regeneration and still plots two negative cohorts, StudyJ and StudyH, against a caption that now says one. Nothing under `scripts/` imports `render_expanded`, so no earlier task could have refreshed it. Rebuild it from the regenerated outputs and confirm exactly one cohort is negative against the development-mean benchmark. Update the legends block and every inline callout, then:
 
 ```bash
 grep -n "Figure [0-9]" manuscript/manuscript_expanded.md
