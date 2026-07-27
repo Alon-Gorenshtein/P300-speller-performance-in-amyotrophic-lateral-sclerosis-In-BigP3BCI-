@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 
@@ -129,10 +130,10 @@ def test_cohort_type_figure_draws_no_fitted_line(tmp_path: Path) -> None:
     # must not come back into the figure.
     figure = _build_cohort_type_relationship(_records(), ("StudyF",), "calibration_auc")
     try:
-        drawn = [line for axis in figure.axes for line in axis.lines]
-        assert all(line.get_xydata().shape[0] <= 2 for line in drawn)
+        # Nothing at all is drawn as a line, so a fit reduced to its two endpoints fails too.
+        assert [line for axis in figure.axes for line in axis.lines] == []
     finally:
-        figure.clf()
+        plt.close(figure)
 
     render_cohort_type_relationship(_records(), ("StudyF",), tmp_path)
     assert (tmp_path / "figure_cohort_type_relationship.png").exists()

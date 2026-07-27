@@ -9,7 +9,7 @@ picture of a mapping that does not transport: the reader sees the spread, the re
 mapping would have to hold near, and how little of that spread is sampling error.
 
 ``render_calibration_curves`` shows the same failure one cohort at a time, plotting observed against
-estimated accuracy in deciles of the estimate. The forest gives the spread of the mapping; these
+estimated accuracy in equal-count bins of the estimate. The forest gives the spread of the mapping; these
 panels give its direction, so a cohort in which accuracy is overstated is distinguishable from one
 in which it is understated rather than both being absorbed into a single spread.
 
@@ -275,7 +275,11 @@ def render_calibration_forest(
 
 
 def _calibration_bins(frame: pd.DataFrame, bins: int) -> pd.DataFrame:
-    """Group one cohort's records into deciles of the estimate, weighting by selections."""
+    """Group one cohort's records into equal-count bins of the estimate, weighting by selections.
+
+    A cohort supports at most as many bins as it has distinct estimates, and the predictor is
+    constant within a session, so the small cohorts draw fewer than the requested ten.
+    """
     working = frame.copy()
     distinct = int(working["predicted_probability"].nunique())
     if distinct < 2:
@@ -305,10 +309,10 @@ def render_calibration_curves(
 ) -> None:
     """Plot observed against estimated accuracy, one panel per withheld cohort.
 
-    Each point is a decile of the estimate within that cohort, positioned at the selection-weighted
-    mean estimate and the observed accuracy of the records in it. Points above the identity line are
-    cohorts whose accuracy the mapping understated and points below are cohorts whose accuracy it
-    overstated, which is the direction the forest does not show.
+    Each point is one of up to ``bins`` equal-count groups of the estimate within that cohort,
+    positioned at the selection-weighted mean estimate and the observed accuracy of the records in
+    it. Points above the identity line are bins whose accuracy the mapping understated and points
+    below are bins whose accuracy it overstated, which is the direction the forest does not show.
     """
     require_columns(predictions, {"held_out_study", "predicted_probability", "correct", "n"})
     frame = predictions
@@ -355,7 +359,7 @@ def render_calibration_curves(
     for axis in flat[len(cohorts):]:
         axis.set_axis_off()
 
-    fig.supxlabel("Estimated session accuracy (decile of the estimate)", fontsize=10)
+    fig.supxlabel("Estimated session accuracy (equal-count bin of the estimate)", fontsize=10)
     fig.supylabel("Observed session accuracy", fontsize=10)
     _save(fig, directory, "figure_calibration_curves")
 

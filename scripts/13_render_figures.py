@@ -71,7 +71,7 @@ def main() -> None:
     print("  figure_calibration_curves        Figure 2")
     print("  figure_transportability          Figure 3")
     print("  figure_skill_by_cohort           Figure 4")
-    print("  figure_cohort_type_relationship  eFigure 1")
+    print("  figure_cohort_type_relationship  Figure S1")
     print(f"cohorts below the development-mean benchmark: {len(negative)} ({', '.join(negative)})")
 
 
