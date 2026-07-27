@@ -12,9 +12,9 @@ not an inference from how P300 copy-spelling protocols usually work.
 
 The published archive holds 6,983 checksummed files: 6,980 EDF+ recordings across 20 source studies
 plus `README.md`, `LICENSE.txt` and `bigP3BCI_v1_0_0.pdf`, together with the `SHA256SUMS.txt`
-manifest that lists them. Its 6,983 lines name exactly those three non-EDF members and nothing
-else. There is no per-study README, no
-BCI2000 parameter (`.prm`) file, and no configuration, JSON, CSV, MAT or XML file of any kind. The
+manifest that lists them. Its 6,983 lines name exactly those three non-EDF members and nothing else.
+There is no per-study README, no BCI2000 parameter (`.prm`) file, and no configuration, JSON, CSV,
+MAT or XML file of any kind. The
 `README.md` states the reason the parameters are absent:
 
 > Per institutional restrictions, source data files (in BCI2000 .dat format) cannot be publicly
