@@ -75,6 +75,19 @@ this literature and should report against its conventions.
 |---|---|---|---|
 | 10.13026/0byy-ry86 | Mainsah | PhysioNet | 2025 |
 
+## Source-study publications cited by the archive
+
+Added for the deployed-decoder check, which needed the primary reports of how the online classifiers
+were fitted. Both DOIs were resolved against Crossref, and the sentences quoted in
+`docs/deployed_decoder_check.md` were confirmed verbatim through exact-phrase queries against the
+Europe PMC full-text index.
+
+| DOI | First author | Journal | Year | Why |
+|---|---|---|---|---|
+| 10.1088/1741-2560/12/1/016013 | Mainsah | J Neural Eng | 2015 | The related publication for source study F. States that a session's training data trained an SWLDA classifier used in all that session's test runs. Already in the reference list. |
+| 10.1088/1741-2560/8/2/025024 | Frye | J Neural Eng | 2011 | The related publication for source study O. States that classification coefficients were generated from calibration-phase data and applied during the online test phase. Newly added. |
+| 10.1109/tnsre.2014.2321290 | Mainsah | IEEE Trans Neural Syst Rehabil Eng | 2014 | The related publication for source study D. Same statement again, with a dynamic-stopping and language-model layer above the classifier. Consulted and recorded in the check, not cited in the manuscript. |
+
 ## Rejected candidates and why
 
 - Riley, minimum sample size, `10.1002/sim.8409`: the Crossref query returned the correction notice
