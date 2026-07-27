@@ -108,7 +108,7 @@ OUTCOME_SUMMARIES = tuple(
 # archive's timestamps come from sample indices, so a fixed-repetition cohort arrives at 18.499993 s
 # rather than 18.5 and an equality test would call every cohort data-dependent. The cut is not a
 # tuning knob: across the 18 cohorts the relative spread is either at most 8.2e-16, which is
-# floating-point dust, or at least 0.051, so any threshold between those two values gives the same
+# floating-point dust, or at least 0.0506, so any threshold between those two values gives the same
 # split.
 CONSTANT_INTERVAL_TOLERANCE = 1e-6
 
