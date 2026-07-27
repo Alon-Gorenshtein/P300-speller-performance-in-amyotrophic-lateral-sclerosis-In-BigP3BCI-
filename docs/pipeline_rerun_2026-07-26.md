@@ -350,7 +350,9 @@ through 15 are finished and the guard has served its purpose.
 
 ## Still stale after this rerun
 
-- `output/expanded/figures/` was not re-rendered. The three PDF and PNG figures still plot the
-  pre-correction analysis. Task 14 rebuilds them.
+- `output/expanded/figures/` was not re-rendered here, and the three PDF and PNG figures still
+  plotted the pre-correction analysis. Task 14 rebuilt every figure from the corrected outputs and
+  added `scripts/13_render_figures.py`, which writes all five from one command, so the same drift
+  cannot recur unnoticed. Resolved.
 - `build_expanded/manuscript.md`, `build_expanded/supplement.md` and the rendered docx and pdf still
   quote the pre-correction numbers listed above. Tasks 4 through 16 rewrite them.
