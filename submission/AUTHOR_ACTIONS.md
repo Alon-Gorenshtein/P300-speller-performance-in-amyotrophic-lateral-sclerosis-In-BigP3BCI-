@@ -7,5 +7,5 @@ This package contains the complete reproducible analysis and a manuscript drafte
 3. Confirm that the selected journal permits the intended public-data reuse and source-dataset citation.
 4. Review the Zotero import, then select the journal’s citation style at submission.
 5. Confirm that every author has reviewed the final rendered manuscript, supplement, and reproducibility materials.
-6. Create and publish a DOI-backed code archive (for example, a Zenodo or OSF deposit of this repository) and add its DOI to the manuscript’s Data and Code Availability statement. This was identified during the 2026-07-28 pre-submission revision pass as a deliberately deferred item and has not been done yet.
+6. Before submission: push this repository to the cited GitHub URL if not already done, create a tagged release matching the cited commit, archive that release and the frozen `output/expanded/` outputs on Zenodo or OSF, obtain a DOI, and replace the commit-hash citation in `manuscript/manuscript_expanded.md`’s Data and Code Availability section with the archived-release DOI once minted.
 7. Decide whether to shorten the manuscript title. This was raised as an optional trim during the same revision pass and was deliberately left to the author’s own judgment rather than implemented.
