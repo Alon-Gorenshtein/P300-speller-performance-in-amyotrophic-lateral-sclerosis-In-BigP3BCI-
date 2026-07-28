@@ -156,7 +156,7 @@ def render_skill_by_cohort(
     hatches = ["//" if value else None for value in is_als]
 
     fig, ax = plt.subplots(figsize=(6.6, 5.4))
-    ax.axvline(0.0, color=LABEL_COLOR, linewidth=1.0, zorder=1)
+    ax.axvline(0.0, color=LABEL_COLOR, linewidth=1.0, zorder=3)
     bars = ax.barh(positions, merged["skill"], color=colours, height=0.62, zorder=2,
                     edgecolor="white", linewidth=0.6)
     for bar, hatch in zip(bars, hatches, strict=True):
@@ -252,7 +252,7 @@ def _forest_panel(
 
     if block is not None:
         label = (
-            f"{label}\ntau = {block['tau']:.2f}, I-squared = {block['i_squared']:.0f}%"
+            f"{label}\ntau = {block['tau']:.2f}, I² = {block['i_squared']:.0f}%"
         )
     ax.set_yticks(positions)
     ax.set_yticklabels([_cohort_label(study) for study in frame["held_out_study"]], fontsize=12)
