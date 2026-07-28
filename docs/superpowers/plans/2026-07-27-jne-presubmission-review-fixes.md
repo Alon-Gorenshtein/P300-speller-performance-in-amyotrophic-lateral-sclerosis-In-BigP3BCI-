@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run it**
 
-Run: `cd "/Volumes/Extreme SSD/Mimic-IV/study_bigp3_als_calibration" && UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 uv run python scripts/15_build_manuscript.py`
+Run (from the repository root you are working in — do not `cd` to any other path): `UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 uv run python scripts/15_build_manuscript.py`
 Expected: three `wrote build_expanded/*.pdf` / `wrote build_expanded/*.docx` lines, no traceback.
 
 - [ ] **Step 3: Verify the `{width=` defect is gone and the font is 12pt**
