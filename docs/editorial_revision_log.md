@@ -51,3 +51,7 @@ Added `supplementary/tripod_checklist.md`, a completed TRIPOD (2015) checklist w
 ### Cover letter
 
 Rewrote the cover letter from 1,143 words and 4 rendered pages to approximately 472 words and 1-2 pages, in the five-part structure the review specifies, with an explicit competing-interests sentence and the public-dataset-rule paragraph removed. Per an explicit author decision, the companion-manuscript disclosure paragraph was cut entirely rather than reworded.
+
+### Deliberately deferred, not yet done
+
+Two items were identified during this revision pass and deliberately left for the submitting author rather than implemented here: a DOI-backed code archive (a Zenodo or OSF deposit of this repository, cited in the manuscript's Data and Code Availability statement) and an optional shortening of the manuscript title. Neither blocks submission on its own, but both should be resolved, or consciously accepted as-is, before upload. Both are also listed as pending action items in `submission/AUTHOR_ACTIONS.md`.

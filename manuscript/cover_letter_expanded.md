@@ -2,11 +2,11 @@
 
 27 July 2026
 
-Re: Submission of “Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts” as a Paper
+Re: Submission of "Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts" as a Paper
 
 Dear Editors of *Journal of Neural Engineering*,
 
-We submit "Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts" for consideration as a Paper in *Journal of Neural Engineering*.
+We submit the manuscript named above for consideration as a Paper in *Journal of Neural Engineering*.
 
 **Submission and journal fit.** A calibration-derived score has repeatedly been related to online P300-speller accuracy within the cohort where it was measured, including by Mainsah and colleagues in this journal (*J Neural Eng* 2016;13:066007), who derived speller accuracy analytically from a calibration-derived detectability index. Whether a mapping fitted in one set of cohorts transports to a cohort it has never seen is the question that decides whether such a score can be reported anywhere other than where it was developed, and it is the question this manuscript answers.
 

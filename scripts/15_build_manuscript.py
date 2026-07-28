@@ -27,6 +27,17 @@ TARGETS = {
 PDF_ENGINE = "xelatex"
 BODY_FONT_SIZE = "12pt"
 
+# Pandoc renders every pipe table as a LaTeX `longtable` sized off the full body font, and the
+# widest tables here (Table 2's 9 columns, Table S6's 13) hyphenate to one syllable per column and
+# overprint their headers at 12pt with 1-inch margins. `\AtBeginEnvironment` from etoolbox scopes
+# `\small` to just the longtable environment, so table text shrinks without touching body text
+# anywhere else in the document.
+TABLE_HEADER_INCLUDES = (
+    r"\usepackage{etoolbox}"
+    r"\usepackage{pdflscape}"
+    r"\AtBeginEnvironment{longtable}{\small}"
+)
+
 
 def _require_tools() -> None:
     for tool in ("pandoc", PDF_ENGINE):
@@ -50,6 +61,7 @@ def render(name: str, source: Path, output_directory: Path) -> None:
             "--resource-path", resource_path,
             "-V", f"fontsize={BODY_FONT_SIZE}",
             "-V", "geometry:margin=1in",
+            "-V", f"header-includes:{TABLE_HEADER_INCLUDES}",
             "-o", str(pdf_path),
         ],
         check=True,
