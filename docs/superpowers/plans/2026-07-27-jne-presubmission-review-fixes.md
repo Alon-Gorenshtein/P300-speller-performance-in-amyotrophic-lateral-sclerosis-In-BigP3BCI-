@@ -1333,11 +1333,9 @@ git commit -m "docs: add a completed TRIPOD checklist mapping every item to its 
 
 Do this task after Task 8 (stopping-rule wording) and Task 13 (declarations wording) so the cover letter's numbers and phrasing match the final manuscript rather than needing a second pass. Current letter is 1,143 words / 4 rendered pages. Target: 450-550 words / about 1 page, in the five-part structure the review specifies, with an explicit competing-interests sentence and the public-dataset-rule paragraph removed.
 
-- [ ] **Step 1: Confirm the companion manuscript's exact current title and status before writing paragraph 5**
+**Explicit decision, already made by the user: do not disclose any companion manuscript in this letter.** The current letter's final paragraph ("A companion manuscript from our group uses the same archive to ask a different question...") is cut entirely, not shortened or reworded. Do not name, describe, or allude to any other in-progress manuscript on this archive anywhere in the rewritten letter.
 
-The current letter's companion-manuscript sentence ("A companion manuscript from our group uses the same archive to ask a different question, namely how much of each emitted character selection is determined by a language-model prior rather than by the neural signal...") is vague about which companion project it refers to and does not name it. Before rewriting this paragraph, confirm with the user which of the two related LLM-BCI projects on this archive it is — `study_bci_llm_authorship` (per-selection attribution, target npj Digital Medicine, submission-ready as of 2026-07-26) or `study_bci_llm_intent_drift` (drift-vs-CER, target Lancet Digital Health, not yet submitted) — and its exact current title and submission status, since both are live projects and guessing wrong here would misstate a real disclosure to the editor.
-
-- [ ] **Step 2: Rewrite the letter in five parts**
+- [ ] **Step 1: Rewrite the letter in five parts**
 
 Replace the full body of `manuscript/cover_letter_expanded.md` (keep the date, "Re:" line, salutation, and signature block) with:
 
@@ -1352,14 +1350,14 @@ We submit "[exact current title]" for consideration as a Paper in *Journal of Ne
 
 **Why this matters to your readership.** The manuscript separates two claims the field has tended to report together: an association that appears in every cohort examined, and a calibrated mapping that transports between them. A calibration score can support ranking sessions within a setting and can support a data-quality screen; it should not be used to report an expected accuracy in a cohort where the mapping was not developed, without local recalibration. This is a transportability evaluation of a widely proposed relationship, not a classifier-improvement study.
 
-**Declarations.** The authors declare no competing interests. This work has not been submitted elsewhere and is not under consideration by any other journal. A companion manuscript from our group uses the same archive to ask an unrelated question — [exact title from Step 1] ([submission status from Step 1]) — and reuses the calibration score reported here as one moderator among several; its primary question, outcome, and reported results do not overlap with this manuscript's, and a copy is provided with this submission in keeping with ICMJE guidance on overlapping publications.
+**Declarations.** The authors declare no competing interests. This work has not been submitted elsewhere and is not under consideration by any other journal.
 
 Sincerely,
 ```
 
-Fill in the two `[...]` placeholders from Step 1's answer before this file is considered complete — do not leave them unresolved in the committed file.
+Replace `"[exact current title]"` in the opening line with the manuscript's actual title (`manuscript/manuscript_expanded.md`'s title line) before this file is considered complete — do not leave it unresolved in the committed file.
 
-- [ ] **Step 3: Count words and confirm the page target**
+- [ ] **Step 2: Count words and confirm the page target**
 
 Run:
 ```bash
@@ -1372,18 +1370,18 @@ print(len(body.split()))
 ```
 Expected: 450-550.
 
-- [ ] **Step 4: Re-render and confirm page count**
+- [ ] **Step 3: Re-render and confirm page count**
 
 Run: `UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 uv run python scripts/15_build_manuscript.py --only cover_letter`
 Run: `pdfinfo build_expanded/cover_letter.pdf | grep Pages` (or open it) — expect 1, at most 2.
 
-- [ ] **Step 5: Scan for AI-writing tells and commit**
+- [ ] **Step 4: Scan for AI-writing tells and commit**
 
 Run: `python3 ~/.claude/skills/de-ai-writing/scripts/scan_ai_writing.py "manuscript/cover_letter_expanded.md"`
 
 ```bash
 git add manuscript/cover_letter_expanded.md
-git commit -m "docs: rewrite the cover letter to one page in five parts, with an explicit competing-interests sentence and a precise companion-manuscript disclosure"
+git commit -m "docs: rewrite the cover letter to one page in five parts, with an explicit competing-interests sentence, no companion-manuscript disclosure per author decision"
 ```
 
 ---
