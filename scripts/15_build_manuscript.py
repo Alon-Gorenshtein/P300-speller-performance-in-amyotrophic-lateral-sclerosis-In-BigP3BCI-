@@ -22,13 +22,14 @@ TARGETS = {
     "manuscript": Path("manuscript/manuscript_expanded.md"),
     "cover_letter": Path("manuscript/cover_letter_expanded.md"),
     "supplement": Path("supplementary/supplement_expanded.md"),
+    "tripod_checklist": Path("supplementary/tripod_checklist.md"),
 }
 
 PDF_ENGINE = "xelatex"
 BODY_FONT_SIZE = "12pt"
 
 # Pandoc renders every pipe table as a LaTeX `longtable` sized off the full body font, and the
-# widest tables here (Table S6 and Table S11, each 13 columns) hyphenate to one syllable per
+# widest tables here (Table S9 and Table S2, each 13 columns) hyphenate to one syllable per
 # column and overprint their headers at 12pt with 1-inch margins. `\AtBeginEnvironment` from
 # etoolbox scopes `\small` to just the longtable environment, so table text shrinks without
 # touching body text anywhere else in the document.

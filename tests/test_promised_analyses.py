@@ -211,7 +211,7 @@ def test_leave_two_studies_out_drops_records_missing_the_primary_feature(
 
 
 @needs_supplement_source
-def test_supplement_table_s6_has_a_row_for_every_specification() -> None:
+def test_supplement_table_s9_has_a_row_for_every_specification() -> None:
     """Guard the supplement's claim, on tracked files, so it holds on a fresh checkout.
 
     ``11_run_comparators.py`` no longer swallows a failing specification, so a missing predictor
@@ -219,7 +219,7 @@ def test_supplement_table_s6_has_a_row_for_every_specification() -> None:
     specification added to ``MODEL_SPECS`` without a corresponding row in the supplement.
     """
     supplement = (REPOSITORY / "supplementary" / "supplement_expanded.md").read_text()
-    body = supplement.split("**Table S6.")[1].split("\n\n")[1]
+    body = supplement.split("**Table S9.")[1].split("\n\n")[1]
     rows = [line for line in body.splitlines() if line.startswith("|")]
     header, separator, *data = rows
     assert separator.startswith("|---")
