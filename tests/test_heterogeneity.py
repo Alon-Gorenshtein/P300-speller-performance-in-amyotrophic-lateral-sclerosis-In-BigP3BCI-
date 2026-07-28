@@ -423,6 +423,32 @@ def test_bootstrap_se_method_returns_nan_with_fewer_than_two_participants() -> N
     assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
 
 
+def test_bootstrap_replicates_on_the_separation_boundary_are_discarded() -> None:
+    """A cluster resample that happens to exclude a cohort's only imperfect record is separated:
+    every fitted probability sits at the boundary, and the fitter still returns finite, arbitrary
+    parameters. Nine of ten participants here answer every selection correctly, so most cluster
+    resamples drop the tenth participant's one imperfect record and land on the boundary. Counting
+    those draws as if they carried real information about the standard error is the bug this test
+    guards against: on the real StudyS1 cohort, which has this same nine-of-ten-participants-perfect
+    shape, 58% of replicates landed on the boundary before this guard and inflated the reported
+    intercept standard error from 2.64 to 107. With the guard, so many replicates are discarded that
+    the cohort is correctly reported as not identified under the bootstrap method, the same outcome
+    the other three specifications already reach for a degenerate cohort by their own guards."""
+    n_participants = 10
+    records = _cohort(
+        held_out_study=["S"] * n_participants,
+        study_participant_id=[f"S:P{index:02d}" for index in range(n_participants)],
+        n=[18] * n_participants,
+        correct=[17 if index == 0 else 18 for index in range(n_participants)],
+        predicted_probability=[0.9 + 0.005 * index for index in range(n_participants)],
+    )
+
+    row = cohort_calibration(records, se_method="bootstrap").iloc[0]
+
+    assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+    assert np.isnan(row["intercept"]) and np.isnan(row["intercept_se"])
+
+
 def test_a_cohort_the_model_happens_to_fit_exactly_is_kept() -> None:
     """statsmodels warns about perfect separation whenever the fitted proportions reproduce the
     observed ones, which is also true of a small identified cohort. That warning must not be read

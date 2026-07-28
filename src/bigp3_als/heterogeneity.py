@@ -156,6 +156,13 @@ def _bootstrap_standard_errors(
     unreliable at the 5-to-24-cluster counts these cohorts have. A replicate that fails to fit or
     loses identification is dropped rather than counted as zero variance; if more than half of the
     replicates are dropped the cohort is treated as not identified under this method.
+
+    A replicate can also fail to lose identification outright and still be separated: a resample
+    that happens to draw an unrepresentative mix of clusters can drive its fitted probabilities onto
+    0 or 1, the same failure `_fit_cohort` guards against on the primary fit with `FITTED_BOUNDARY`.
+    Such a replicate returns a finite but arbitrary parameter draw with no real information in it, so
+    it is discarded here by the same test rather than allowed to inflate the standard deviation of
+    the surviving draws.
     """
     unique_clusters = np.unique(cluster_codes)
     draws: list[np.ndarray] = []
@@ -172,7 +179,10 @@ def _bootstrap_standard_errors(
                     design[rows], family=sm.families.Binomial(),
                 ).fit()
             parameters = np.asarray(fit.params, dtype=float)
+            fitted = np.asarray(fit.fittedvalues, dtype=float)
         except _FIT_FAILURES:
+            continue
+        if fitted.min() <= FITTED_BOUNDARY or fitted.max() >= 1.0 - FITTED_BOUNDARY:
             continue
         if np.all(np.isfinite(parameters)):
             draws.append(parameters)
