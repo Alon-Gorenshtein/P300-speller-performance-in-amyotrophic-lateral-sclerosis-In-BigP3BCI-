@@ -42,6 +42,40 @@ For each Test-phase transition to phase 3, the intended character was the final 
 | Study S2 | 864 | 864 | none |
 | Total | 29,602 | 19,688 | |
 
+```{=latex}
+\begin{landscape}
+\begingroup
+\setlength{\tabcolsep}{3pt}
+```
+
+**Table S11. Per-cohort composition, documented protocol metadata, and withheld-cohort performance.** For each of the 18 contributing cohorts: participants, records, analysed selections, the archive's own documented speller grid size and whether it uses a checkerboard-variant stimulus paradigm, mean observed session-condition accuracy, and, when that cohort was withheld from model development, the mean absolute error, character-weighted area under the curve, and calibration intercept and slope, with the slope's 95% confidence interval given as separate lower and upper columns rather than combined into one cell. Calibration intercepts and slopes are from the primary cluster-robust specification, with standard errors clustered on participant. ALS cohorts are listed first. This is the full version of the main-text Table 2, which reports composition and observed performance only; the calibration intercept and slope for each cohort, with their confidence intervals, are also shown in Figure 1.
+
+| Cohort | Participants | Records | Selections | Grid size | Checkerboard | Accuracy | MAE | AUC | Calib. intercept | Calib. slope | Slope CI low | Slope CI high |
+|-----------|-------------:|--------:|-----------:|-----:|-------------|---------:|-----:|-----:|---------:|-------:|-------:|--------:|
+| Study B | 18 | 56 | 781 | 36 | Yes | 0.899 | 0.108 | 0.825 | -0.154 | 1.578 | 0.691 | 2.464 |
+| Study F | 10 | 89 | 1,067 | 72 | Yes | 0.778 | 0.101 | 0.863 | -0.932 | 1.418 | 1.205 | 1.631 |
+| Study L | 11 | 33 | 990 | 36 | Yes | 0.839 | 0.084 | 0.811 | -1.088 | 1.775 | 1.413 | 2.137 |
+| Study N | 8 | 16 | 480 | 36 | Yes | 0.694 | 0.124 | 0.814 | -0.671 | 1.145 | 0.681 | 1.609 |
+| Study A | 13 | 39 | 1,404 | 72 | Yes | 0.786 | 0.126 | 0.775 | -2.169 | 1.999 | 1.375 | 2.622 |
+| Study D | 17 | 34 | 1,230 | 72 | No | 0.896 | 0.056 | 0.641 | +0.389 | 0.839 | 0.461 | 1.217 |
+| Study E | 8 | 8 | 240 | 72 | Yes | 0.921 | 0.063 | 0.668 | +0.950 | 0.782 | 0.214 | 1.351 |
+| Study G | 20 | 40 | 1,198 | 72 | Yes | 0.886 | 0.066 | 0.732 | -1.029 | 1.399 | 0.957 | 1.840 |
+| Study H | 16 | 64 | 1,926 | 72 | Yes | 0.877 | 0.153 | 0.520 | +1.705 | 0.185 | -0.289 | 0.659 |
+| Study I | 13 | 26 | 948 | 72 | Yes | 0.658 | 0.172 | 0.674 | -0.504 | 1.044 | 0.170 | 1.917 |
+| Study J | 20 | 40 | 1,812 | 36 | No | 0.708 | 0.186 | 0.600 | +0.491 | 0.326 | -0.063 | 0.716 |
+| Study K | 5 | 16 | 480 | 72 | Yes | 0.750 | 0.173 | 0.639 | +0.727 | 0.480 | -0.193 | 1.153 |
+| Study M | 21 | 42 | 1,260 | 72 | Yes | 0.823 | 0.121 | 0.685 | +0.477 | 0.888 | 0.480 | 1.297 |
+| Study O | 17 | 34 | 1,187 | 72 | Yes | 0.884 | 0.067 | 0.581 | +0.505 | 0.583 | 0.079 | 1.087 |
+| Study Q | 20 | 54 | 1,944 | 72 | Yes | 0.820 | 0.058 | 0.682 | -0.094 | 1.108 | 0.844 | 1.371 |
+| Study R | 20 | 80 | 1,440 | 72 | Yes | 0.963 | 0.059 | 0.650 | +1.278 | 0.763 | 0.359 | 1.166 |
+| Study S1 | 10 | 20 | 360 | 72 | Yes | 0.997 | 0.043 | 0.851 | +1.995 | 1.312 | -0.216 | 2.840 |
+| Study S2 | 24 | 48 | 864 | 72 | Yes | 0.976 | 0.048 | 0.826 | -2.022 | 2.185 | 1.215 | 3.154 |
+
+```{=latex}
+\endgroup
+\end{landscape}
+```
+
 ## S3. Model specification
 
 The development model was a logistic regression of character-level correctness on the standardised calibration score, fitted on character-expanded records from the development studies, with standardisation using development-study means and standard deviations only. For a session with calibration score s, the estimated accuracy is the inverse logit of a + b (s - m) / d, where m and d are the development mean and standard deviation of the score. The four numbers are given for all 18 folds in Table S9, with a worked recomputation.
