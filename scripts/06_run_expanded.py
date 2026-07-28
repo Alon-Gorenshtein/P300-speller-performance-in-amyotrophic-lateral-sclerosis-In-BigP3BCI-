@@ -84,7 +84,9 @@ def main() -> None:
     metrics.to_csv(arguments.output_directory / "external_validation_metrics.csv", index=False)
     predictions.to_csv(arguments.output_directory / "external_validation_predictions.csv", index=False)
 
-    pooled = pool_held_out_metrics(metrics, POOLED_COLUMNS)
+    pooled = pool_held_out_metrics(
+        metrics, POOLED_COLUMNS, log_scale_columns=frozenset({"session_mean_absolute_error"})
+    )
     pooled.to_csv(arguments.output_directory / "random_effects_pooling.csv", index=False)
 
     als_records = records.loc[records["als_cohort"]]

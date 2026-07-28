@@ -105,6 +105,46 @@ def test_pool_held_out_metrics_ignores_the_pooled_row() -> None:
     assert pooled["n_studies"].iloc[0] == 3
 
 
+def test_log_scale_prediction_interval_is_never_negative_for_a_right_skewed_error_metric() -> None:
+    """MAE cannot be negative. A log-scale interval must respect that even when the raw-scale
+    interval would not."""
+    # Chosen so the raw-scale (identity) interval crosses zero, reproducing the reviewer's finding.
+    # (Last value lowered from the task brief's 0.043 to 0.020: at 0.043 the raw-scale
+    # prediction_interval_low computes to +0.000255, which does not actually reproduce the
+    # zero-crossing defect this test exists to demonstrate.)
+    values = pd.Series([0.056, 0.058, 0.063, 0.066, 0.067, 0.084, 0.101, 0.108, 0.121, 0.124,
+                        0.126, 0.153, 0.058, 0.059, 0.172, 0.173, 0.186, 0.020])
+    raw = random_effects_pooling(values, label="mae")
+    assert raw["prediction_interval_low"] < 0.0  # reproduces the defect on the raw scale
+
+    logged = random_effects_pooling(values, label="mae", transform="log")
+    assert logged["prediction_interval_low"] > 0.0
+    assert logged["prediction_interval_high"] > logged["prediction_interval_low"]
+    # The point estimate should be recognisably the same quantity, not a different mean.
+    assert logged["mean"] == pytest.approx(raw["mean"], rel=0.15)
+
+
+def test_log_scale_transform_rejects_a_series_with_a_non_positive_value() -> None:
+    with pytest.raises(ValueError, match="positive"):
+        random_effects_pooling(pd.Series([0.05, -0.01, 0.03]), transform="log")
+
+
+def test_pool_held_out_metrics_applies_log_scale_only_to_named_columns() -> None:
+    metrics = pd.DataFrame({
+        "held_out_study": ["A", "B", "C", "D"],
+        "session_mean_absolute_error": [0.09, 0.10, 0.12, 0.08],
+        "character_brier_skill_score": [-0.05, 0.10, 0.20, -0.02],
+    })
+    pooled = pool_held_out_metrics(
+        metrics, ("session_mean_absolute_error", "character_brier_skill_score"),
+        log_scale_columns=frozenset({"session_mean_absolute_error"}),
+    )
+    mae_row = pooled.loc[pooled["quantity"] == "session_mean_absolute_error"].iloc[0]
+    skill_row = pooled.loc[pooled["quantity"] == "character_brier_skill_score"].iloc[0]
+    assert mae_row["prediction_interval_low"] > 0.0
+    assert skill_row["prediction_interval_low"] < 0.0  # skill is legitimately negative; must be untouched
+
+
 def test_transfer_to_als_never_trains_on_an_als_cohort() -> None:
     seen: list[set[str]] = []
 

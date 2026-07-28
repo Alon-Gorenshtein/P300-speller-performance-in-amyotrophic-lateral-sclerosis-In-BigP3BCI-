@@ -58,40 +58,77 @@ def label_cohort_type(records: pd.DataFrame) -> pd.DataFrame:
     return labelled
 
 
-def random_effects_pooling(estimates: pd.Series, label: str = "estimate") -> dict[str, float]:
+def random_effects_pooling(
+    estimates: pd.Series, label: str = "estimate", transform: str = "identity"
+) -> dict[str, float]:
     """Summarise per-study estimates with a mean interval and a new-study prediction interval.
 
     The confidence interval describes the average across the source studies that were observed. The
     prediction interval describes the value a single new source study would be expected to produce,
     and is the quantity a reader should use. With few studies the two differ substantially, and
     reporting only the first overstates precision.
+
+    ``transform="log"`` fits the interval on the log scale and reports it back on the original
+    scale. Use it for a quantity that is bounded at zero, such as a mean absolute error: the
+    identity-scale interval is symmetric around the mean and can cross zero when the between-study
+    spread is large relative to the mean, which is not a value the quantity can actually take. It is
+    not appropriate for a quantity that is legitimately signed, such as a skill score.
     """
+    if transform not in ("identity", "log"):
+        raise ValueError(f"transform must be 'identity' or 'log', got {transform!r}")
+
     values = pd.Series(estimates).dropna().to_numpy(dtype=float)
     n_studies = len(values)
     if n_studies < 2:
         raise ValueError("random-effects pooling needs at least two studies")
+    if transform == "log" and np.any(values <= 0.0):
+        raise ValueError("transform='log' needs every value to be strictly positive")
 
-    mean = float(values.mean())
-    between_sd = float(values.std(ddof=1))
+    scale_values = np.log(values) if transform == "log" else values
+    mean = float(scale_values.mean())
+    between_sd = float(scale_values.std(ddof=1))
     standard_error = between_sd / np.sqrt(n_studies)
     critical = float(stats.t.ppf(0.975, df=n_studies - 1))
+
+    ci_low, ci_high = mean - critical * standard_error, mean + critical * standard_error
+    pi_low = mean - critical * between_sd * np.sqrt(1.0 + 1.0 / n_studies)
+    pi_high = mean + critical * between_sd * np.sqrt(1.0 + 1.0 / n_studies)
+
+    if transform == "log":
+        reported_mean = float(np.exp(mean))
+        ci_low, ci_high, pi_low, pi_high = (float(np.exp(x)) for x in (ci_low, ci_high, pi_low, pi_high))
+        reported_between_sd = float(values.std(ddof=1))  # reported on the original scale for readability
+    else:
+        reported_mean = mean
+        reported_between_sd = between_sd
 
     return {
         "quantity": label,
         "n_studies": float(n_studies),
-        "mean": mean,
-        "between_study_sd": between_sd,
-        "confidence_interval_low": mean - critical * standard_error,
-        "confidence_interval_high": mean + critical * standard_error,
-        "prediction_interval_low": mean - critical * between_sd * np.sqrt(1.0 + 1.0 / n_studies),
-        "prediction_interval_high": mean + critical * between_sd * np.sqrt(1.0 + 1.0 / n_studies),
+        "mean": reported_mean,
+        "between_study_sd": reported_between_sd,
+        "confidence_interval_low": ci_low,
+        "confidence_interval_high": ci_high,
+        "prediction_interval_low": pi_low,
+        "prediction_interval_high": pi_high,
     }
 
 
-def pool_held_out_metrics(metrics: pd.DataFrame, columns: tuple[str, ...]) -> pd.DataFrame:
-    """Apply :func:`random_effects_pooling` to each held-out-study metric column."""
+def pool_held_out_metrics(
+    metrics: pd.DataFrame, columns: tuple[str, ...], log_scale_columns: frozenset[str] = frozenset()
+) -> pd.DataFrame:
+    """Apply :func:`random_effects_pooling` to each held-out-study metric column.
+
+    ``log_scale_columns`` names columns to pool on the log scale, for quantities bounded at zero.
+    """
     per_study = metrics.loc[~metrics["held_out_study"].str.startswith("Pooled")]
-    rows = [random_effects_pooling(per_study[column], label=column) for column in columns if column in per_study]
+    rows = [
+        random_effects_pooling(
+            per_study[column], label=column,
+            transform="log" if column in log_scale_columns else "identity",
+        )
+        for column in columns if column in per_study
+    ]
     return pd.DataFrame(rows)
 
 
