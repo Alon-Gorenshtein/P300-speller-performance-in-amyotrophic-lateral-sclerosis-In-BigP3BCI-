@@ -426,27 +426,63 @@ def test_bootstrap_se_method_returns_nan_with_fewer_than_two_participants() -> N
 def test_bootstrap_replicates_on_the_separation_boundary_are_discarded() -> None:
     """A cluster resample that happens to exclude a cohort's only imperfect record is separated:
     every fitted probability sits at the boundary, and the fitter still returns finite, arbitrary
-    parameters. Nine of ten participants here answer every selection correctly, so most cluster
-    resamples drop the tenth participant's one imperfect record and land on the boundary. Counting
-    those draws as if they carried real information about the standard error is the bug this test
-    guards against: on the real StudyS1 cohort, which has this same nine-of-ten-participants-perfect
-    shape, 58% of replicates landed on the boundary before this guard and inflated the reported
-    intercept standard error from 2.64 to 107. With the guard, so many replicates are discarded that
-    the cohort is correctly reported as not identified under the bootstrap method, the same outcome
-    the other three specifications already reach for a degenerate cohort by their own guards."""
+    parameters. Counting those draws as if they carried real information about the standard error is
+    the bug this test guards against.
+
+    This fixture is shaped like the real StudyS1 cohort that motivated the guard, and reproduces its
+    numbers almost exactly: nine of ten participants answer every selection correctly on both of
+    their two records, and the tenth misses one selection on a record whose predicted probability is
+    *not* the extreme value in the cohort. That placement is what makes the fixture diagnostic rather
+    than a cohort that fails to identify a slope on its own: with the imperfect record away from the
+    extreme, the primary, non-resampled fit is comfortably inside the boundary (fitted probabilities
+    span [0.990, 0.999], four orders of magnitude clear of FITTED_BOUNDARY) and is confirmed below to
+    return a finite estimate under the cluster, model and quasi-binomial specifications, none of which
+    resample and so none of which can exercise the guard under test. Swapping in the pre-guard
+    `_bootstrap_standard_errors` confirms this fixture actually depends on it: without the guard, this
+    test fails (the bootstrap row comes back with finite, absurdly large standard errors instead of
+    NaN); with it restored, the test passes.
+
+    It is only the participant-cluster bootstrap that runs into trouble: any resample that happens not
+    to draw the tenth participant leaves only perfect records behind, which separates. For this
+    fixture that is 1,165 of the 2,000 replicates (58%, verified empirically, matching the real
+    StudyS1 cohort's own rate), which exceeds the `len(draws) < repetitions // 2` discard threshold, so
+    the cohort correctly comes back not identified under the bootstrap method while every other method
+    identifies it. Before the per-replicate guard in `_bootstrap_standard_errors` was added, those
+    1,165 separated replicates were counted as real draws and inflated the reported bootstrap standard
+    errors from 2.64 to 107 instead of being discarded."""
     n_participants = 10
+    # Not monotone in participant index: the imperfect participant (index 1) sits second-lowest in
+    # predicted probability, mirroring StudyS1:S1_01, so the covariate alone cannot separate the
+    # cohort and the primary fit stays identified.
+    probabilities = [0.87, 0.94, 0.95, 0.96, 0.965, 0.968, 0.969, 0.970, 0.972, 0.973]
+    imperfect_index = 1
     records = _cohort(
-        held_out_study=["S"] * n_participants,
-        study_participant_id=[f"S:P{index:02d}" for index in range(n_participants)],
-        n=[18] * n_participants,
-        correct=[17 if index == 0 else 18 for index in range(n_participants)],
-        predicted_probability=[0.9 + 0.005 * index for index in range(n_participants)],
+        held_out_study=["S"] * (2 * n_participants),
+        study_participant_id=[
+            f"S:P{index:02d}" for index in range(n_participants) for _ in range(2)
+        ],
+        n=[18] * (2 * n_participants),
+        correct=[
+            17 if index == imperfect_index and condition == 0 else 18
+            for index in range(n_participants)
+            for condition in range(2)
+        ],
+        predicted_probability=[
+            probabilities[index] for index in range(n_participants) for _ in range(2)
+        ],
     )
 
-    row = cohort_calibration(records, se_method="bootstrap").iloc[0]
+    bootstrap_row = cohort_calibration(records, se_method="bootstrap").iloc[0]
+    assert np.isnan(bootstrap_row["slope"]) and np.isnan(bootstrap_row["slope_se"])
+    assert np.isnan(bootstrap_row["intercept"]) and np.isnan(bootstrap_row["intercept_se"])
 
-    assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
-    assert np.isnan(row["intercept"]) and np.isnan(row["intercept_se"])
+    # The primary fit is identified under every non-resampling specification, which proves the NaN
+    # above comes from the per-replicate bootstrap guard and not from `_fit_cohort`'s own boundary
+    # check on the unresampled fit (the failure mode of the fixture this test replaced).
+    for se_method in ("cluster", "model", "quasibinomial"):
+        row = cohort_calibration(records, se_method=se_method).iloc[0]
+        assert np.isfinite(row["slope"]) and np.isfinite(row["slope_se"])
+        assert np.isfinite(row["intercept"]) and np.isfinite(row["intercept_se"])
 
 
 def test_a_cohort_the_model_happens_to_fit_exactly_is_kept() -> None:
