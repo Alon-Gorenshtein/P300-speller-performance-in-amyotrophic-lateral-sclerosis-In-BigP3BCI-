@@ -307,5 +307,83 @@ def run_source_study_held_out_validation(
     return all_predictions, pd.DataFrame(metric_rows)
 
 
+def joint_bootstrap_fold_covariance(
+    records: pd.DataFrame,
+    specification: ModelSpecification,
+    repetitions: int = BOOTSTRAP_REPETITIONS,
+) -> dict[str, object]:
+    """Jointly bootstrap every leave-one-study-out fold to capture their shared-development covariance.
+
+    A bootstrap run independently per held-out cohort (as ``_bootstrap_intervals`` and
+    ``heterogeneity._bootstrap_standard_errors`` both do) cannot see that up to 16 of 17 development
+    cohorts are shared between any two folds: each fold resamples its own development set separately,
+    so a cohort appearing in two different folds' development sets gets two independent draws instead
+    of the same one. This function resamples every cohort's participants once per replicate, then
+    refits all 18 folds from that single resampled dataset, so the correlation the shared development
+    data induces between folds is captured directly in the resulting empirical covariance rather than
+    assumed away by treating the 18 held-out estimates as independent, which the primary random-effects
+    pooling does.
+    """
+    modeled = records.dropna(subset=list(specification.features)).copy()
+    studies = sorted(modeled["study"].unique())
+    rng = np.random.default_rng(RANDOM_SEED)
+
+    intercepts: dict[str, list[float]] = {study: [] for study in studies}
+    slopes: dict[str, list[float]] = {study: [] for study in studies}
+    replicate_spread_intercept: list[float] = []
+    replicate_spread_slope: list[float] = []
+
+    for _ in range(repetitions):
+        resampled = _resample_clusters(modeled, rng, stratify_study=True)
+        this_replicate_intercepts: list[float] = []
+        this_replicate_slopes: list[float] = []
+        for held_out, development, validation in leave_one_study_out(resampled):
+            validation = validation.copy()
+            validation["predicted_probability"] = _fit_probability_model(
+                development, validation, specification.features
+            )
+            labels, expanded_probabilities = _expanded_binary(validation)
+            intercept, slope = _fit_calibration_model(labels, expanded_probabilities)
+            intercepts[held_out].append(intercept)
+            slopes[held_out].append(slope)
+            if np.isfinite(intercept) and np.isfinite(slope):
+                this_replicate_intercepts.append(intercept)
+                this_replicate_slopes.append(slope)
+        if len(this_replicate_intercepts) >= 2:
+            replicate_spread_intercept.append(float(np.std(this_replicate_intercepts, ddof=1)))
+        if len(this_replicate_slopes) >= 2:
+            replicate_spread_slope.append(float(np.std(this_replicate_slopes, ddof=1)))
+
+    frame = pd.DataFrame(
+        {f"{study}_intercept": intercepts[study] for study in studies}
+        | {f"{study}_slope": slopes[study] for study in studies}
+    )
+    covariance = frame.cov()
+    correlation = frame.corr()
+    n_finite_per_study = {
+        study: int(np.sum(np.isfinite(intercepts[study]) & np.isfinite(slopes[study])))
+        for study in studies
+    }
+
+    def _spread_summary(values: list[float]) -> dict[str, float]:
+        if not values:
+            return {"mean": float("nan"), "ci_low": float("nan"), "ci_high": float("nan")}
+        return {
+            "mean": float(np.mean(values)),
+            "ci_low": float(np.quantile(values, 0.025)),
+            "ci_high": float(np.quantile(values, 0.975)),
+        }
+
+    return {
+        "n_replicates": repetitions,
+        "studies": studies,
+        "covariance_matrix": covariance,
+        "correlation_matrix": correlation,
+        "n_finite_per_study": n_finite_per_study,
+        "replicate_between_cohort_sd_intercept": _spread_summary(replicate_spread_intercept),
+        "replicate_between_cohort_sd_slope": _spread_summary(replicate_spread_slope),
+    }
+
+
 # Backward-compatible public name retained for scripts and reproducible reruns.
 run_external_validation = run_source_study_held_out_validation
