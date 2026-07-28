@@ -39,7 +39,7 @@ def _summarise(records: pd.DataFrame, label: str, replicates: int) -> dict[str, 
     if records["study"].nunique() < 3:
         return {"analysis": label, "n_studies": records["study"].nunique(), "note": "too few cohorts"}
     _, metrics = run_source_study_held_out_validation(records, primary, bootstrap_repetitions=replicates)
-    pooled = pool_held_out_metrics(metrics, (METRIC, CALIBRATION))
+    pooled = pool_held_out_metrics(metrics, (METRIC, CALIBRATION), log_scale_columns=frozenset({METRIC}))
     mae = pooled.loc[pooled["quantity"] == METRIC].iloc[0]
     slope = pooled.loc[pooled["quantity"] == CALIBRATION].iloc[0]
     return {
@@ -106,7 +106,7 @@ def _leave_two_studies_out(records: pd.DataFrame, label: str) -> dict[str, objec
 
     per_cohort_mae = pd.Series({study: float(np.mean(values["mae"])) for study, values in collected.items()})
     per_cohort_slope = pd.Series({study: float(np.nanmean(values["slope"])) for study, values in collected.items()})
-    mae = random_effects_pooling(per_cohort_mae, label=METRIC)
+    mae = random_effects_pooling(per_cohort_mae, label=METRIC, transform="log")
     slope = random_effects_pooling(per_cohort_slope, label=CALIBRATION)
     return {
         "analysis": f"{label} ({n_splits} splits)",

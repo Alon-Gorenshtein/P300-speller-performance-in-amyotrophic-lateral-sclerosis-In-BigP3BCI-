@@ -47,7 +47,7 @@ def _comparator_row(records: pd.DataFrame, specification: ModelSpecification) ->
     _, metrics = run_source_study_held_out_validation(modeled, specification, bootstrap_repetitions=0)
     per_cohort = metrics.loc[~metrics["held_out_study"].astype(str).str.startswith(POOLED_PREFIX)]
     pooled = metrics.loc[metrics["held_out_study"].astype(str).str.startswith(POOLED_PREFIX)].iloc[0]
-    error = random_effects_pooling(per_cohort[METRIC], label=METRIC)
+    error = random_effects_pooling(per_cohort[METRIC], label=METRIC, transform="log")
     slopes = per_cohort["calibration_slope"].to_numpy(dtype=float)
     return {
         "predictor": specification.name,

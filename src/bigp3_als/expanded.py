@@ -68,11 +68,14 @@ def random_effects_pooling(
     and is the quantity a reader should use. With few studies the two differ substantially, and
     reporting only the first overstates precision.
 
-    ``transform="log"`` fits the interval on the log scale and reports it back on the original
-    scale. Use it for a quantity that is bounded at zero, such as a mean absolute error: the
-    identity-scale interval is symmetric around the mean and can cross zero when the between-study
-    spread is large relative to the mean, which is not a value the quantity can actually take. It is
-    not appropriate for a quantity that is legitimately signed, such as a skill score.
+    ``transform="log"`` fits the interval on the log scale and reports the mean and both intervals
+    back on the original scale. Use it for a quantity that is bounded at zero, such as a mean
+    absolute error: the identity-scale interval is symmetric around the mean and can cross zero when
+    the between-study spread is large relative to the mean, which is not a value the quantity can
+    actually take. It is not appropriate for a quantity that is legitimately signed, such as a skill
+    score. ``between_study_sd`` stays on the fitting scale (log, when ``transform="log"``) rather
+    than being back-transformed, because a standard deviation does not have a single well-defined
+    meaning after an exp transform; a caller reporting it must label it as being on that scale.
     """
     if transform not in ("identity", "log"):
         raise ValueError(f"transform must be 'identity' or 'log', got {transform!r}")
@@ -97,7 +100,7 @@ def random_effects_pooling(
     if transform == "log":
         reported_mean = float(np.exp(mean))
         ci_low, ci_high, pi_low, pi_high = (float(np.exp(x)) for x in (ci_low, ci_high, pi_low, pi_high))
-        reported_between_sd = float(values.std(ddof=1))  # reported on the original scale for readability
+        reported_between_sd = between_sd  # log-scale SD, consistent with the log-derived mean and intervals
     else:
         reported_mean = mean
         reported_between_sd = between_sd

@@ -129,6 +129,22 @@ def test_log_scale_transform_rejects_a_series_with_a_non_positive_value() -> Non
         random_effects_pooling(pd.Series([0.05, -0.01, 0.03]), transform="log")
 
 
+def test_log_scale_between_study_sd_is_reported_on_the_log_scale() -> None:
+    """The mean and the interval under transform="log" are reported on the original scale, but the
+    between-study standard deviation must stay on the log scale that produced them - otherwise a
+    summary sentence pairs a log-derived mean with a raw-scale spread on the same line, mixing two
+    scales without saying so. This should differ from the raw-scale SD on the same input, not
+    coincide with it."""
+    values = pd.Series([0.056, 0.058, 0.063, 0.066, 0.067, 0.084, 0.101, 0.108, 0.121, 0.124,
+                        0.126, 0.153, 0.058, 0.059, 0.172, 0.173, 0.186, 0.020])
+
+    identity = random_effects_pooling(values, transform="identity")
+    logged = random_effects_pooling(values, transform="log")
+
+    assert logged["between_study_sd"] == pytest.approx(float(np.log(values).std(ddof=1)))
+    assert logged["between_study_sd"] != pytest.approx(identity["between_study_sd"])
+
+
 def test_pool_held_out_metrics_applies_log_scale_only_to_named_columns() -> None:
     metrics = pd.DataFrame({
         "held_out_study": ["A", "B", "C", "D"],

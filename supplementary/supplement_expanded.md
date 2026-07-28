@@ -56,11 +56,11 @@ The participant-cluster bootstrap used 2,000 deterministic replicates. In each r
 
 The study-level summary treats the source study as the unit of replication. The withheld-cohort estimates were summarised by their mean and between-study standard deviation, with a t-distributed interval for the mean on k - 1 degrees of freedom and a prediction interval for an unrepresented cohort computed as the mean plus or minus t times the between-study standard deviation times the square root of one plus one over k.
 
-**Table S2. Study-level summaries.** The calibration intercept and slope rows are the uncorrected summary of the 18 cohort estimates, which counts each cohort's sampling error as though it were between-cohort variation. For those two quantities the main text reports the random-effects estimate tau instead, and the intervals here should not be read in its place.
+**Table S2. Study-level summaries.** The calibration intercept and slope rows are the uncorrected summary of the 18 cohort estimates, which counts each cohort's sampling error as though it were between-cohort variation. For those two quantities the main text reports the random-effects estimate tau instead, and the intervals here should not be read in its place. The mean absolute error row is pooled on the log scale because the quantity cannot be negative; its mean and both intervals are reported back on the original scale, but its between-cohort SD is reported on the log scale, consistent with the main text.
 
 | Quantity | Mean across cohorts | Between-cohort SD | 95% interval for the mean | 95% interval for an unrepresented cohort |
 |---|---:|---:|---|---|
-| Mean absolute error | 0.101 | 0.047 | 0.077 to 0.124 | -0.002 to 0.203 |
+| Mean absolute error | 0.090 | 0.477 | 0.071 to 0.115 | 0.032 to 0.254 |
 | Brier skill score | 0.174 | 0.217 | 0.066 to 0.282 | -0.296 to 0.644 |
 | Character-weighted AUC | 0.713 | 0.102 | 0.662 to 0.764 | 0.491 to 0.935 |
 | Calibration intercept | -0.008 | 1.175 | -0.592 to 0.576 | -2.555 to 2.539 |
@@ -113,17 +113,17 @@ Session accuracy clustered within participant with an intraclass correlation of 
 
 ## S6. Sensitivity analyses
 
-**Table S4. Sensitivity analyses.** The four analyses named in the Methods, restriction to cohorts with meaningful outcome variance, exclusion of records with high artifact rejection, exclusion of small-denominator records, and leave-two-studies-out development, were listed before any of them was run on the widened cohort; none was registered. The primary row and the two cohort-subset rows are shown beside them for comparison. Each analysis re-runs the complete withheld-cohort procedure on the retained data. In the last row every pair of cohorts is withheld together, so development runs on 16 cohorts rather than the 17 of the primary analysis; each cohort appears in 17 of the 153 pairs and its 17 estimates are averaged into a single value before the same across-cohort pooling is applied, because a pair shares a cohort with 32 other pairs and the pairs are not independent units. Every row therefore summarises 18 cohort-level values, or fewer where the analysis drops cohorts, and the columns carry the same meaning throughout. The mean absolute error column is the mean of the cohort-level errors, not the pooled error over records, and the two are different quantities: the ALS row reads 0.093 here, the mean of that subgroup's four cohort errors, where the main text reports 0.091 for the same analysis pooled over all of its withheld records. Table S6 draws the same distinction between its pooled and cohort-mean columns.
+**Table S4. Sensitivity analyses.** The four analyses named in the Methods, restriction to cohorts with meaningful outcome variance, exclusion of records with high artifact rejection, exclusion of small-denominator records, and leave-two-studies-out development, were listed before any of them was run on the widened cohort; none was registered. The primary row and the two cohort-subset rows are shown beside them for comparison. Each analysis re-runs the complete withheld-cohort procedure on the retained data. In the last row every pair of cohorts is withheld together, so development runs on 16 cohorts rather than the 17 of the primary analysis; each cohort appears in 17 of the 153 pairs and its 17 estimates are averaged into a single value before the same across-cohort pooling is applied, because a pair shares a cohort with 32 other pairs and the pairs are not independent units. Every row therefore summarises 18 cohort-level values, or fewer where the analysis drops cohorts, and the columns carry the same meaning throughout. The mean absolute error column is the mean of the cohort-level errors, not the pooled error over records, and the two are different quantities: the ALS row reads 0.092 here, the mean of that subgroup's four cohort errors, where the main text reports 0.091 for the same analysis pooled over all of its withheld records. The mean absolute error column is pooled on the log scale because the quantity cannot be negative, as in the main text and Table S2, so its between-cohort SD is on that scale. Table S6 draws the same distinction between its pooled and cohort-mean columns.
 
 | Analysis | Cohorts | Mean absolute error | Between-cohort SD | Interval for an unrepresented cohort | Calibration-slope SD |
 |---|---:|---:|---:|---|---:|
-| Primary, all contributing cohorts | 18 | 0.101 | 0.047 | -0.002 to 0.203 | 0.560 |
-| Cohorts with outcome SD at least 0.10 | 12 | 0.124 | 0.042 | 0.029 to 0.220 | 0.601 |
-| Records with artifact rejection at most 20% | 18 | 0.087 | 0.035 | 0.011 to 0.164 | 0.465 |
-| Records with at least 10 eligible selections | 18 | 0.100 | 0.047 | -0.002 to 0.203 | 0.560 |
-| Cohorts without a documented ALS population | 14 | 0.101 | 0.052 | -0.015 to 0.216 | 0.663 |
-| ALS cohorts, originally targeted primary subgroup | 4 | 0.093 | 0.016 | 0.035 to 0.151 | 0.223 |
-| Leave-two-studies-out development, 153 splits | 18 | 0.101 | 0.047 | -0.002 to 0.203 | 0.560 |
+| Primary, all contributing cohorts | 18 | 0.090 | 0.477 | 0.032 to 0.254 | 0.560 |
+| Cohorts with outcome SD at least 0.10 | 12 | 0.117 | 0.371 | 0.050 to 0.274 | 0.601 |
+| Records with artifact rejection at most 20% | 18 | 0.081 | 0.422 | 0.032 to 0.201 | 0.465 |
+| Records with at least 10 eligible selections | 18 | 0.090 | 0.477 | 0.032 to 0.254 | 0.560 |
+| Cohorts without a documented ALS population | 14 | 0.089 | 0.502 | 0.029 to 0.274 | 0.663 |
+| ALS cohorts, originally targeted primary subgroup | 4 | 0.092 | 0.177 | 0.049 to 0.173 | 0.223 |
+| Leave-two-studies-out development, 153 splits | 18 | 0.091 | 0.477 | 0.032 to 0.255 | 0.560 |
 
 Artifact rejection had a median of 0.002 across records, but 110 of 739 records exceeded 20% and the maximum was 0.97. The analysis restricted to records at or below 20% rejection is the only one in which both estimation error and calibration-slope variability improved.
 
@@ -167,18 +167,18 @@ Skill against the development mean is negative in one cohort, Study H. Skill aga
 
 Comparator scores were computed from the identical calibration epochs and evaluated under the identical withheld-cohort protocol: regularised linear discriminant analysis area under the curve, grouped cross-validated classification accuracy, mean target-minus-non-target amplitude at Pz between 250 and 500 ms, the same contrast averaged over six posterior channels, and the maximum posterior signed r-squared. An exploratory specification adds ALSFRS-R to the primary score.
 
-**Table S6. Withheld-cohort performance of every predictor named in the Methods.** Pooled values are computed over all withheld predictions, as in the main text. The last five columns summarise the cohort-level results and are the transportability quantities: the mean across cohorts is the quantity Table S4 reports as mean absolute error and is what the interval is centred on, the interval is for a cohort not represented in the archive, and the calibration-slope spread is uncorrected, as in Table S4. Pooled MAE and the mean across cohorts are different quantities and the first is not the centre of the interval. Rows are ordered by pooled error within each role. **The last two rows rest on 3 cohorts and 138 records, not 18 and 739, so their apparently lower error is a property of that restricted set and is not comparable with the rows above.**
+**Table S6. Withheld-cohort performance of every predictor named in the Methods.** Pooled values are computed over all withheld predictions, as in the main text. The last five columns summarise the cohort-level results and are the transportability quantities: the mean across cohorts is the quantity Table S4 reports as mean absolute error and is what the interval is centred on, the interval is for a cohort not represented in the archive, and the calibration-slope spread is uncorrected, as in Table S4. Pooled MAE and the mean across cohorts are different quantities and the first is not the centre of the interval. The mean across cohorts is pooled on the log scale because the quantity cannot be negative, as in Table S2 and Table S4, so the between-cohort MAE SD is on that scale. Rows are ordered by pooled error within each role. **The last two rows rest on 3 cohorts and 138 records, not 18 and 739, so their apparently lower error is a property of that restricted set and is not comparable with the rows above.**
 
 | Predictor | Role | Cohorts | Records | Pooled MAE | Brier skill | AUC | Pooled slope | Mean across cohorts | Between-cohort MAE SD | Interval for an unrepresented cohort | Calibration-slope SD | Calibration-slope range |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---|
-| Calibration-derived decoder discriminability | Primary | 18 | 739 | 0.098 | 0.110 | 0.748 | 0.967 | 0.101 | 0.047 | -0.002 to 0.203 | 0.560 | 0.185 to 2.185 |
-| Shrinkage linear discriminant AUC | Comparator | 18 | 739 | 0.100 | 0.105 | 0.745 | 0.960 | 0.102 | 0.046 | 0.001 to 0.202 | 0.562 | 0.112 to 2.077 |
-| Calibration classification accuracy | Comparator | 18 | 739 | 0.106 | 0.105 | 0.734 | 0.930 | 0.107 | 0.047 | 0.006 to 0.208 | 1.104 | 0.051 to 4.018 |
-| Maximum posterior signed r-squared | Comparator | 18 | 739 | 0.134 | 0.037 | 0.656 | 0.643 | 0.135 | 0.041 | 0.045 to 0.225 | 2.209 | -0.467 to 7.297 |
-| Posterior target-minus-non-target amplitude | Comparator | 18 | 739 | 0.148 | 0.003 | 0.517 | 0.275 | 0.149 | 0.040 | 0.061 to 0.236 | 2.459 | -4.745 to 6.387 |
-| Pz target-minus-non-target amplitude | Comparator | 18 | 739 | 0.150 | 0.001 | 0.465 | -0.238 | 0.150 | 0.040 | 0.063 to 0.238 | 4.490 | -8.235 to 9.007 |
-| Primary score plus ALSFRS-R | Exploratory | 3 | 138 | 0.085 | 0.313 | 0.834 | 0.982 | 0.090 | 0.009 | 0.046 to 0.133 | 0.293 | 0.771 to 1.336 |
-| Primary score, same restricted records | Exploratory reference | 3 | 138 | 0.085 | 0.315 | 0.833 | 0.995 | 0.090 | 0.010 | 0.038 to 0.142 | 0.303 | 0.765 to 1.355 |
+| Calibration-derived decoder discriminability | Primary | 18 | 739 | 0.098 | 0.110 | 0.748 | 0.967 | 0.090 | 0.477 | 0.032 to 0.254 | 0.560 | 0.185 to 2.185 |
+| Shrinkage linear discriminant AUC | Comparator | 18 | 739 | 0.100 | 0.105 | 0.745 | 0.960 | 0.092 | 0.459 | 0.034 to 0.249 | 0.562 | 0.112 to 2.077 |
+| Calibration classification accuracy | Comparator | 18 | 739 | 0.106 | 0.105 | 0.734 | 0.930 | 0.097 | 0.476 | 0.034 to 0.271 | 1.104 | 0.051 to 4.018 |
+| Maximum posterior signed r-squared | Comparator | 18 | 739 | 0.134 | 0.037 | 0.656 | 0.643 | 0.129 | 0.312 | 0.066 to 0.254 | 2.209 | -0.467 to 7.297 |
+| Posterior target-minus-non-target amplitude | Comparator | 18 | 739 | 0.148 | 0.003 | 0.517 | 0.275 | 0.143 | 0.277 | 0.079 to 0.261 | 2.459 | -4.745 to 6.387 |
+| Pz target-minus-non-target amplitude | Comparator | 18 | 739 | 0.150 | 0.001 | 0.465 | -0.238 | 0.145 | 0.272 | 0.081 to 0.262 | 4.490 | -8.235 to 9.007 |
+| Primary score plus ALSFRS-R | Exploratory | 3 | 138 | 0.085 | 0.313 | 0.834 | 0.982 | 0.089 | 0.098 | 0.055 to 0.145 | 0.293 | 0.771 to 1.336 |
+| Primary score, same restricted records | Exploratory reference | 3 | 138 | 0.085 | 0.315 | 0.833 | 0.995 | 0.089 | 0.114 | 0.051 to 0.158 | 0.303 | 0.765 to 1.355 |
 
 No confidence intervals from the participant bootstrap are reported in this table. The primary predictor's intervals are given in the main text from 2,000 replicates, and rerunning that bootstrap at a smaller replicate count for a seven-specification sweep would put a second, slightly different interval for the same primary quantity into the same paper. The uncertainty reported instead is the between-cohort spread, which requires no resampling and is the quantity the transportability question turns on. The primary row reproduces the pooled values reported in the main text on every column shown here, which is the consistency check this table can offer.
 
