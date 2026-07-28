@@ -23,18 +23,37 @@ committed as `9dcbb13 docs: reframe ALS P300 manuscript around session accuracy`
 The packaged `reproducibility/analysis_records.csv` has 138 rows covering Studies F, L and N. The
 current frozen `output/final/analysis_records.csv` has 194 rows covering Studies B, F, L and N.
 
+## Second, more recent supersession (2026-07-28)
+
+The comparison above (Study B reframe, 4 cohorts) is itself now historical. A second, larger
+supersession has since happened: a 16-task revision pass widened the design from 4 cohorts to all
+18 cohorts in the BigP3BCI archive. That widened design lives in `manuscript/manuscript_expanded.md`,
+`supplementary/supplement_expanded.md`, and `output/expanded/`. As a result, `manuscript/manuscript.md`
+and `supplementary/supplement.md` (the bare, non-`_expanded` files) are now also superseded, not only
+the packaged zips this file originally warned about. Do not submit from the bare files either; treat
+everything without the `_expanded` suffix, and everything under `output/final/`, as historical.
+
 ## Canonical sources
 
-- `manuscript/manuscript.md`
-- `supplementary/supplement.md`
-- `output/final/` (frozen analysis records, validation metrics, exclusions, sensitivity, figures)
+- `manuscript/manuscript_expanded.md`
+- `supplementary/supplement_expanded.md`
+- `output/expanded/` (frozen analysis records, validation metrics, heterogeneity, sensitivity,
+  comparators, figures)
+
+These are now built via `scripts/15_build_manuscript.py` (which also renders
+`manuscript/cover_letter_expanded.md`) rather than by a manual pandoc/Word process.
 
 ## To produce a submittable package
 
-1. Rebuild the `.docx` and `.pdf` renderings from the two canonical markdown sources. The renderings
-   currently sitting in `manuscript/` were built before the supplement corrections of 2026-07-26 and
-   should be regenerated.
-2. Regenerate the package from the current `output/final/`, not from this folder.
+1. Rebuild the `.docx` and `.pdf` renderings by running
+   `UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 uv run python scripts/15_build_manuscript.py`,
+   which renders all three current markdown sources (`manuscript/manuscript_expanded.md`,
+   `manuscript/cover_letter_expanded.md`, `supplementary/supplement_expanded.md`) into
+   `build_expanded/`. The `.docx`/`.pdf` files previously sitting in `manuscript/` predate both the
+   2026-07-26 supplement corrections and the 2026-07-27/28 18-cohort widening pass, and should not be
+   used; the current renderings live in `build_expanded/`, not `manuscript/`.
+2. Regenerate the package from the current `output/expanded/`, not from this folder and not from
+   `output/final/`.
 3. Delete or archive the three `.zip` files so they cannot be uploaded by mistake.
 
 ## Note on the frozen outputs
