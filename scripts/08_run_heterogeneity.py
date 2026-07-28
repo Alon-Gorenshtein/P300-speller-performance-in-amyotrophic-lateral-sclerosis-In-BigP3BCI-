@@ -32,7 +32,13 @@ import numpy as np
 import pandas as pd
 from scipy import optimize, stats
 
-from bigp3_als.heterogeneity import SE_METHODS, cohort_calibration, random_effects
+from bigp3_als.heterogeneity import (
+    SE_METHODS,
+    cohort_calibration,
+    random_effects,
+    random_effects_matched_cohorts,
+)
+from bigp3_als.validation import BOOTSTRAP_REPETITIONS
 
 # How far the within-cohort variances are inflated in the sensitivity. A cluster-robust variance
 # with 5 to 24 clusters is biased downward even under the CR1 correction statsmodels applies, and an
@@ -217,6 +223,41 @@ def main() -> None:
     }
 
     combined.to_csv(arguments.output_directory / "cohort_calibration.csv", index=False)
+
+    # The bootstrap could not identify every cohort (StudyS1's resamples fall onto the separation
+    # boundary too often; see the per-cohort diagnostics below), so comparing its pooled tau against
+    # the all-18 cluster-robust value directly conflates two things: the variance-estimation method,
+    # and the one cohort the bootstrap dropped. Repeating the cluster-robust pooling on the identical
+    # cohort subset the bootstrap identified isolates the estimator's own contribution from the
+    # cohort-exclusion's contribution.
+    cluster_labelled = tables[list(SE_METHODS).index("cluster")].set_index("held_out_study")
+    bootstrap_dropped = tuple(summary["bootstrap"]["slope"]["dropped_labels"])
+    matched_entry: dict[str, object] = {"excluded_cohorts": list(bootstrap_dropped)}
+    for name in ("slope", "intercept"):
+        matched = random_effects_matched_cohorts(
+            cluster_labelled[name], cluster_labelled[f"{name}_se"], exclude=bootstrap_dropped
+        )
+        low, high = i_squared_interval(matched["q_statistic"], int(matched["n_studies"]))
+        matched["i_squared_ci_low"] = low
+        matched["i_squared_ci_high"] = high
+        kept = cluster_labelled.index.difference(bootstrap_dropped)
+        matched.update(tau_interval(cluster_labelled.loc[kept, name], cluster_labelled.loc[kept, f"{name}_se"]))
+        matched_entry[name] = matched
+    summary["cluster_matched_to_bootstrap"] = matched_entry
+
+    # Per-cohort bootstrap replicate diagnostics: how many of the 2,000 cluster resamples survived
+    # every separation guard in `_bootstrap_standard_errors`, alongside the `repetitions // 2`
+    # threshold that decides whether the cohort is reported at all under this method. Written to its
+    # own file because the reviewer asked for this specifically: "number of successful replicates per
+    # cohort, criterion used to deem an estimate identified, whether the standard error was
+    # calculated from all finite replicates or after another filter."
+    bootstrap_table = tables[list(SE_METHODS).index("bootstrap")]
+    diagnostics = bootstrap_table[["held_out_study", "n_bootstrap_replicates"]].copy()
+    diagnostics["repetitions"] = BOOTSTRAP_REPETITIONS
+    diagnostics["discard_threshold"] = BOOTSTRAP_REPETITIONS // 2
+    diagnostics["identified"] = diagnostics["n_bootstrap_replicates"] >= diagnostics["discard_threshold"]
+    diagnostics.to_csv(arguments.output_directory / "bootstrap_replicate_diagnostics.csv", index=False)
+
     (arguments.output_directory / "heterogeneity_summary.json").write_text(
         json.dumps(summary, indent=2) + "\n"
     )
@@ -258,6 +299,20 @@ def main() -> None:
     print(primary[["held_out_study", "n_records", "n_selections", "slope", "slope_se",
                    "slope_ci_low", "slope_ci_high", "intercept", "intercept_se"]]
           .round(3).to_string(index=False))
+
+    print(f"\nthree-way comparison: variance-estimation method vs. cohort exclusion "
+          f"(excluded: {summary['cluster_matched_to_bootstrap']['excluded_cohorts']})")
+    for name in ("slope", "intercept"):
+        all18 = summary["cluster"][name]
+        matched17 = summary["cluster_matched_to_bootstrap"][name]
+        boot17 = summary["bootstrap"][name]
+        print(f"{name:9s} cluster-robust, 18 cohorts:            tau {all18['tau']:.4f}")
+        print(f"{name:9s} cluster-robust, same 17 as bootstrap:  tau {matched17['tau']:.4f}")
+        print(f"{name:9s} bootstrap, 17 cohorts:                 tau {boot17['tau']:.4f}")
+
+    print("\nper-cohort bootstrap replicate diagnostics (successful of "
+          f"{BOOTSTRAP_REPETITIONS}, identified requires >= {BOOTSTRAP_REPETITIONS // 2})")
+    print(diagnostics.to_string(index=False))
 
 
 if __name__ == "__main__":

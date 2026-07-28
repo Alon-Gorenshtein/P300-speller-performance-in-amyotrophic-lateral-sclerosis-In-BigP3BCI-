@@ -835,5 +835,48 @@
         "StudyS1"
       ]
     }
+  },
+  "cluster_matched_to_bootstrap": {
+    "excluded_cohorts": [
+      "StudyS1"
+    ],
+    "slope": {
+      "n_studies": 17.0,
+      "pooled": 1.0533409468457424,
+      "pooled_se": 0.12365513029983606,
+      "tau_squared": 0.19022850706401587,
+      "tau": 0.43615193117079726,
+      "i_squared": 80.29952157096098,
+      "q_statistic": 81.2163017138486,
+      "q_p_value": 1.0037464238593222e-10,
+      "prediction_interval_low": 0.09229853625598838,
+      "prediction_interval_high": 2.0143833574354963,
+      "n_dropped": 0.0,
+      "dropped_labels": [],
+      "i_squared_ci_low": 69.29959913270842,
+      "i_squared_ci_high": 87.35818297582799,
+      "tau_ci_low": 0.30733361155491074,
+      "tau_ci_high": 0.8110711252205076,
+      "tau_paule_mandel": 0.4816217363359716
+    },
+    "intercept": {
+      "n_studies": 17.0,
+      "pooled": -0.07249636395940823,
+      "pooled_se": 0.24207991205836432,
+      "tau_squared": 0.7652245443518332,
+      "tau": 0.8747711382709383,
+      "i_squared": 86.86044977877242,
+      "q_statistic": 121.76976936509763,
+      "q_p_value": 2.507288467978228e-18,
+      "prediction_interval_low": -1.9966268972845602,
+      "prediction_interval_high": 1.8516341693657437,
+      "n_dropped": 0.0,
+      "dropped_labels": [],
+      "i_squared_ci_low": 80.47092150442609,
+      "i_squared_ci_high": 91.15945076183237,
+      "tau_ci_low": 0.6113762006605407,
+      "tau_ci_high": 1.5341757579098476,
+      "tau_paule_mandel": 0.9224338883964729
+    }
   }
 }

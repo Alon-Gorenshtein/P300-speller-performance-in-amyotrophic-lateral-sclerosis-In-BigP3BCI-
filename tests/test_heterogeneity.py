@@ -12,6 +12,7 @@ from bigp3_als.heterogeneity import (
     SE_METHODS,
     cohort_calibration,
     random_effects,
+    random_effects_matched_cohorts,
 )
 
 
@@ -412,6 +413,28 @@ def test_bootstrap_se_method_is_reproducible_across_calls() -> None:
     assert first["intercept_se"] == pytest.approx(second["intercept_se"])
 
 
+def test_bootstrap_se_method_reports_a_near_complete_replicate_count_when_identified() -> None:
+    """`n_bootstrap_replicates` is the diagnostic the reviewer asked for: how many of the 2,000
+    cluster resamples survived every separation guard. A well-behaved cohort should lose only a
+    few, and every non-bootstrap specification should not carry this count at all."""
+    rng = np.random.default_rng(0)
+    n_participants = 12
+    records = _cohort(
+        held_out_study=["S"] * n_participants,
+        study_participant_id=[f"S:P{index}" for index in range(n_participants)],
+        n=[20] * n_participants,
+        correct=list(rng.binomial(20, 0.7, size=n_participants)),
+        predicted_probability=list(np.clip(rng.normal(0.7, 0.1, size=n_participants), 0.05, 0.95)),
+    )
+
+    bootstrap_row = cohort_calibration(records, se_method="bootstrap").iloc[0]
+    cluster_row = cohort_calibration(records, se_method="cluster").iloc[0]
+
+    assert bootstrap_row["n_bootstrap_replicates"] >= 1900
+    assert bootstrap_row["n_bootstrap_replicates"] <= 2000
+    assert np.isnan(cluster_row["n_bootstrap_replicates"])
+
+
 def test_bootstrap_se_method_returns_nan_with_fewer_than_two_participants() -> None:
     """A single-participant cohort cannot support a cluster bootstrap for the same reason it
     cannot support the clustered sandwich: resampling one cluster with replacement never varies."""
@@ -475,6 +498,9 @@ def test_bootstrap_replicates_on_the_separation_boundary_are_discarded() -> None
     bootstrap_row = cohort_calibration(records, se_method="bootstrap").iloc[0]
     assert np.isnan(bootstrap_row["slope"]) and np.isnan(bootstrap_row["slope_se"])
     assert np.isnan(bootstrap_row["intercept"]) and np.isnan(bootstrap_row["intercept_se"])
+    # 835 of 2,000 replicates survive (the complement of the 1,165, 58% discarded above), below the
+    # `repetitions // 2` = 1,000 threshold that is why this cohort is reported as not identified.
+    assert bootstrap_row["n_bootstrap_replicates"] < 1000
 
     # The primary fit is identified under every non-resampling specification, which proves the NaN
     # above comes from the per-replicate bootstrap guard and not from `_fit_cohort`'s own boundary
@@ -499,3 +525,23 @@ def test_a_cohort_the_model_happens_to_fit_exactly_is_kept() -> None:
 
     assert row["slope"] == pytest.approx(1.0, abs=1e-9)
     assert row["slope_se"] == pytest.approx(0.3572791652, abs=1e-9)
+
+
+def test_matched_cohort_pooling_excludes_the_named_study_from_cluster_robust_pooling() -> None:
+    """Cluster-robust pooling restricted to the same 17 cohorts the bootstrap identified must
+    exclude exactly StudyS1, matching random_effects()'s own dropped-cohort bookkeeping."""
+    calibration = pd.read_csv("output/expanded/cohort_calibration.csv")
+    cluster = calibration.loc[calibration["se_method"] == "cluster"]
+    full = random_effects(
+        cluster.set_index("held_out_study")["slope"], cluster.set_index("held_out_study")["slope_se"]
+    )
+    matched = random_effects_matched_cohorts(
+        cluster.set_index("held_out_study")["slope"],
+        cluster.set_index("held_out_study")["slope_se"],
+        exclude=("StudyS1",),
+    )
+    assert full["n_studies"] == 18
+    assert matched["n_studies"] == 17
+    # Excluding one cohort must change the pooled tau from the all-18 value, or the test fixture
+    # is not exercising anything.
+    assert matched["tau"] != pytest.approx(full["tau"])

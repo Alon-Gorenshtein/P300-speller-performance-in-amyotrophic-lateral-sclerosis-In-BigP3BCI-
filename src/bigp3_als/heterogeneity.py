@@ -147,7 +147,7 @@ def _bootstrap_standard_errors(
     cluster_codes: np.ndarray,
     rng: np.random.Generator,
     repetitions: int = BOOTSTRAP_REPETITIONS,
-) -> np.ndarray | None:
+) -> tuple[np.ndarray | None, int]:
     """Participant-cluster bootstrap standard errors for the two calibration parameters.
 
     Resamples participant clusters with replacement, refits the binomial GLM on each replicate,
@@ -163,6 +163,12 @@ def _bootstrap_standard_errors(
     Such a replicate returns a finite but arbitrary parameter draw with no real information in it, so
     it is discarded here by the same test rather than allowed to inflate the standard deviation of
     the surviving draws.
+
+    Returns the standard errors (`None` if the cohort is not identified under this method) together
+    with the number of replicates, out of `repetitions`, that survived every guard above. That count
+    is what decides whether the cohort is reported at all, so it is returned rather than only used
+    internally, letting a caller report the bootstrap's own per-cohort success rate (the reviewer's
+    ask: "number of successful replicates per cohort, criterion used to deem an estimate identified").
     """
     unique_clusters = np.unique(cluster_codes)
     draws: list[np.ndarray] = []
@@ -187,8 +193,8 @@ def _bootstrap_standard_errors(
         if np.all(np.isfinite(parameters)):
             draws.append(parameters)
     if len(draws) < repetitions // 2:
-        return None
-    return np.std(np.asarray(draws), axis=0, ddof=1)
+        return None, len(draws)
+    return np.std(np.asarray(draws), axis=0, ddof=1), len(draws)
 
 
 def _fit_cohort(
@@ -208,6 +214,10 @@ def _fit_cohort(
         "intercept": np.nan, "intercept_se": np.nan,
         "slope": np.nan, "slope_se": np.nan,
         "se_method": se_method,
+        # Populated only for se_method == "bootstrap": how many of `repetitions` cluster resamples
+        # survived every separation guard in `_bootstrap_standard_errors`. NaN for every other
+        # specification, which does not resample and so has no such count.
+        "n_bootstrap_replicates": np.nan,
     }
 
     # A cohort with no residual degrees of freedom still returns two finite parameters, and one
@@ -258,7 +268,10 @@ def _fit_cohort(
             errors = errors * np.sqrt(dispersion)
         elif se_method == "bootstrap":
             assert rng is not None and cluster_codes is not None
-            boot_errors = _bootstrap_standard_errors(design, successes, trials, cluster_codes, rng)
+            boot_errors, n_replicates = _bootstrap_standard_errors(
+                design, successes, trials, cluster_codes, rng
+            )
+            entry["n_bootstrap_replicates"] = float(n_replicates)
             if boot_errors is None:
                 return entry
             errors = boot_errors
@@ -334,3 +347,16 @@ def random_effects(estimates: pd.Series, standard_errors: pd.Series) -> dict[str
         "n_dropped": float(len(dropped_labels)),
         "dropped_labels": dropped_labels,
     }
+
+
+def random_effects_matched_cohorts(
+    estimates: pd.Series, standard_errors: pd.Series, exclude: tuple[str, ...]
+) -> dict[str, object]:
+    """Pool the same random-effects estimator as ``random_effects``, on an explicit cohort subset.
+
+    Isolates the contribution of dropping cohorts (e.g. those a bootstrap could not identify) from
+    the contribution of the variance-estimation method itself, by letting the same cluster-robust
+    pooling run on the identical cohort set the alternative method used.
+    """
+    kept = estimates.index.difference(exclude)
+    return random_effects(estimates.loc[kept], standard_errors.loc[kept])

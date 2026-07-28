@@ -68,6 +68,35 @@ The study-level summary treats the source study as the unit of replication. The 
 | Calibration intercept | -0.008 | 1.175 | -0.592 to 0.576 | -2.555 to 2.539 |
 | Calibration slope | 1.100 | 0.560 | 0.822 to 1.379 | -0.113 to 2.313 |
 
+Reading the gap between the clustered sandwich (0.43/0.87) and the bootstrap (0.37/0.77) as evidence about the variance-estimation method assumes the two are pooling the same cohorts, and they are not: the bootstrap's 0.37/0.77 excludes Study S1, one of the more extreme calibration intercepts in the archive, while the clustered sandwich's 0.43/0.87 includes it. Part of the gap could therefore be Study S1's absence rather than the estimator. To separate the two, the clustered-sandwich pooling was repeated on the identical 17 cohorts the bootstrap identified, using the same random-effects estimator with Study S1 excluded (`random_effects_matched_cohorts`, `src/bigp3_als/heterogeneity.py`). That matched-cohort clustered-sandwich tau was 0.44 for the slope and 0.87 for the intercept, essentially unchanged from the all-18 values of 0.43 and 0.87 and, if anything, fractionally farther from the bootstrap's own 0.37 and 0.77 than the all-18 values were. Excluding Study S1 from the clustered-sandwich pooling therefore does not on its own reproduce the bootstrap's smaller tau, so most of the gap between the two methods reflects the variance-estimation method itself rather than Study S1's exclusion.
+
+**Table S2b. Per-cohort bootstrap replicate diagnostics.** Successful replicates are those of the 2,000 participant-cluster resamples that survived every guard in `_bootstrap_standard_errors`: a resampled design matrix with full column rank, a GLM refit that converges without raising, and fitted probabilities that stay clear of the 0/1 boundary by more than `FITTED_BOUNDARY`. A cohort is reported as identified under the bootstrap method only when at least half of the 2,000 replicates (1,000) survive; the standard error is then the sample standard deviation of exactly that surviving set, with no further filtering. Study S1 is the only cohort below that threshold.
+
+| Cohort | Successful replicates (of 2,000) | Identified |
+|---|---:|---|
+| Study A | 2,000 | yes |
+| Study B | 2,000 | yes |
+| Study D | 2,000 | yes |
+| Study E | 1,999 | yes |
+| Study F | 2,000 | yes |
+| Study G | 2,000 | yes |
+| Study H | 2,000 | yes |
+| Study I | 2,000 | yes |
+| Study J | 2,000 | yes |
+| Study K | 1,997 | yes |
+| Study L | 2,000 | yes |
+| Study M | 2,000 | yes |
+| Study N | 2,000 | yes |
+| Study O | 2,000 | yes |
+| Study Q | 2,000 | yes |
+| Study R | 2,000 | yes |
+| Study S1 | 843 | no |
+| Study S2 | 2,000 | yes |
+
+Every cohort but Study S1 loses at most 3 of 2,000 replicates to the guards; Study S1 loses 1,157, comfortably past the 1,000-replicate threshold, which is why it alone is reported as not identified under the bootstrap method while every other cohort is estimated from an essentially complete set of replicates.
+
+A reviewer suggested, as a preferable rather than required alternative, refitting every bootstrap replicate with a penalized calibration model such as Firth logistic regression, so that Study S1's replicates would stay identified during resampling instead of being discarded. That change would replace the estimator used inside `_bootstrap_standard_errors` for every replicate of every cohort, not only Study S1's, and is a materially larger undertaking than the matched-cohort comparison above. It was consciously not pursued in this revision and is recorded here as a deferred alternative rather than implemented.
+
 ## S5. Association at three levels
 
 **Table S3. Association between calibration-derived decoder discriminability and observed accuracy, by level and by cohort.** Pearson intervals are two-sided 95% intervals on the Fisher z scale. The two preceding-session rows order a participant's sessions by the lexical order of their identifiers, which the archive assigns sequentially within a participant; the de-identified timestamps cannot confirm that ordering, so those two rows rest on the assumption that identifier order matches recording order.
