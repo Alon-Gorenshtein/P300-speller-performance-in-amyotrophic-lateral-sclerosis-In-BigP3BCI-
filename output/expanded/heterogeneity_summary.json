@@ -605,6 +605,208 @@
       }
     ]
   },
+  "bootstrap": {
+    "slope": {
+      "n_studies": 18.0,
+      "pooled": 1.0394498116121194,
+      "pooled_se": 0.12425222367826205,
+      "tau_squared": 0.13605271254874954,
+      "tau": 0.3688532398512307,
+      "i_squared": 62.53032687289095,
+      "q_statistic": 45.37002482602555,
+      "q_p_value": 0.00021445422914325015,
+      "prediction_interval_low": 0.21826977955216653,
+      "prediction_interval_high": 1.860629843672072,
+      "n_dropped": 0.0,
+      "dropped_labels": [],
+      "i_squared_ci_low": 37.67520274706717,
+      "i_squared_ci_high": 77.47322949877176,
+      "tau_ci_low": 0.1843777932158328,
+      "tau_ci_high": 0.6536957091890134,
+      "tau_paule_mandel": 0.35674436201157084
+    },
+    "intercept": {
+      "n_studies": 18.0,
+      "pooled": -0.06961843071294746,
+      "pooled_se": 0.23735193793441473,
+      "tau_squared": 0.574597659464776,
+      "tau": 0.7580222024880116,
+      "i_squared": 72.12295798420963,
+      "q_statistic": 60.98207977148619,
+      "q_p_value": 7.229235833758572e-07,
+      "prediction_interval_low": -1.745472982619499,
+      "prediction_interval_high": 1.606236121193604,
+      "n_dropped": 0.0,
+      "dropped_labels": [],
+      "i_squared_ci_low": 55.287507441094725,
+      "i_squared_ci_high": 82.61941065964211,
+      "tau_ci_low": 0.4335008319676041,
+      "tau_ci_high": 1.2760523917066557,
+      "tau_paule_mandel": 0.7316703930600326
+    },
+    "naive_slope_sd": 0.5595934489693004,
+    "naive_intercept_sd": 1.1749412500830778,
+    "n_cohorts_total": 18,
+    "n_cohorts_fitted": 18,
+    "slope_variance_inflation": [
+      {
+        "variance_inflation_factor": 1.0,
+        "tau": 0.3688532398512307,
+        "i_squared": 62.53032687289095,
+        "i_squared_ci_low": 37.67520274706717,
+        "i_squared_ci_high": 77.47322949877176,
+        "q_statistic": 45.37002482602555,
+        "q_p_value": 0.00021445422914325015,
+        "prediction_interval_low": 0.21826977955216653,
+        "prediction_interval_high": 1.860629843672072
+      },
+      {
+        "variance_inflation_factor": 1.1,
+        "tau": 0.35763124495697024,
+        "i_squared": 58.78335956018003,
+        "i_squared_ci_low": 30.641971078188007,
+        "i_squared_ci_high": 75.50663599364263,
+        "q_statistic": 41.24547711456867,
+        "q_p_value": 0.0008609869864814811,
+        "prediction_interval_low": 0.2384129809998098,
+        "prediction_interval_high": 1.8356264622204046
+      },
+      {
+        "variance_inflation_factor": 1.2,
+        "tau": 0.3460455204018619,
+        "i_squared": 55.03639224746914,
+        "i_squared_ci_low": 23.545570766497736,
+        "i_squared_ci_high": 73.55645654028983,
+        "q_statistic": 37.808354021687954,
+        "q_p_value": 0.0026112192905818343,
+        "prediction_interval_low": 0.25958703873758693,
+        "prediction_interval_high": 1.8102200910540416
+      },
+      {
+        "variance_inflation_factor": 1.5,
+        "tau": 0.30869027625172174,
+        "i_squared": 43.79549030933643,
+        "i_squared_ci_low": 2.0536046986516774,
+        "i_squared_ci_high": 67.74820655881341,
+        "q_statistic": 30.246683217350366,
+        "q_p_value": 0.024619939931747506,
+        "prediction_interval_low": 0.3300098550517635,
+        "prediction_interval_high": 1.7308741911853747
+      },
+      {
+        "variance_inflation_factor": 2.0,
+        "tau": 0.2335094446826061,
+        "i_squared": 25.060653745781888,
+        "i_squared_ci_low": 0.0,
+        "i_squared_ci_high": 57.639909412078836,
+        "q_statistic": 22.68501241301277,
+        "q_p_value": 0.15978879026363385,
+        "prediction_interval_low": 0.4782035333035445,
+        "prediction_interval_high": 1.5818544734874154
+      },
+      {
+        "variance_inflation_factor": 3.0,
+        "tau": 0.0,
+        "i_squared": 0.0,
+        "i_squared_ci_low": 0.0,
+        "i_squared_ci_high": 43.75913920150402,
+        "q_statistic": 15.123341608675181,
+        "q_p_value": 0.5865978258997573,
+        "prediction_interval_low": 0.8132193950143869,
+        "prediction_interval_high": 1.2879275927567184
+      },
+      {
+        "variance_inflation_factor": 5.0,
+        "tau": 0.0,
+        "i_squared": 0.0,
+        "i_squared_ci_low": 0.0,
+        "i_squared_ci_high": 6.265232002506671,
+        "q_statistic": 9.074004965205107,
+        "q_p_value": 0.937911428618305,
+        "prediction_interval_low": 0.7441506698581881,
+        "prediction_interval_high": 1.3569963179129172
+      }
+    ],
+    "intercept_variance_inflation": [
+      {
+        "variance_inflation_factor": 1.0,
+        "tau": 0.7580222024880116,
+        "i_squared": 72.12295798420963,
+        "i_squared_ci_low": 55.287507441094725,
+        "i_squared_ci_high": 82.61941065964211,
+        "q_statistic": 60.98207977148619,
+        "q_p_value": 7.229235833758572e-07,
+        "prediction_interval_low": -1.745472982619499,
+        "prediction_interval_high": 1.606236121193604
+      },
+      {
+        "variance_inflation_factor": 1.1,
+        "tau": 0.7432282623440537,
+        "i_squared": 69.3352537826306,
+        "i_squared_ci_low": 50.23719716380064,
+        "i_squared_ci_high": 81.10382440332235,
+        "q_statistic": 55.43825433771472,
+        "q_p_value": 5.826120422673739e-06,
+        "prediction_interval_low": -1.7144284432485164,
+        "prediction_interval_high": 1.5779709609957133
+      },
+      {
+        "variance_inflation_factor": 1.2,
+        "tau": 0.7281338066792031,
+        "i_squared": 66.54754958105158,
+        "i_squared_ci_low": 45.12813149549544,
+        "i_squared_ci_high": 79.60582590803635,
+        "q_statistic": 50.81839980957184,
+        "q_p_value": 3.149843481098472e-05,
+        "prediction_interval_low": -1.6828652585041741,
+        "prediction_interval_high": 1.5489874369867072
+      },
+      {
+        "variance_inflation_factor": 1.5,
+        "tau": 0.6808455124884821,
+        "i_squared": 58.18443697631446,
+        "i_squared_ci_low": 29.51150138505589,
+        "i_squared_ci_high": 75.19394872432262,
+        "q_statistic": 40.65471984765747,
+        "q_p_value": 0.0010453937326679505,
+        "prediction_interval_low": -1.5846113042680912,
+        "prediction_interval_high": 1.4574801359526848
+      },
+      {
+        "variance_inflation_factor": 2.0,
+        "tau": 0.593720106015142,
+        "i_squared": 44.24591596841927,
+        "i_squared_ci_low": 2.915906782248411,
+        "i_squared_ci_high": 67.98118225991546,
+        "q_statistic": 30.491039885743092,
+        "q_p_value": 0.023013609498409453,
+        "prediction_interval_low": -1.4059326180435163,
+        "prediction_interval_high": 1.2871426719961705
+      },
+      {
+        "variance_inflation_factor": 3.0,
+        "tau": 0.36112251260270023,
+        "i_squared": 16.36887395262893,
+        "i_squared_ci_low": 0.0,
+        "i_squared_ci_high": 51.97798138647863,
+        "q_statistic": 20.327359923828734,
+        "q_p_value": 0.2578287143555079,
+        "prediction_interval_low": -0.9495327794264417,
+        "prediction_interval_high": 0.8341702370050881
+      },
+      {
+        "variance_inflation_factor": 5.0,
+        "tau": 0.0,
+        "i_squared": 0.0,
+        "i_squared_ci_low": 0.0,
+        "i_squared_ci_high": 30.262320225153992,
+        "q_statistic": 12.196415954297237,
+        "q_p_value": 0.7881002434459645,
+        "prediction_interval_low": -0.570018468852885,
+        "prediction_interval_high": 0.44269589241225804
+      }
+    ]
+  },
   "per_cohort_slope_se_ratios": {
     "cluster_over_quasibinomial": {
       "minimum": 0.5991088326387622,

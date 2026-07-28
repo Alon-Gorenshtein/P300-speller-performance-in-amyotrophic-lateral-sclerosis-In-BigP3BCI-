@@ -47,9 +47,11 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.tools.sm_exceptions import PerfectSeparationError, PerfectSeparationWarning
 
+from bigp3_als.validation import BOOTSTRAP_REPETITIONS, RANDOM_SEED
+
 PROBABILITY_FLOOR = 1e-6
 CLUSTER_COLUMN = "study_participant_id"
-SE_METHODS = ("cluster", "model", "quasibinomial")
+SE_METHODS = ("cluster", "model", "quasibinomial", "bootstrap")
 
 # Intercept and slope. Named because the identification guards below are stated against it.
 N_CALIBRATION_PARAMETERS = 2
@@ -104,9 +106,12 @@ def cohort_calibration(predictions: pd.DataFrame, se_method: str = "cluster") ->
 
     `se_method` is "cluster" for standard errors clustered on `study_participant_id`, the default
     because records repeat within participant, "model" for the model-based binomial standard
-    errors, which are correct only if every record is an independent draw, or "quasibinomial" for
-    the model-based errors scaled by the square root of the Pearson dispersion. The method used is
-    returned as a column, so a downstream table cannot mix them without it being visible.
+    errors, which are correct only if every record is an independent draw, "quasibinomial" for
+    the model-based errors scaled by the square root of the Pearson dispersion, or "bootstrap" for
+    standard errors taken from 2,000 participant-cluster bootstrap refits rather than the asymptotic
+    clustered sandwich, which is downward-biased at the 5-to-24-participant cluster counts these
+    cohorts have. The method used is returned as a column, so a downstream table cannot mix them
+    without it being visible.
     """
     if se_method not in SE_METHODS:
         raise ValueError(f"se_method must be one of {list(SE_METHODS)}, got {se_method!r}")
@@ -115,7 +120,7 @@ def cohort_calibration(predictions: pd.DataFrame, se_method: str = "cluster") ->
     missing = sorted(required - set(predictions.columns))
     if missing:
         raise ValueError(f"predictions missing columns: {missing}")
-    if se_method == "cluster" and CLUSTER_COLUMN not in predictions.columns:
+    if se_method in ("cluster", "bootstrap") and CLUSTER_COLUMN not in predictions.columns:
         raise ValueError(
             f"cluster-robust standard errors need a {CLUSTER_COLUMN!r} column; "
             "pass se_method='model' to fit without clustering"
@@ -126,15 +131,59 @@ def cohort_calibration(predictions: pd.DataFrame, se_method: str = "cluster") ->
         if predictions.empty:
             raise ValueError("no primary-model predictions found")
 
+    rng = np.random.default_rng(RANDOM_SEED) if se_method == "bootstrap" else None
     rows: list[dict[str, object]] = []
     for study, group in predictions.groupby("held_out_study", sort=True):
         if str(study).startswith("Pooled"):
             continue
-        rows.append(_fit_cohort(study, group, se_method))
+        rows.append(_fit_cohort(study, group, se_method, rng=rng))
     return pd.DataFrame(rows)
 
 
-def _fit_cohort(study: object, group: pd.DataFrame, se_method: str) -> dict[str, object]:
+def _bootstrap_standard_errors(
+    design: np.ndarray,
+    successes: np.ndarray,
+    trials: np.ndarray,
+    cluster_codes: np.ndarray,
+    rng: np.random.Generator,
+    repetitions: int = BOOTSTRAP_REPETITIONS,
+) -> np.ndarray | None:
+    """Participant-cluster bootstrap standard errors for the two calibration parameters.
+
+    Resamples participant clusters with replacement, refits the binomial GLM on each replicate,
+    and takes the standard deviation of the replicate parameters. This does not rely on the
+    asymptotic behaviour of the clustered sandwich, which the manuscript's reviewer flagged as
+    unreliable at the 5-to-24-cluster counts these cohorts have. A replicate that fails to fit or
+    loses identification is dropped rather than counted as zero variance; if more than half of the
+    replicates are dropped the cohort is treated as not identified under this method.
+    """
+    unique_clusters = np.unique(cluster_codes)
+    draws: list[np.ndarray] = []
+    for _ in range(repetitions):
+        chosen = rng.choice(unique_clusters, size=len(unique_clusters), replace=True)
+        rows = np.concatenate([np.flatnonzero(cluster_codes == cluster) for cluster in chosen])
+        if np.linalg.matrix_rank(design[rows]) < N_CALIBRATION_PARAMETERS:
+            continue
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", PerfectSeparationWarning)
+                fit = sm.GLM(
+                    np.column_stack([successes[rows], trials[rows] - successes[rows]]),
+                    design[rows], family=sm.families.Binomial(),
+                ).fit()
+            parameters = np.asarray(fit.params, dtype=float)
+        except _FIT_FAILURES:
+            continue
+        if np.all(np.isfinite(parameters)):
+            draws.append(parameters)
+    if len(draws) < repetitions // 2:
+        return None
+    return np.std(np.asarray(draws), axis=0, ddof=1)
+
+
+def _fit_cohort(
+    study: object, group: pd.DataFrame, se_method: str, rng: np.random.Generator | None = None
+) -> dict[str, object]:
     """Fit one cohort, returning NaN estimates whenever the calibration slope is not identified."""
     probability = np.clip(
         group["predicted_probability"].to_numpy(dtype=float), PROBABILITY_FLOOR, 1 - PROBABILITY_FLOOR
@@ -160,13 +209,16 @@ def _fit_cohort(study: object, group: pd.DataFrame, se_method: str) -> dict[str,
         return entry
 
     fit_kwargs: dict[str, object] = {}
-    if se_method == "cluster":
+    cluster_codes = None
+    if se_method in ("cluster", "bootstrap"):
         cluster_codes = pd.factorize(group[CLUSTER_COLUMN].to_numpy())[0]
         # The clustered covariance is a sum of one outer product per cluster, so with fewer clusters
-        # than parameters it is rank deficient and its standard errors are not usable.
+        # than parameters it is rank deficient and its standard errors are not usable. A participant
+        # bootstrap needs the same minimum: resampling one cluster with replacement never varies.
         if len(np.unique(cluster_codes)) < N_CALIBRATION_PARAMETERS:
             return entry
-        fit_kwargs = {"cov_type": "cluster", "cov_kwds": {"groups": cluster_codes}}
+        if se_method == "cluster":
+            fit_kwargs = {"cov_type": "cluster", "cov_kwds": {"groups": cluster_codes}}
 
     try:
         with warnings.catch_warnings():
@@ -194,6 +246,12 @@ def _fit_cohort(study: object, group: pd.DataFrame, se_method: str) -> dict[str,
             if not np.isfinite(dispersion) or dispersion <= MINIMUM_DISPERSION:
                 return entry
             errors = errors * np.sqrt(dispersion)
+        elif se_method == "bootstrap":
+            assert rng is not None and cluster_codes is not None
+            boot_errors = _bootstrap_standard_errors(design, successes, trials, cluster_codes, rng)
+            if boot_errors is None:
+                return entry
+            errors = boot_errors
     except _FIT_FAILURES:
         return entry
 

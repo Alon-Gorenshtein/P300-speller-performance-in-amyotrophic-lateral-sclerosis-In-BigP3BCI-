@@ -371,6 +371,58 @@ def test_a_degenerate_standard_error_is_refused_on_every_specification() -> None
             assert row["intercept_se"] > MINIMUM_STANDARD_ERROR
 
 
+def test_bootstrap_se_method_is_accepted_and_differs_from_the_cluster_sandwich() -> None:
+    """The bootstrap SE is a distinct estimator from the asymptotic cluster sandwich, not an
+    alias for it, and it must be finite and positive on a cohort large enough to identify a slope."""
+    rng = np.random.default_rng(0)
+    n_participants = 12
+    records = _cohort(
+        held_out_study=["S"] * n_participants,
+        study_participant_id=[f"S:P{index}" for index in range(n_participants)],
+        n=[20] * n_participants,
+        correct=list(rng.binomial(20, 0.7, size=n_participants)),
+        predicted_probability=list(np.clip(rng.normal(0.7, 0.1, size=n_participants), 0.05, 0.95)),
+    )
+
+    cluster_row = cohort_calibration(records, se_method="cluster").iloc[0]
+    bootstrap_row = cohort_calibration(records, se_method="bootstrap").iloc[0]
+
+    assert bootstrap_row["se_method"] == "bootstrap"
+    assert np.isfinite(bootstrap_row["slope_se"]) and bootstrap_row["slope_se"] > 0
+    assert np.isfinite(bootstrap_row["intercept_se"]) and bootstrap_row["intercept_se"] > 0
+    assert bootstrap_row["slope_se"] != pytest.approx(cluster_row["slope_se"])
+
+
+def test_bootstrap_se_method_is_reproducible_across_calls() -> None:
+    """The bootstrap draws must be seeded, or the manuscript's reported SEs would not be
+    reproducible from the same input twice."""
+    rng = np.random.default_rng(1)
+    n_participants = 10
+    records = _cohort(
+        held_out_study=["S"] * n_participants,
+        study_participant_id=[f"S:P{index}" for index in range(n_participants)],
+        n=[15] * n_participants,
+        correct=list(rng.binomial(15, 0.6, size=n_participants)),
+        predicted_probability=list(np.clip(rng.normal(0.6, 0.12, size=n_participants), 0.05, 0.95)),
+    )
+
+    first = cohort_calibration(records, se_method="bootstrap").iloc[0]
+    second = cohort_calibration(records, se_method="bootstrap").iloc[0]
+    assert first["slope_se"] == pytest.approx(second["slope_se"])
+    assert first["intercept_se"] == pytest.approx(second["intercept_se"])
+
+
+def test_bootstrap_se_method_returns_nan_with_fewer_than_two_participants() -> None:
+    """A single-participant cohort cannot support a cluster bootstrap for the same reason it
+    cannot support the clustered sandwich: resampling one cluster with replacement never varies."""
+    records = _cohort(
+        held_out_study=["S"] * 4, study_participant_id=["S:P0"] * 4, n=[20] * 4,
+        correct=[12, 13, 17, 16], predicted_probability=[0.6, 0.6, 0.85, 0.85],
+    )
+    row = cohort_calibration(records, se_method="bootstrap").iloc[0]
+    assert np.isnan(row["slope"]) and np.isnan(row["slope_se"])
+
+
 def test_a_cohort_the_model_happens_to_fit_exactly_is_kept() -> None:
     """statsmodels warns about perfect separation whenever the fitted proportions reproduce the
     observed ones, which is also true of a small identified cohort. That warning must not be read
