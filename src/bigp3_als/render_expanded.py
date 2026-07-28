@@ -100,7 +100,7 @@ def render_transportability(
         label="95% interval for the mean across cohorts",
     )
     ax.axvline(summary["mean"], color=LABEL_COLOR, linewidth=1.2, zorder=2,
-               label="mean across withheld cohorts")
+               label="geometric mean across withheld cohorts")
     # A single scatter() call cannot vary marker shape by point, so the ALS and other-cohort
     # subsets are drawn as two calls sharing the same size and z-order.
     ax.scatter(values[is_als], positions[is_als], color=ALS_COLOR, marker=ALS_MARKER, s=44, zorder=3)
