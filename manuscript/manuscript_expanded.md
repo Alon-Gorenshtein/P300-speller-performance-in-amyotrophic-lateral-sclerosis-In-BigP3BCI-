@@ -14,14 +14,6 @@
 
 **Address correspondence to:** Alon Gorenshtein, MD, Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School (agorensh@bidmc.harvard.edu).
 
-**Funding:** None.
-
-**Competing interests:** None declared.
-
-**Ethics approval:** Institutional review board approval was not required; the determination is stated in full in the Methods, under Ethics.
-
-**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. M.O.: methodology, software, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
-
 ## Abstract
 
 ### Objective
@@ -289,6 +281,16 @@ Tenth, the between-cohort variance is itself estimated with limited precision: e
 ### Conclusion
 
 In 18 independent P300-speller cohorts, calibration-derived decoder discriminability was related to online spelling accuracy in the corresponding session, with a positive point estimate in every cohort and at the level of individual participants, but the fitted mapping between the two did not transport: the calibration intercept spanned mappings that badly understate and badly overstate accuracy, the slope varied more than tenfold, and a cohort outside the archive cannot be promised discrimination above chance or skill above zero. A calibration score may support ranking sessions within a setting and may support a data-quality screen, and it should not be used to report an expected accuracy in a cohort where the mapping was not developed without local recalibration. Prospective evaluation would need to predefine the recalibration procedure and measure user-centred communication outcomes rather than character accuracy alone.
+
+## Acknowledgements
+
+**Funding:** None.
+
+**Competing interests:** None declared.
+
+**Ethics approval:** Institutional review board approval was not required; the determination is stated in full in the Methods, under Ethics.
+
+**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. M.O.: methodology, software, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
 
 ## Data and Code Availability
 
