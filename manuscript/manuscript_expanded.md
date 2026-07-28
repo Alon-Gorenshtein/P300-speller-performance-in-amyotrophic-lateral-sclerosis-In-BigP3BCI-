@@ -26,7 +26,7 @@
 
 ### Objective
 
-A calibration-derived score has been related to subsequent online P300-speller accuracy, always within the cohort measured. We evaluated whether a fitted mapping from that score to expected accuracy transports to withheld cohorts.
+A calibration-derived score has been related to online P300-speller accuracy in the same session, always within the cohort measured. We evaluated whether a fitted mapping from that score to expected accuracy transports to withheld cohorts.
 
 ### Approach
 
@@ -38,7 +38,7 @@ The association was positive in all 18 cohorts but varied widely in magnitude an
 
 ### Significance
 
-The score carries a reproducible signal about subsequent accuracy, but the mapping between them is cohort-specific: usable for ranking sessions within a setting, not for reporting expected accuracy elsewhere without local recalibration. Few-cohort evaluation, as the ALS subgroup illustrates, understates how much performance varies elsewhere.
+The score carries a reproducible signal about accuracy in the corresponding session, but the mapping between them is cohort-specific: usable for ranking sessions within a setting, not for reporting expected accuracy elsewhere without local recalibration. Few-cohort evaluation, as the ALS subgroup illustrates, understates how much performance varies elsewhere.
 
 ## Introduction
 
@@ -50,7 +50,7 @@ Two features of that literature limit what it can support. First, the relationsh
 
 Evaluating transportability also imposes a requirement that has not previously been met in this setting. When a model is evaluated by withholding an entire cohort, the cohort is the unit of replication, and the spread of performance across withheld cohorts is what determines the interval a reader should expect in their own setting.[16,17] Estimating that spread from a small number of cohorts yields an interval too imprecise to be informative. Public archives that aggregate many independent P300-speller studies under a shared recording montage now make a larger number of withheld cohorts available.[18]
 
-We evaluated whether a calibration-derived score estimates subsequent online session accuracy in cohorts withheld from model development, across every source study in a public archive that yields eligible online outcomes. The score used here is the cross-validated discriminability of a classifier fitted to a session's calibration epochs, referred to throughout as calibration-derived decoder discriminability to keep it distinct from a physiological marker of user aptitude. The documented ALS cohorts were the originally targeted primary subgroup. Because the archive also contains cohorts without a documented ALS population, we further asked whether a mapping developed without any ALS data transports to the ALS cohorts, and whether the calibration-to-accuracy relationship itself differs between cohort types.
+We evaluated whether a calibration-derived score estimates online session accuracy in the corresponding P300-speller session, in cohorts withheld from model development, across every source study in a public archive that yields eligible online outcomes. The score used here is the cross-validated discriminability of a classifier fitted to a session's calibration epochs, referred to throughout as calibration-derived decoder discriminability to keep it distinct from a physiological marker of user aptitude. The documented ALS cohorts were the originally targeted primary subgroup. Because the archive also contains cohorts without a documented ALS population, we further asked whether a mapping developed without any ALS data transports to the ALS cohorts, and whether the calibration-to-accuracy relationship itself differs between cohort types.
 
 ## Methods
 
@@ -256,7 +256,7 @@ Every comparator predictor named in the Methods was run through the same withhel
 
 ## Discussion
 
-Across 18 independent P300-speller cohorts, the discriminability of a classifier fitted to a session's calibration block was related to that session's subsequent online spelling accuracy, with a positive point estimate in every cohort, at the level of individual participants as well as between cohorts, and when the calibration recording came from an earlier session. A fitted mapping from that score to an expected accuracy did not transport. The calibration intercept had a between-cohort standard deviation of tau = 0.87 (95% CI 0.60 to 1.51) and an interval for an unrepresented cohort running from -1.97 to 1.85 on the log-odds scale; the slope agreed, at tau = 0.43 (0.30 to 0.77) and a range of 0.185 to 2.185. In one cohort the score estimated accuracy less well than the development-mean benchmark, and in six less well than that cohort's own mean. The association appeared in every cohort examined, though with widely varying magnitude; the numerical mapping between the score and expected accuracy did not.
+Across 18 independent P300-speller cohorts, the discriminability of a classifier fitted to a session's calibration block was related to that same session's online spelling accuracy, with a positive point estimate in every cohort, at the level of individual participants as well as between cohorts, and when the calibration recording came from an earlier session. A fitted mapping from that score to an expected accuracy did not transport. The calibration intercept had a between-cohort standard deviation of tau = 0.87 (95% CI 0.60 to 1.51) and an interval for an unrepresented cohort running from -1.97 to 1.85 on the log-odds scale; the slope agreed, at tau = 0.43 (0.30 to 0.77) and a range of 0.185 to 2.185. In one cohort the score estimated accuracy less well than the development-mean benchmark, and in six less well than that cohort's own mean. The association appeared in every cohort examined, though with widely varying magnitude; the numerical mapping between the score and expected accuracy did not.
 
 That distinction determines what a calibration score can be used for. Ranking sessions within a setting, which requires only that the association hold locally, is supported. Reporting an expected accuracy in a cohort where the mapping was not developed is not supported without local recalibration, because the interval for a cohort outside this archive spans 0.032 to 0.254 for estimation error and includes chance-level discrimination and negative skill.
 
@@ -294,7 +294,7 @@ Tenth, the between-cohort variance is itself estimated with limited precision. E
 
 ### Conclusion
 
-In 18 independent P300-speller cohorts, calibration-derived decoder discriminability was related to subsequent online spelling accuracy, with a positive point estimate in every cohort and at the level of individual participants, but the fitted mapping between the two did not transport: the calibration intercept spanned mappings that badly understate and badly overstate accuracy, the slope varied more than tenfold, and a cohort outside the archive cannot be promised discrimination above chance or skill above zero. A calibration score may support ranking sessions within a setting and may support a data-quality screen, and it should not be used to report an expected accuracy in a cohort where the mapping was not developed without local recalibration. Prospective evaluation would need to predefine the recalibration procedure and measure user-centred communication outcomes rather than character accuracy alone.
+In 18 independent P300-speller cohorts, calibration-derived decoder discriminability was related to online spelling accuracy in the corresponding session, with a positive point estimate in every cohort and at the level of individual participants, but the fitted mapping between the two did not transport: the calibration intercept spanned mappings that badly understate and badly overstate accuracy, the slope varied more than tenfold, and a cohort outside the archive cannot be promised discrimination above chance or skill above zero. A calibration score may support ranking sessions within a setting and may support a data-quality screen, and it should not be used to report an expected accuracy in a cohort where the mapping was not developed without local recalibration. Prospective evaluation would need to predefine the recalibration procedure and measure user-centred communication outcomes rather than character accuracy alone.
 
 ## Data and Code Availability
 
