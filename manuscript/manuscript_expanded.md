@@ -161,17 +161,41 @@ Because the calibration score is a property of a session, the 739 records carry 
 
 **Treating the source study as the unit of replication, discrimination transported on average but not dependably, and calibration did not transport (Figures 1 and 2).** Across the 18 withheld cohorts the mean absolute error, pooled on the log scale because the quantity cannot be negative, averaged 0.090 with a between-cohort standard deviation of 0.477 on the log scale, giving a 95% interval for the mean of 0.071 to 0.115 and a 95% interval for a cohort not represented in the archive of 0.032 to 0.254 (Figure 3). Area under the curve averaged 0.713 across cohorts, with a new-cohort interval of 0.491 to 0.935, the lower bound of which is chance. Brier skill averaged 0.174 across cohorts with a new-cohort interval of -0.296 to 0.644. Every study-level summary in this paragraph is tabulated in Table S2.
 
+```{=latex}
+\begin{minipage}{\textwidth}
+```
+
 **Figure 1. Calibration slope and intercept in each withheld cohort, against the values a transportable mapping would take.** Each row is one cohort withheld from model development, with its estimate and 95% confidence interval, marked by whether the archive documents an ALS study population. Standard errors are clustered on participant. Each panel is ordered by its own estimate, so a cohort does not occupy the same row in panel a as in panel b. The dashed line is the value a mapping that transported exactly would take, one for the slope in panel a and zero for the intercept in panel b; the band is the 95% interval for a cohort not represented in the archive and the solid line within it is the pooled estimate. That band is computed at the point estimate of tau, which is itself imprecise, so it widens and narrows with the values of tau reported in the Results. Intervals running past the axis are drawn with an arrow. The between-cohort standard deviation tau and I-squared are given beneath each panel; I-squared is descriptive only, for the reason given in the Results.
 
 ![](../output/expanded/figures/figure_calibration_forest.png){width=100%}
+
+```{=latex}
+\end{minipage}
+```
+
+```{=latex}
+\begin{minipage}{\textwidth}
+```
 
 **Figure 2. Observed against estimated session accuracy, in the four ALS cohorts and the two non-ALS cohorts at either end of the calibration-slope range (Table 2).** Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated. The number in each panel is observed minus estimated accuracy across that whole cohort. The full 18-cohort version of this figure is Figure S2.
 
 ![](../output/expanded/figures/figure_calibration_curves_main.png){width=100%}
 
+```{=latex}
+\end{minipage}
+```
+
+```{=latex}
+\begin{minipage}{\textwidth}
+```
+
 **Figure 3. Estimation error in each withheld cohort, with the two uncertainty statements.** Each point is one cohort withheld from model development. The darker band is the 95% interval for the mean across the observed cohorts; the lighter band is the 95% interval for a cohort not represented in the archive. The two answer different questions and only the second describes what a reader should expect in their own setting.
 
 ![](../output/expanded/figures/figure_transportability.png){width=88%}
+
+```{=latex}
+\end{minipage}
+```
 
 **The calibration intercept varied so widely between cohorts that a single fitted mapping was displaced in many of them.** The intercept departed from zero by at least half a log-odds unit in 13 of the 18 cohorts and by at least a full unit in 7, and its 95% interval excluded zero in 6. All 18 cohorts yielded an identified intercept and slope and none was dropped from the pooling. Under the primary cluster-robust specification the between-cohort standard deviation of the calibration intercept was tau = 0.87 (95% CI 0.60 to 1.51) against a pooled intercept of -0.06, and Q = 122.6 on 17 degrees of freedom (p < 0.001). I-squared was 86.1 (95% CI 79.5 to 90.6), reported as a description only: it is an upper estimate at these cluster counts, and a 20% understatement of the within-cohort variances would put its lower confidence limit below the conventional 75% threshold. The observed intercepts ran from -2.169 to 1.995, and the 95% interval for a cohort not represented in the archive runs from -1.97 to 1.85 on the log-odds scale (Figure 1), which is the difference between a mapping that badly understates accuracy and one that badly overstates it. That conclusion does not depend on where in its interval tau lies: setting tau to its own lower 95% confidence limit still leaves a new-cohort interval of -1.39 to 1.26, and the interval is still -1.37 to 1.06 when every within-cohort variance is inflated fivefold.
 
@@ -206,9 +230,17 @@ The uncorrected standard deviations of the 18 cohort estimates, which are what a
 
 **One cohort was estimated less accurately than the development-mean benchmark, and six were estimated less accurately than their own cohort mean.** Skill against the development-mean benchmark was negative in one of 18 cohorts and positive in the remainder (Figure 4). Against the benchmark of each cohort's own mean, which is the harder target pooled and in 11 of the 18 cohorts, skill was negative in six of 18 (Table S5). Three distinct things produce those six. In StudyH the model was less accurate than both benchmarks, and it is the same cohort that fails the development-mean benchmark. Four are cohorts whose observed accuracy sits high enough that their own mean already tracks nearly every record: in StudyE, StudyR, StudyS2 and StudyS1, accuracy averages 0.921, 0.963, 0.976 and 0.997 and the own-mean benchmark errs by 0.049, 0.047, 0.035 and 0.005, leaving little error for any predictor to reduce. StudyS1 is the limiting case, where that near-zero denominator makes the ratio large and negative and not comparable with the rest. In the sixth, StudyJ, the shortfall is -0.008, which is parity rather than failure. All four ALS cohorts had positive skill against both benchmarks, at 0.317, 0.383, 0.448 and 0.502 against the development mean.
 
+```{=latex}
+\begin{minipage}{\textwidth}
+```
+
 **Figure 4. Error reduction in each withheld cohort against the development-mean benchmark.** Values below zero indicate that the calibration score estimated accuracy less well than estimating every record at the development-set mean. All four ALS cohorts were positive; one cohort without a documented ALS population was negative.
 
 ![](../output/expanded/figures/figure_skill_by_cohort.png){width=88%}
+
+```{=latex}
+\end{minipage}
+```
 
 ### Amyotrophic Lateral Sclerosis Subgroup
 

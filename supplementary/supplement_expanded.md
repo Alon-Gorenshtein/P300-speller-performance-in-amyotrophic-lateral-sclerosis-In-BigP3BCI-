@@ -109,9 +109,17 @@ The point estimate was positive in all 18 contributing cohorts. Within-cohort Pe
 
 Session accuracy clustered within participant with an intraclass correlation of 0.412 across 410 sessions in 271 participants, giving approximately 338 effective independent sessions. The predictor is constant within a session, so the 739 session-condition records carry 410 distinct predictor values.
 
+```{=latex}
+\begin{minipage}{\textwidth}
+```
+
 **Figure S1. Calibration-derived decoder discriminability against observed online accuracy, by cohort type.** Each point is one participant-session-condition record, sized by the number of eligible selections. No line is fitted to either group. Cohort type does not vary between the records of a cohort, so the comparison of the ALS cohorts against the rest is made on the 18 cohort-specific slopes, reported in the main text and drawn in Figure 1; fitting it across these records would treat a study-level attribute as though it had been measured once per record. The band of points at 1.0 is the ceiling described in the main text.
 
 ![](../output/expanded/figures/figure_cohort_type_relationship.png){width=88%}
+
+```{=latex}
+\end{minipage}
+```
 
 ## S6. Sensitivity analyses
 
@@ -255,9 +263,17 @@ Two limits of this analysis should be read alongside it. Reliability is estimate
 
 The main-text Figure 2 shows six representative cohorts, so that the panels are legible at the size a printed page allows. This section gives the same figure for every withheld cohort.
 
+```{=latex}
+\begin{minipage}{\textwidth}
+```
+
 **Figure S2. Observed against estimated session accuracy, one panel per withheld cohort, all 18 cohorts.** The main-text Figure 2 shows six representative cohorts (the four ALS cohorts and the two non-ALS extremes of the calibration-slope range); this figure shows every cohort. Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. A cohort supports at most as many bins as it has distinct estimates, and the estimate is a property of the session rather than of the record, so two of the 18 cohorts draw eight bins rather than ten. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated, so the panels carry the direction of the miscalibration that Figure 1 summarises as a spread. The number in each panel is observed minus estimated accuracy across that whole cohort.
 
 ![](../output/expanded/figures/figure_calibration_curves.png){width=100%}
+
+```{=latex}
+\end{minipage}
+```
 
 ## S11. Reproducibility
 
