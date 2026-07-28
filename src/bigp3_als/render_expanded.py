@@ -148,11 +148,20 @@ def render_skill_by_cohort(
     merged = merged.sort_values("skill")
 
     positions = np.arange(len(merged))
+    is_als = merged["held_out_study"].isin(als_studies).to_numpy()
     colours = [ALS_COLOR if s in als_studies else OTHER_COLOR for s in merged["held_out_study"]]
+    # Hatching is a second, color-independent channel encoding ALS-vs-other cohort type, the same
+    # precedent as the ALS_MARKER/OTHER_MARKER shape distinction used in the other figures, so the
+    # distinction survives grayscale reproduction.
+    hatches = ["//" if value else None for value in is_als]
 
     fig, ax = plt.subplots(figsize=(6.6, 5.4))
     ax.axvline(0.0, color=LABEL_COLOR, linewidth=1.0, zorder=1)
-    ax.barh(positions, merged["skill"], color=colours, height=0.62, zorder=2)
+    bars = ax.barh(positions, merged["skill"], color=colours, height=0.62, zorder=2,
+                    edgecolor="white", linewidth=0.6)
+    for bar, hatch in zip(bars, hatches, strict=True):
+        if hatch:
+            bar.set_hatch(hatch)
     ax.set_yticks(positions)
     ax.set_yticklabels([_cohort_label(s) for s in merged["held_out_study"]])
     ax.set_xlabel("Error reduction against the development-mean benchmark")
@@ -161,8 +170,9 @@ def render_skill_by_cohort(
     ax.spines["right"].set_visible(False)
     ax.legend(
         handles=[
-            plt.Line2D([], [], marker="s", linestyle="none", color=ALS_COLOR, label="ALS cohort"),
-            plt.Line2D([], [], marker="s", linestyle="none", color=OTHER_COLOR, label="Other cohort"),
+            plt.Rectangle((0, 0), 1, 1, facecolor=ALS_COLOR, edgecolor="white", hatch="//",
+                          label="ALS cohort"),
+            plt.Rectangle((0, 0), 1, 1, facecolor=OTHER_COLOR, edgecolor="white", label="Other cohort"),
         ],
         loc="lower right", frameon=False, fontsize=8.5,
     )
@@ -245,8 +255,9 @@ def _forest_panel(
             f"{label}\ntau = {block['tau']:.2f}, I-squared = {block['i_squared']:.0f}%"
         )
     ax.set_yticks(positions)
-    ax.set_yticklabels([_cohort_label(study) for study in frame["held_out_study"]])
-    ax.set_xlabel(label)
+    ax.set_yticklabels([_cohort_label(study) for study in frame["held_out_study"]], fontsize=12)
+    ax.set_xlabel(label, fontsize=12)
+    ax.tick_params(axis="x", labelsize=12)
     ax.set_xlim(low, high)
     ax.set_ylim(-0.8, len(frame) - 0.2)
     ax.spines["top"].set_visible(False)
@@ -265,7 +276,7 @@ def render_calibration_forest(
     stacks three of them. ``summary`` is the matching block of the heterogeneity summary, keyed by
     quantity, and a quantity absent from it is drawn without the pooled value or the band.
     """
-    fig, axes = plt.subplots(1, 2, figsize=(9.8, 6.2), constrained_layout=True)
+    fig, axes = plt.subplots(1, 2, figsize=(10.2, 7.4), constrained_layout=True)
     _forest_panel(axes[0], calibration, "slope", summary.get("slope"), als_studies, 1.0,
                   "Calibration slope (95% CI)")
     _forest_panel(axes[1], calibration, "intercept", summary.get("intercept"), als_studies, 0.0,
@@ -279,7 +290,7 @@ def render_calibration_forest(
         plt.Line2D([], [], marker=ALS_MARKER, linestyle="none", color=ALS_COLOR, label="ALS cohort"),
         plt.Line2D([], [], marker=OTHER_MARKER, linestyle="none", color=OTHER_COLOR, label="Other cohort"),
     ]
-    fig.legend(handles=handles, loc="outside lower center", ncol=3, frameon=False, fontsize=8.5)
+    fig.legend(handles=handles, loc="outside lower center", ncol=3, frameon=False, fontsize=12)
     _save(fig, directory, "figure_calibration_forest")
 
 
@@ -317,6 +328,10 @@ def render_calibration_curves(
     bins: int = 10,
     cohorts: tuple[str, ...] | None = None,
     filename: str = "figure_calibration_curves",
+    *,
+    max_columns: int | None = None,
+    panel_width: float = 1.62,
+    panel_height: float = 1.78,
 ) -> None:
     """Plot observed against estimated accuracy, one panel per withheld cohort.
 
@@ -328,6 +343,11 @@ def render_calibration_curves(
     ``cohorts``, when given, restricts the panel grid to that subset (used for a readable
     main-text figure); the default ``None`` draws every cohort (used for the full supplementary
     figure). ``filename`` lets the two versions be written without one overwriting the other.
+
+    ``max_columns``, ``panel_width``, and ``panel_height`` control the grid shape and the size of
+    each panel. The defaults reproduce the original single-row-of-up-to-six layout; the main-text
+    call passes a narrower ``max_columns`` and larger panel dimensions so the six-cohort figure
+    fills a portrait page instead of rendering as a wide, short strip.
     """
     require_columns(predictions, {"held_out_study", "predicted_probability", "correct", "n"})
     frame = predictions
@@ -344,10 +364,10 @@ def render_calibration_curves(
         cohort_list = list(cohorts)
     else:
         cohort_list = available
-    columns = min(6, len(cohort_list))
+    columns = min(max_columns or 6, len(cohort_list))
     rows = math.ceil(len(cohort_list) / columns)
     fig, axes = plt.subplots(
-        rows, columns, figsize=(1.62 * columns, 1.78 * rows + 0.5),
+        rows, columns, figsize=(panel_width * columns, panel_height * rows + 0.5),
         sharex=True, sharey=True, constrained_layout=True,
     )
     flat = np.atleast_1d(np.asarray(axes)).ravel()

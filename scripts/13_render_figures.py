@@ -63,7 +63,8 @@ def main() -> None:
     render_calibration_forest(calibration, summary, ALS_STUDIES, figures)
     render_calibration_curves(predictions, ALS_STUDIES, figures)
     render_calibration_curves(
-        predictions, ALS_STUDIES, figures, cohorts=MAIN_TEXT_COHORTS, filename="figure_calibration_curves_main"
+        predictions, ALS_STUDIES, figures, cohorts=MAIN_TEXT_COHORTS, filename="figure_calibration_curves_main",
+        max_columns=3, panel_width=2.3, panel_height=2.5,
     )
     render_transportability(metrics, pooling, ALS_STUDIES, figures)
     render_skill_by_cohort(metrics, benchmark, ALS_STUDIES, figures)
