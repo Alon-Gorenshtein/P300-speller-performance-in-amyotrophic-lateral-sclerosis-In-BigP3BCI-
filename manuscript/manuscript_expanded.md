@@ -332,7 +332,7 @@ In 18 source-study cohorts, calibration-derived decoder discriminability was rel
 
 ## Data and Code Availability
 
-BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/study_bigp3_als_calibration (commit bb07fb994b0d776101afaef9f0f3dd9c12596124). The archive is not redistributed.
+BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/study_bigp3_als_calibration (commit eaabf263425c19494d8fcaf27c84ca86ab5122ef). The archive is not redistributed.
 
 ## References
 
