@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterator
 from dataclasses import dataclass
 
@@ -15,6 +16,19 @@ from sklearn.metrics import brier_score_loss, roc_auc_score
 
 RANDOM_SEED = 20260718
 BOOTSTRAP_REPETITIONS = 2000
+
+# Intercept and slope. Named because the identification guard below is stated against it, the same
+# way `heterogeneity.N_CALIBRATION_PARAMETERS` is.
+_N_CALIBRATION_PARAMETERS = 2
+
+# How close a fitted probability may come to 0 or 1 before a fit counts as separated. This is the
+# same value and the same rationale as `heterogeneity.FITTED_BOUNDARY`: under statsmodels 0.14 a
+# quasi-separated binomial fit does not raise, it converges at `maxiter` to a huge-but-finite
+# coefficient with a fitted probability driven onto the boundary, which is indistinguishable from a
+# real, precise estimate by finiteness alone. Restated here rather than imported from
+# `heterogeneity.py` because that module already imports `RANDOM_SEED` and `BOOTSTRAP_REPETITIONS`
+# from this one; importing back would be circular.
+_FITTED_BOUNDARY = 1e-6
 
 
 @dataclass(frozen=True)
@@ -107,6 +121,50 @@ def _fit_calibration_model(labels: np.ndarray, probabilities: np.ndarray) -> tup
         sm.tools.sm_exceptions.PerfectSeparationError,
     ):
         return np.nan, np.nan
+
+
+def _fit_calibration_model_guarded(labels: np.ndarray, probabilities: np.ndarray) -> tuple[float, float, bool]:
+    """Return logistic calibration intercept and slope, with an explicit identification flag.
+
+    ``_fit_calibration_model`` only catches the exceptions statsmodels still raises on a
+    non-identified fit. Under statsmodels 0.14 a quasi-separated binomial fit does not raise: it
+    warns and converges, at ``maxiter``, to a huge-but-finite coefficient with a fitted probability
+    driven onto the 0/1 boundary. That looks like an ordinary, precise estimate by finiteness alone,
+    which is exactly the failure mode `heterogeneity.py`'s bootstrap guards against explicitly with
+    a design-rank check before the fit and a fitted-value boundary check after it (see
+    `heterogeneity._bootstrap_standard_errors`, `heterogeneity._fit_cohort`, and
+    `heterogeneity.FITTED_BOUNDARY`). This function ports both guards for the joint bootstrap's
+    per-replicate, per-fold fits, which have the same exposure: a resample can draw an
+    unrepresentative, near-constant mix of a held-out cohort's outcomes. A caller that used
+    `_fit_calibration_model` here instead would let those replicates through, and their
+    huge-but-finite parameter values would then dominate any spread computed across replicates.
+    """
+    clipped = np.clip(probabilities, 1e-6, 1 - 1e-6)
+    design = sm.add_constant(np.log(clipped / (1 - clipped)), has_constant="add")
+    if np.linalg.matrix_rank(design) < _N_CALIBRATION_PARAMETERS:
+        return np.nan, np.nan, False
+    try:
+        with warnings.catch_warnings():
+            # Neutralised rather than escalated, for the same reason `heterogeneity._fit_cohort`
+            # neutralises it: identification is judged from the fitted values below, not from
+            # whether statsmodels happened to warn, so an ambient -W error should not abort a whole
+            # bootstrap run over a warning this function does not otherwise act on.
+            warnings.simplefilter("ignore", sm.tools.sm_exceptions.PerfectSeparationWarning)
+            model = sm.GLM(labels, design, family=sm.families.Binomial()).fit()
+        parameters = np.asarray(model.params, dtype=float)
+        fitted = np.asarray(model.fittedvalues, dtype=float)
+    except (
+        ValueError,
+        IndexError,
+        np.linalg.LinAlgError,
+        sm.tools.sm_exceptions.PerfectSeparationError,
+    ):
+        return np.nan, np.nan, False
+    if fitted.min() <= _FITTED_BOUNDARY or fitted.max() >= 1.0 - _FITTED_BOUNDARY:
+        return np.nan, np.nan, False
+    if not np.all(np.isfinite(parameters)):
+        return np.nan, np.nan, False
+    return float(parameters[0]), float(parameters[1]), True
 
 
 def _validation_metrics(records: pd.DataFrame) -> dict[str, float]:
@@ -323,6 +381,25 @@ def joint_bootstrap_fold_covariance(
     data induces between folds is captured directly in the resulting empirical covariance rather than
     assumed away by treating the 18 held-out estimates as independent, which the primary random-effects
     pooling does.
+
+    Each fold's fit uses ``_fit_calibration_model_guarded`` rather than ``_fit_calibration_model``,
+    because a resampled fold can draw an unrepresentative, near-constant mix of a held-out cohort's
+    outcomes: under statsmodels 0.14 that quasi-separated fit does not raise, it converges to a
+    huge-but-finite coefficient, which is indistinguishable from a real, precise estimate by
+    finiteness alone. Left unguarded, those replicates dominate the resulting covariance and the
+    per-replicate spread below. A cohort whose surviving-replicate count falls below
+    ``repetitions // 2`` is reported as not identified under this method, the same threshold and the
+    same reporting convention ``heterogeneity._bootstrap_standard_errors`` and
+    ``scripts/08_run_heterogeneity.py``'s ``bootstrap_replicate_diagnostics.csv`` already use.
+
+    ``replicate_between_cohort_sd_intercept``/``_slope`` is not a dependence-aware substitute for the
+    meta-analytic tau. Studies themselves are never resampled here, only the participants within each
+    fixed cohort, so the spread of the 18 held-out estimates within one replicate mixes genuine
+    between-cohort heterogeneity together with each fold's own within-cohort sampling noise: it
+    estimates something closer to ``sqrt(tau^2 + mean within-cohort sampling variance)``, which is
+    structurally at least as large as tau and does not converge to it as the within-cohort sample
+    grows. Report it as an empirical, assumption-light quantity that combines both sources of spread,
+    not as a corrected or dependence-aware tau.
     """
     modeled = records.dropna(subset=list(specification.features)).copy()
     studies = sorted(modeled["study"].unique())
@@ -343,10 +420,10 @@ def joint_bootstrap_fold_covariance(
                 development, validation, specification.features
             )
             labels, expanded_probabilities = _expanded_binary(validation)
-            intercept, slope = _fit_calibration_model(labels, expanded_probabilities)
+            intercept, slope, identified = _fit_calibration_model_guarded(labels, expanded_probabilities)
             intercepts[held_out].append(intercept)
             slopes[held_out].append(slope)
-            if np.isfinite(intercept) and np.isfinite(slope):
+            if identified:
                 this_replicate_intercepts.append(intercept)
                 this_replicate_slopes.append(slope)
         if len(this_replicate_intercepts) >= 2:
@@ -364,6 +441,10 @@ def joint_bootstrap_fold_covariance(
         study: int(np.sum(np.isfinite(intercepts[study]) & np.isfinite(slopes[study])))
         for study in studies
     }
+    discard_threshold = repetitions // 2
+    identified_per_study = {
+        study: bool(n_finite_per_study[study] >= discard_threshold) for study in studies
+    }
 
     def _spread_summary(values: list[float]) -> dict[str, float]:
         if not values:
@@ -380,6 +461,8 @@ def joint_bootstrap_fold_covariance(
         "covariance_matrix": covariance,
         "correlation_matrix": correlation,
         "n_finite_per_study": n_finite_per_study,
+        "discard_threshold": discard_threshold,
+        "identified_per_study": identified_per_study,
         "replicate_between_cohort_sd_intercept": _spread_summary(replicate_spread_intercept),
         "replicate_between_cohort_sd_slope": _spread_summary(replicate_spread_slope),
     }

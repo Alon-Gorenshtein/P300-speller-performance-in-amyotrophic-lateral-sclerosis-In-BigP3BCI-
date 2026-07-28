@@ -4,30 +4,51 @@
     "StudyA": 2000,
     "StudyB": 2000,
     "StudyD": 2000,
-    "StudyE": 2000,
+    "StudyE": 1997,
     "StudyF": 2000,
     "StudyG": 2000,
     "StudyH": 2000,
     "StudyI": 2000,
     "StudyJ": 2000,
-    "StudyK": 2000,
+    "StudyK": 1999,
     "StudyL": 2000,
     "StudyM": 2000,
     "StudyN": 2000,
     "StudyO": 2000,
     "StudyQ": 2000,
     "StudyR": 2000,
-    "StudyS1": 2000,
+    "StudyS1": 826,
     "StudyS2": 2000
   },
+  "discard_threshold": 1000,
+  "identified_per_study": {
+    "StudyA": true,
+    "StudyB": true,
+    "StudyD": true,
+    "StudyE": true,
+    "StudyF": true,
+    "StudyG": true,
+    "StudyH": true,
+    "StudyI": true,
+    "StudyJ": true,
+    "StudyK": true,
+    "StudyL": true,
+    "StudyM": true,
+    "StudyN": true,
+    "StudyO": true,
+    "StudyQ": true,
+    "StudyR": true,
+    "StudyS1": false,
+    "StudyS2": true
+  },
   "replicate_between_cohort_sd_intercept": {
-    "mean": 14.763482095718642,
-    "ci_low": 1.0918238739518928,
-    "ci_high": 68.16475916340353
+    "mean": 1.6176349510037749,
+    "ci_low": 0.9400920291473637,
+    "ci_high": 3.3617657861520094
   },
   "replicate_between_cohort_sd_slope": {
-    "mean": 5.030874539011233,
-    "ci_low": 0.5135813883029662,
-    "ci_high": 25.86925331561452
+    "mean": 0.7944704876202163,
+    "ci_low": 0.4867392865383367,
+    "ci_high": 1.5632147348675935
   }
 }
