@@ -128,6 +128,33 @@ All 20 documented source studies supplied the shared 16-channel montage at 256 H
 
 The analytic set contained 271 study-scoped participants, 410 participant-sessions, 739 participant-session-condition records, and 19,611 online character selections, of the 19,688 eligible selections in Table 1. The 77 selections that separate the two totals are the two Study B sessions archived without a calibration block, described in the Table 1 legend and reconciled cohort by cohort in Table S1. The four documented ALS cohorts contributed 47 participants, 113 sessions, 194 records, and 3,318 selections. Observed session-condition accuracy averaged 0.851 and 228 of 739 records (30.9%) were at 100%, with three cohorts near ceiling (mean accuracy 0.963 to 0.997).
 
+**Table 1. Source studies screened, and their contribution to the analytic set.** All 20 documented source studies supplied the shared 16-channel montage at 256 Hz. Two contributed no eligible online outcome: Study C, in which artificial feedback overrode the selection in all 5,680 reconstructed feedback phases, and Study P, in which the intended character could not be recovered in any of 2,263 phases. Cohorts are marked according to whether the archive documentation identifies an ALS study population. The two totals in the final rows differ by 77 selections, all of them in Study B: two sessions of one Study B participant were archived with Test-phase recordings only and carry no calibration block at all, so no calibration score exists for them and their 38 and 39 selections cannot enter a model that takes that score as its predictor. Every other eligible selection in the archive is analysed, and the per-cohort selection counts in Table 2 are the analysed counts.
+
+| Source study | ALS documented | Phases reconstructed | Eligible selections | Contribution |
+|---|---|---:|---:|---|
+| Study A | No | 1,404 | 1,404 | Contributed |
+| Study B | Yes | 858 | 858 | Contributed |
+| Study C | No | 5,680 | 0 | Artificial feedback overrode every selection |
+| Study D | No | 1,230 | 1,230 | Contributed |
+| Study E | No | 240 | 240 | Contributed |
+| Study F | Yes | 1,079 | 1,067 | Contributed |
+| Study G | No | 1,198 | 1,198 | Contributed |
+| Study H | No | 1,926 | 1,926 | Contributed |
+| Study I | No | 948 | 948 | Contributed |
+| Study J | No | 1,812 | 1,812 | Contributed |
+| Study K | No | 480 | 480 | Contributed |
+| Study L | Yes | 990 | 990 | Contributed |
+| Study M | No | 1,260 | 1,260 | Contributed |
+| Study N | Yes | 480 | 480 | Contributed |
+| Study O | No | 1,202 | 1,187 | Contributed |
+| Study P | No | 2,263 | 0 | Intended character not recoverable |
+| Study Q | No | 3,888 | 1,944 | Contributed |
+| Study R | No | 1,440 | 1,440 | Contributed |
+| Study S1 | No | 360 | 360 | Contributed |
+| Study S2 | No | 864 | 864 | Contributed |
+| **Total eligible feedback phases** | 4 of 20 cohorts | **29,602** | **19,688** | 18 cohorts contributed |
+| **Analysed selections** | 4 of 18 cohorts | - | **19,611** | after requiring a usable calibration feature set |
+
 Because the calibration score is a property of a session, the 739 records carry 410 distinct predictor values. Session accuracy clustered within participant (intraclass correlation 0.412), giving approximately 338 effective independent sessions.
 
 ### Association Between Calibration-Derived Decoder Discriminability and Online Accuracy
@@ -138,13 +165,52 @@ Because the calibration score is a property of a session, the 739 records carry 
 
 **Pooled across withheld cohorts, estimated session accuracy fell about a third closer to observed accuracy than the development-mean benchmark, and also beat the benchmark of each cohort's own mean.** Across withheld cohorts the mean absolute error was 0.098 (95% CI 0.091 to 0.107), against 0.146 for the development-mean benchmark and 0.123 for the held-out-cohort-mean benchmark, giving a skill of 0.327 against the development-mean benchmark. This number pools every withheld record and so weights the larger cohorts more heavily. The mean of the 18 cohort-level errors, reported next, is a different quantity and the two are not interchangeable, and the per-cohort picture is less uniform than the pooled one. The character-weighted Brier score was 0.123 (95% CI 0.113 to 0.132), Brier skill 0.110 (95% CI 0.063 to 0.149), and character-weighted area under the curve 0.748 (95% CI 0.719 to 0.770). These intervals are conditional on the 18 observed cohorts.
 
+**Figure 4. Error reduction in each withheld cohort against the development-mean benchmark.** Values below zero indicate that the calibration score estimated accuracy less well than estimating every record at the development-set mean. All four ALS cohorts were positive; one cohort without a documented ALS population was negative.
+
+![](../output/expanded/figures/figure_skill_by_cohort.png){width=88%}
+
 ### Transportability
 
 **Treating the source study as the unit of replication, discrimination transported on average but not dependably, and calibration did not transport (Figures 1 and 2).** Across the 18 withheld cohorts the mean absolute error, pooled on the log scale because the quantity cannot be negative, averaged 0.090 with a between-cohort standard deviation of 0.477 on the log scale, giving a 95% interval for the mean of 0.071 to 0.115 and a 95% interval for a cohort not represented in the archive of 0.032 to 0.254 (Figure 3). Area under the curve averaged 0.713 across cohorts, with a new-cohort interval of 0.491 to 0.935, the lower bound of which is chance. Brier skill averaged 0.174 across cohorts with a new-cohort interval of -0.296 to 0.644. Every study-level summary in this paragraph is tabulated in Table S2.
 
+**Figure 3. Estimation error in each withheld cohort, with the two uncertainty statements.** Each point is one cohort withheld from model development. The darker band is the 95% interval for the mean across the observed cohorts; the lighter band is the 95% interval for a cohort not represented in the archive. The two answer different questions and only the second describes what a reader should expect in their own setting.
+
+![](../output/expanded/figures/figure_transportability.png){width=88%}
+
 **The calibration intercept varied so widely between cohorts that a single fitted mapping was displaced in many of them.** The intercept departed from zero by at least half a log-odds unit in 13 of the 18 cohorts and by at least a full unit in 7, and its 95% interval excluded zero in 6. All 18 cohorts yielded an identified intercept and slope and none was dropped from the pooling. Under the primary cluster-robust specification the between-cohort standard deviation of the calibration intercept was tau = 0.87 (95% CI 0.60 to 1.51) against a pooled intercept of -0.06, and Q = 122.6 on 17 degrees of freedom (p < 0.001). I-squared was 86.1 (95% CI 79.5 to 90.6), reported as a description only: it is an upper estimate at these cluster counts, and a 20% understatement of the within-cohort variances would put its lower confidence limit below the conventional 75% threshold. The observed intercepts ran from -2.169 to 1.995, and the 95% interval for a cohort not represented in the archive runs from -1.97 to 1.85 on the log-odds scale (Figure 1), which is the difference between a mapping that badly understates accuracy and one that badly overstates it. That conclusion does not depend on where in its interval tau lies: setting tau to its own lower 95% confidence limit still leaves a new-cohort interval of -1.39 to 1.26, and the interval is still -1.37 to 1.06 when every within-cohort variance is inflated fivefold.
 
 **The calibration slope varied in the same direction, and its between-cohort variance is itself imprecisely estimated.** tau = 0.43 (95% CI 0.30 to 0.77) against a pooled slope of 1.06 (95% CI 0.82 to 1.30), with Q = 81.3 on 17 degrees of freedom (p < 0.001) and I-squared 79.1 (95% CI 67.6 to 86.5), an interval that spans that same threshold, so no claim here rests on it either. The observed slopes ran from 0.185 to 2.185 and the 95% interval for an unrepresented cohort runs from 0.111 to 2.005 (Figure 1); at the lower confidence limit of tau it is 0.394 to 1.704, across which no single fitted mapping is usable. That interval excludes zero at the point estimate of tau but includes it at tau's upper confidence limit, where it runs from -0.603 to 2.759, so the exclusion is a property of this interval at one value of tau rather than a finding. Cohort by cohort, 4 of the 18 slope confidence intervals include zero (Table 2), so the association is reliable on average and not reliable in every cohort. Fitting one calibration curve to all withheld predictions pooled gives a slope of 0.967 (95% CI 0.791 to 1.127) and an intercept of 0.054 (95% CI -0.264 to 0.395); those pooled values average opposing departures and describe no individual cohort, and the cohorts whose accuracy the mapping understated and those whose accuracy it overstated are visible separately in Figure 2.
+
+**Table 2. Per-cohort composition and withheld-cohort performance.** For each of the 18 contributing cohorts: participants, records, analysed selections, mean observed session-condition accuracy, and, when that cohort was withheld from model development, the mean absolute error, character-weighted area under the curve, and calibration intercept and slope. Calibration intercepts and slopes are from the primary cluster-robust specification, with standard errors clustered on participant. ALS cohorts are listed first. The calibration slope ranges from 0.185 to 2.185 and the intercept from -2.169 to 1.995; four slope confidence intervals include zero.
+
+| Cohort | Participants | Records | Selections | Observed accuracy | MAE | AUC | Calib. intercept | Calib. slope (95% CI) |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| Study B | 18 | 56 | 781 | 0.899 | 0.108 | 0.825 | -0.154 | 1.578 (0.691 to 2.464) |
+| Study F | 10 | 89 | 1,067 | 0.778 | 0.101 | 0.863 | -0.932 | 1.418 (1.205 to 1.631) |
+| Study L | 11 | 33 | 990 | 0.839 | 0.084 | 0.811 | -1.088 | 1.775 (1.413 to 2.137) |
+| Study N | 8 | 16 | 480 | 0.694 | 0.124 | 0.814 | -0.671 | 1.145 (0.681 to 1.609) |
+| Study A | 13 | 39 | 1,404 | 0.786 | 0.126 | 0.775 | -2.169 | 1.999 (1.375 to 2.622) |
+| Study D | 17 | 34 | 1,230 | 0.896 | 0.056 | 0.641 | +0.389 | 0.839 (0.461 to 1.217) |
+| Study E | 8 | 8 | 240 | 0.921 | 0.063 | 0.668 | +0.950 | 0.782 (0.214 to 1.351) |
+| Study G | 20 | 40 | 1,198 | 0.886 | 0.066 | 0.732 | -1.029 | 1.399 (0.957 to 1.840) |
+| Study H | 16 | 64 | 1,926 | 0.877 | 0.153 | 0.520 | +1.705 | 0.185 (-0.289 to 0.659) |
+| Study I | 13 | 26 | 948 | 0.658 | 0.172 | 0.674 | -0.504 | 1.044 (0.170 to 1.917) |
+| Study J | 20 | 40 | 1,812 | 0.708 | 0.186 | 0.600 | +0.491 | 0.326 (-0.063 to 0.716) |
+| Study K | 5 | 16 | 480 | 0.750 | 0.173 | 0.639 | +0.727 | 0.480 (-0.193 to 1.153) |
+| Study M | 21 | 42 | 1,260 | 0.823 | 0.121 | 0.685 | +0.477 | 0.888 (0.480 to 1.297) |
+| Study O | 17 | 34 | 1,187 | 0.884 | 0.067 | 0.581 | +0.505 | 0.583 (0.079 to 1.087) |
+| Study Q | 20 | 54 | 1,944 | 0.820 | 0.058 | 0.682 | -0.094 | 1.108 (0.844 to 1.371) |
+| Study R | 20 | 80 | 1,440 | 0.963 | 0.059 | 0.650 | +1.278 | 0.763 (0.359 to 1.166) |
+| Study S1 | 10 | 20 | 360 | 0.997 | 0.043 | 0.851 | +1.995 | 1.312 (-0.216 to 2.840) |
+| Study S2 | 24 | 48 | 864 | 0.976 | 0.048 | 0.826 | -2.022 | 2.185 (1.215 to 3.154) |
+
+**Figure 1. Calibration slope and intercept in each withheld cohort, against the values a transportable mapping would take.** Each row is one cohort withheld from model development, with its estimate and 95% confidence interval, marked by whether the archive documents an ALS study population. Standard errors are clustered on participant. Each panel is ordered by its own estimate, so a cohort does not occupy the same row in panel a as in panel b. The dashed line is the value a mapping that transported exactly would take, one for the slope in panel a and zero for the intercept in panel b; the band is the 95% interval for a cohort not represented in the archive and the solid line within it is the pooled estimate. That band is computed at the point estimate of tau, which is itself imprecise, so it widens and narrows with the values of tau reported in the Results. Intervals running past the axis are drawn with an arrow. The between-cohort standard deviation tau and I-squared are given beneath each panel; I-squared is descriptive only, for the reason given in the Results.
+
+![](../output/expanded/figures/figure_calibration_forest.png){width=100%}
+
+**Figure 2. Observed against estimated session accuracy, in the four ALS cohorts and the two non-ALS cohorts at either end of the calibration-slope range (Table 2).** Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated. The number in each panel is observed minus estimated accuracy across that whole cohort. The full 18-cohort version of this figure is Figure S2.
+
+![](../output/expanded/figures/figure_calibration_curves_main.png){width=100%}
 
 A small average departure of the slope from unity was not within reach of this design. The pooled slope carries a standard error of 0.122 under the primary specification, so a Wald z test of that slope against unity would have detected a departure of at least 0.34 with 80% power at a two-sided 5% threshold, and its confidence interval has a half-width of 0.24; departures smaller than that cannot be excluded. Neither number bears on transportability, because what a single fitted mapping has to survive is the spread of the slope across cohorts rather than its average, and for that quantity the design placed tau between 0.30 and 0.77 without resolving where in that range it lies.
 
@@ -229,74 +295,6 @@ Tenth, the between-cohort variance is itself estimated with limited precision. E
 ### Conclusion
 
 In 18 independent P300-speller cohorts, calibration-derived decoder discriminability was related to subsequent online spelling accuracy, with a positive point estimate in every cohort and at the level of individual participants, but the fitted mapping between the two did not transport: the calibration intercept spanned mappings that badly understate and badly overstate accuracy, the slope varied more than tenfold, and a cohort outside the archive cannot be promised discrimination above chance or skill above zero. A calibration score may support ranking sessions within a setting and may support a data-quality screen, and it should not be used to report an expected accuracy in a cohort where the mapping was not developed without local recalibration. Prospective evaluation would need to predefine the recalibration procedure and measure user-centred communication outcomes rather than character accuracy alone.
-
-## Tables and Figure Legends
-
-**Table 1. Source studies screened, and their contribution to the analytic set.** All 20 documented source studies supplied the shared 16-channel montage at 256 Hz. Two contributed no eligible online outcome: Study C, in which artificial feedback overrode the selection in all 5,680 reconstructed feedback phases, and Study P, in which the intended character could not be recovered in any of 2,263 phases. Cohorts are marked according to whether the archive documentation identifies an ALS study population. The two totals in the final rows differ by 77 selections, all of them in Study B: two sessions of one Study B participant were archived with Test-phase recordings only and carry no calibration block at all, so no calibration score exists for them and their 38 and 39 selections cannot enter a model that takes that score as its predictor. Every other eligible selection in the archive is analysed, and the per-cohort selection counts in Table 2 are the analysed counts.
-
-| Source study | ALS documented | Phases reconstructed | Eligible selections | Contribution |
-|---|---|---:|---:|---|
-| Study A | No | 1,404 | 1,404 | Contributed |
-| Study B | Yes | 858 | 858 | Contributed |
-| Study C | No | 5,680 | 0 | Artificial feedback overrode every selection |
-| Study D | No | 1,230 | 1,230 | Contributed |
-| Study E | No | 240 | 240 | Contributed |
-| Study F | Yes | 1,079 | 1,067 | Contributed |
-| Study G | No | 1,198 | 1,198 | Contributed |
-| Study H | No | 1,926 | 1,926 | Contributed |
-| Study I | No | 948 | 948 | Contributed |
-| Study J | No | 1,812 | 1,812 | Contributed |
-| Study K | No | 480 | 480 | Contributed |
-| Study L | Yes | 990 | 990 | Contributed |
-| Study M | No | 1,260 | 1,260 | Contributed |
-| Study N | Yes | 480 | 480 | Contributed |
-| Study O | No | 1,202 | 1,187 | Contributed |
-| Study P | No | 2,263 | 0 | Intended character not recoverable |
-| Study Q | No | 3,888 | 1,944 | Contributed |
-| Study R | No | 1,440 | 1,440 | Contributed |
-| Study S1 | No | 360 | 360 | Contributed |
-| Study S2 | No | 864 | 864 | Contributed |
-| **Total eligible feedback phases** | 4 of 20 cohorts | **29,602** | **19,688** | 18 cohorts contributed |
-| **Analysed selections** | 4 of 18 cohorts | - | **19,611** | after requiring a usable calibration feature set |
-
-**Table 2. Per-cohort composition and withheld-cohort performance.** For each of the 18 contributing cohorts: participants, records, analysed selections, mean observed session-condition accuracy, and, when that cohort was withheld from model development, the mean absolute error, character-weighted area under the curve, and calibration intercept and slope. Calibration intercepts and slopes are from the primary cluster-robust specification, with standard errors clustered on participant. ALS cohorts are listed first. The calibration slope ranges from 0.185 to 2.185 and the intercept from -2.169 to 1.995; four slope confidence intervals include zero.
-
-| Cohort | Participants | Records | Selections | Observed accuracy | MAE | AUC | Calib. intercept | Calib. slope (95% CI) |
-|---|---:|---:|---:|---:|---:|---:|---:|---|
-| Study B | 18 | 56 | 781 | 0.899 | 0.108 | 0.825 | -0.154 | 1.578 (0.691 to 2.464) |
-| Study F | 10 | 89 | 1,067 | 0.778 | 0.101 | 0.863 | -0.932 | 1.418 (1.205 to 1.631) |
-| Study L | 11 | 33 | 990 | 0.839 | 0.084 | 0.811 | -1.088 | 1.775 (1.413 to 2.137) |
-| Study N | 8 | 16 | 480 | 0.694 | 0.124 | 0.814 | -0.671 | 1.145 (0.681 to 1.609) |
-| Study A | 13 | 39 | 1,404 | 0.786 | 0.126 | 0.775 | -2.169 | 1.999 (1.375 to 2.622) |
-| Study D | 17 | 34 | 1,230 | 0.896 | 0.056 | 0.641 | +0.389 | 0.839 (0.461 to 1.217) |
-| Study E | 8 | 8 | 240 | 0.921 | 0.063 | 0.668 | +0.950 | 0.782 (0.214 to 1.351) |
-| Study G | 20 | 40 | 1,198 | 0.886 | 0.066 | 0.732 | -1.029 | 1.399 (0.957 to 1.840) |
-| Study H | 16 | 64 | 1,926 | 0.877 | 0.153 | 0.520 | +1.705 | 0.185 (-0.289 to 0.659) |
-| Study I | 13 | 26 | 948 | 0.658 | 0.172 | 0.674 | -0.504 | 1.044 (0.170 to 1.917) |
-| Study J | 20 | 40 | 1,812 | 0.708 | 0.186 | 0.600 | +0.491 | 0.326 (-0.063 to 0.716) |
-| Study K | 5 | 16 | 480 | 0.750 | 0.173 | 0.639 | +0.727 | 0.480 (-0.193 to 1.153) |
-| Study M | 21 | 42 | 1,260 | 0.823 | 0.121 | 0.685 | +0.477 | 0.888 (0.480 to 1.297) |
-| Study O | 17 | 34 | 1,187 | 0.884 | 0.067 | 0.581 | +0.505 | 0.583 (0.079 to 1.087) |
-| Study Q | 20 | 54 | 1,944 | 0.820 | 0.058 | 0.682 | -0.094 | 1.108 (0.844 to 1.371) |
-| Study R | 20 | 80 | 1,440 | 0.963 | 0.059 | 0.650 | +1.278 | 0.763 (0.359 to 1.166) |
-| Study S1 | 10 | 20 | 360 | 0.997 | 0.043 | 0.851 | +1.995 | 1.312 (-0.216 to 2.840) |
-| Study S2 | 24 | 48 | 864 | 0.976 | 0.048 | 0.826 | -2.022 | 2.185 (1.215 to 3.154) |
-
-**Figure 1. Calibration slope and intercept in each withheld cohort, against the values a transportable mapping would take.** Each row is one cohort withheld from model development, with its estimate and 95% confidence interval, marked by whether the archive documents an ALS study population. Standard errors are clustered on participant. Each panel is ordered by its own estimate, so a cohort does not occupy the same row in panel a as in panel b. The dashed line is the value a mapping that transported exactly would take, one for the slope in panel a and zero for the intercept in panel b; the band is the 95% interval for a cohort not represented in the archive and the solid line within it is the pooled estimate. That band is computed at the point estimate of tau, which is itself imprecise, so it widens and narrows with the values of tau reported in the Results. Intervals running past the axis are drawn with an arrow. The between-cohort standard deviation tau and I-squared are given beneath each panel; I-squared is descriptive only, for the reason given in the Results.
-
-**Figure 2. Observed against estimated session accuracy, in the four ALS cohorts and the two non-ALS cohorts at either end of the calibration-slope range (Table 2).** Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated. The number in each panel is observed minus estimated accuracy across that whole cohort. The full 18-cohort version of this figure is Figure S2.
-
-**Figure 3. Estimation error in each withheld cohort, with the two uncertainty statements.** Each point is one cohort withheld from model development. The darker band is the 95% interval for the mean across the observed cohorts; the lighter band is the 95% interval for a cohort not represented in the archive. The two answer different questions and only the second describes what a reader should expect in their own setting.
-
-**Figure 4. Error reduction in each withheld cohort against the development-mean benchmark.** Values below zero indicate that the calibration score estimated accuracy less well than estimating every record at the development-set mean. All four ALS cohorts were positive; one cohort without a documented ALS population was negative.
-
-![](../output/expanded/figures/figure_calibration_forest.png){width=100%}
-
-![](../output/expanded/figures/figure_calibration_curves_main.png){width=100%}
-
-![](../output/expanded/figures/figure_transportability.png){width=88%}
-
-![](../output/expanded/figures/figure_skill_by_cohort.png){width=88%}
 
 ## Data and Code Availability
 
