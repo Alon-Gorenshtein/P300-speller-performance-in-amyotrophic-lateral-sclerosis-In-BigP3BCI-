@@ -7,7 +7,11 @@ import pandas as pd
 import pytest
 
 from bigp3_als.protocol import (
+    COVARIATES,
+    DESCRIPTOR_KIND,
+    PROTOCOL_DESCRIPTORS,
     _holm,
+    documented_protocol_metadata,
     explains_heterogeneity,
     family_composition_sensitivity,
     joint_moderator_fit,
@@ -146,6 +150,68 @@ def test_matrix_proxies_come_from_the_target_index() -> None:
     assert table.loc["StudyA", "n_distinct_targets"] == 4
     assert table.loc["StudyB", "max_target_index"] == 9
     assert table.loc["StudyB", "n_distinct_targets"] == 4
+
+
+def test_documented_protocol_metadata_covers_all_eighteen_contributing_cohorts() -> None:
+    metadata = documented_protocol_metadata()
+    expected_studies = {
+        "StudyA", "StudyB", "StudyD", "StudyE", "StudyF", "StudyG", "StudyH", "StudyI",
+        "StudyJ", "StudyK", "StudyL", "StudyM", "StudyN", "StudyO", "StudyQ", "StudyR",
+        "StudyS1", "StudyS2",
+    }
+    assert set(metadata["study"]) == expected_studies
+
+
+def test_documented_grid_size_matches_the_archive_table() -> None:
+    metadata = documented_protocol_metadata().set_index("study")
+    assert metadata.loc["StudyB", "grid_size"] == 36
+    assert metadata.loc["StudyJ", "grid_size"] == 36
+    assert metadata.loc["StudyL", "grid_size"] == 36
+    assert metadata.loc["StudyN", "grid_size"] == 36
+    assert metadata.loc["StudyA", "grid_size"] == 72
+    assert metadata.loc["StudyF", "grid_size"] == 72
+
+
+def test_checkerboard_indicator_is_false_only_for_the_two_row_column_only_studies() -> None:
+    metadata = documented_protocol_metadata().set_index("study")
+    assert metadata.loc["StudyD", "has_checkerboard_paradigm"] == False  # noqa: E712
+    assert metadata.loc["StudyJ", "has_checkerboard_paradigm"] == False  # noqa: E712
+    non_checkerboard = metadata.loc[~metadata["has_checkerboard_paradigm"]]
+    assert set(non_checkerboard.index) == {"StudyD", "StudyJ"}
+
+
+def test_grid_size_and_checkerboard_are_registered_as_protocol_descriptors() -> None:
+    assert "grid_size" in COVARIATES
+    assert "has_checkerboard_paradigm" in COVARIATES
+    assert DESCRIPTOR_KIND["grid_size"] == "protocol descriptor"
+    assert DESCRIPTOR_KIND["has_checkerboard_paradigm"] == "protocol descriptor"
+    assert "grid_size" in PROTOCOL_DESCRIPTORS
+    assert "has_checkerboard_paradigm" in PROTOCOL_DESCRIPTORS
+
+
+def test_protocol_covariates_merges_documented_metadata_onto_the_empirical_covariates() -> None:
+    # A minimal trials/records pair with two studies, enough for protocol_covariates() to run.
+    # protocol_covariates is already imported at the top of this file.
+    trials = pd.DataFrame({
+        "study": ["StudyA", "StudyA", "StudyD", "StudyD"],
+        "eligible": [True, True, True, True],
+        "condition": ["c1", "c1", "c1", "c1"],
+        "relative_path": ["a1", "a1", "d1", "d1"],
+        "trial_number": [1, 2, 1, 2],
+        "phase3_time_seconds": [0.0, 5.0, 0.0, 6.0],
+        "target": [1, 2, 1, 2],
+    })
+    records = pd.DataFrame({
+        "study": ["StudyA", "StudyD"],
+        "correct": [8, 9],
+        "n": [10, 10],
+    })
+    covariates = protocol_covariates(trials, records)
+    merged = covariates.set_index("study")
+    assert merged.loc["StudyA", "grid_size"] == 72
+    assert merged.loc["StudyD", "grid_size"] == 72
+    assert merged.loc["StudyA", "has_checkerboard_paradigm"] == True  # noqa: E712
+    assert merged.loc["StudyD", "has_checkerboard_paradigm"] == False  # noqa: E712
 
 
 def test_covariates_without_timing_columns_still_produce_the_rest() -> None:

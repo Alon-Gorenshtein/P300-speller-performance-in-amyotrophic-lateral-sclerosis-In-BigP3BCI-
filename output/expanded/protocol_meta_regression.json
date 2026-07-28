@@ -5,7 +5,7 @@
   "n_cohorts_with_covariates": 18,
   "primary_analysis": "random-effects meta-regression, moderator standardised, Knapp and Hartung adjusted",
   "secondary_analysis": "Spearman rank correlation",
-  "multiple_testing": "Holm step-down across 8 descriptors, applied separately within each analysis; see family_composition for every other definition of the family",
+  "multiple_testing": "Holm step-down across 10 descriptors, applied separately within each analysis; see family_composition for every other definition of the family",
   "baseline_heterogeneity": {
     "n_studies": 18.0,
     "pooled": 1.057888268127324,
@@ -42,8 +42,8 @@
       "tau_squared_without_moderator": 0.18655599538157944,
       "between_cohort_variance_explained": 0.6634607074623678,
       "se_method": "cluster",
-      "p_value_holm": 0.005474930749307286,
-      "meta_p_value_holm": 0.012119403531018924
+      "p_value_holm": 0.006843663436634107,
+      "meta_p_value_holm": 0.015149254413773655
     },
     {
       "covariate": "median_selections_per_record",
@@ -66,8 +66,8 @@
       "tau_squared_without_moderator": 0.18655599538157944,
       "between_cohort_variance_explained": 0.11824664745120994,
       "se_method": "cluster",
-      "p_value_holm": 0.7033767391473171,
-      "meta_p_value_holm": 0.6221919066680156
+      "p_value_holm": 0.9378356521964228,
+      "meta_p_value_holm": 0.8295892088906874
     },
     {
       "covariate": "n_conditions",
@@ -142,6 +142,54 @@
       "meta_p_value_holm": 1.0
     },
     {
+      "covariate": "grid_size",
+      "kind": "protocol descriptor",
+      "n_studies": 18,
+      "spearman_rho": -0.15454202504667952,
+      "p_value": 0.5403446773681579,
+      "dropped_labels": "",
+      "n_dropped": 0,
+      "n_studies_meta": 18.0,
+      "unidentified_reason": "",
+      "coefficient_per_sd": -0.06072859626441943,
+      "coefficient_se": 0.1331863023300242,
+      "ci_low": -0.34307094435752183,
+      "ci_high": 0.221613751828683,
+      "t_statistic": -0.4559672819351887,
+      "degrees_of_freedom": 16.0,
+      "meta_p_value": 0.6545412623755507,
+      "tau_squared": 0.20535278753408223,
+      "tau_squared_without_moderator": 0.18655599538157944,
+      "between_cohort_variance_explained": 0.0,
+      "se_method": "cluster",
+      "p_value_holm": 1.0,
+      "meta_p_value_holm": 1.0
+    },
+    {
+      "covariate": "has_checkerboard_paradigm",
+      "kind": "protocol descriptor",
+      "n_studies": 18,
+      "spearman_rho": 0.340733137818191,
+      "p_value": 0.1664658449012302,
+      "dropped_labels": "",
+      "n_dropped": 0,
+      "n_studies_meta": 18.0,
+      "unidentified_reason": "",
+      "coefficient_per_sd": 0.17582827368809523,
+      "coefficient_se": 0.11675832594994084,
+      "ci_low": -0.07168832022138688,
+      "ci_high": 0.42334486759757733,
+      "t_statistic": 1.5059163640585265,
+      "degrees_of_freedom": 16.0,
+      "meta_p_value": 0.1515751240814447,
+      "tau_squared": 0.1578676486866854,
+      "tau_squared_without_moderator": 0.18655599538157944,
+      "between_cohort_variance_explained": 0.15377874421143756,
+      "se_method": "cluster",
+      "p_value_holm": 1.0,
+      "meta_p_value_holm": 1.0
+    },
+    {
       "covariate": "mean_accuracy",
       "kind": "outcome summary",
       "n_studies": 18,
@@ -210,8 +258,8 @@
       "tau_squared_without_moderator": 0.18655599538157944,
       "between_cohort_variance_explained": 0.1137724811191414,
       "se_method": "cluster",
-      "p_value_holm": 0.16355882839929128,
-      "meta_p_value_holm": 0.46677175859140996
+      "p_value_holm": 0.21028992222766021,
+      "meta_p_value_holm": 0.6001351181889556
     }
   ],
   "joint_fits": [
@@ -221,7 +269,9 @@
         "median_selections_per_record",
         "n_conditions",
         "max_target_index",
-        "n_distinct_targets"
+        "n_distinct_targets",
+        "grid_size",
+        "has_checkerboard_paradigm"
       ],
       "n_studies": 18,
       "n_dropped": 0,
@@ -230,52 +280,64 @@
       "n_studies_meta": 18.0,
       "unidentified_reason": "",
       "coefficients_per_sd": [
-        0.3891434263249611,
-        -0.022267585199257645,
-        -0.03827028719532216,
-        0.04067155674590969,
-        -0.013221321014218052
+        0.5975465397366583,
+        0.2171899682088354,
+        -0.06900308562693958,
+        -0.09006927186130215,
+        0.04863353490309222,
+        0.2150598024248937,
+        0.10965610000253292
       ],
       "coefficient_se": [
-        0.1558102282591974,
-        0.1540869992337772,
-        0.1153003130931624,
-        0.12953613498714955,
-        0.12637091192658143
+        0.23583178780540567,
+        0.22304561471635678,
+        0.11629930539755157,
+        0.15541892811364993,
+        0.13821315742240362,
+        0.18100775015397388,
+        0.13703813837045176
       ],
-      "tau_squared": 0.10705681175462312,
+      "tau_squared": 0.10826908886164047,
       "tau_squared_without_moderators": 0.18655599538157944,
-      "between_cohort_variance_explained": 0.4261411350750193,
-      "f_statistic": 2.1376180713453614,
-      "degrees_of_freedom": 12.0,
-      "joint_p_value": 0.13042530528791182,
+      "between_cohort_variance_explained": 0.419642940768598,
+      "f_statistic": 1.8726585098871058,
+      "degrees_of_freedom": 10.0,
+      "joint_p_value": 0.17759959044144338,
       "t_statistics": [
-        2.4975473733187994,
-        -0.1445130693049177,
-        -0.3319183284818997,
-        0.3139784643871338,
-        -0.10462313528210775
+        2.5337828513165412,
+        0.9737468655684269,
+        -0.5933232824655571,
+        -0.579525756318684,
+        0.3518734092330994,
+        1.188124830245962,
+        0.8001867312740512
       ],
       "p_values": [
-        0.028041278264717265,
-        0.887494051811216,
-        0.7456764192443878,
-        0.7589286059309188,
-        0.9184032301842052
+        0.029677813055177277,
+        0.3531475873756288,
+        0.5661417104176579,
+        0.5750570411190447,
+        0.7322352510986614,
+        0.26223615449447785,
+        0.4421971179923842
       ],
       "ci_low": [
-        0.04966210200044241,
-        -0.3579943160147358,
-        -0.2894880886273527,
-        -0.2415634360695977,
-        -0.28855988521660103
+        0.07208057079405117,
+        -0.27978663170584056,
+        -0.3281340864422412,
+        -0.4363642239253874,
+        -0.25932457100546036,
+        -0.18825059820379997,
+        -0.1956839003045416
       ],
       "ci_high": [
-        0.7286247506494797,
-        0.3134591456162205,
-        0.21294751423670838,
-        0.32290654956141707,
-        0.262117243188165
+        1.1230125086792655,
+        0.7141665681235114,
+        0.19012791518836203,
+        0.2562256802027831,
+        0.35659164081164474,
+        0.6183702030535874,
+        0.41499610030960743
       ]
     },
     {
@@ -285,6 +347,8 @@
         "n_conditions",
         "max_target_index",
         "n_distinct_targets",
+        "grid_size",
+        "has_checkerboard_paradigm",
         "mean_accuracy",
         "accuracy_sd",
         "fraction_at_ceiling"
@@ -296,70 +360,82 @@
       "n_studies_meta": 18.0,
       "unidentified_reason": "",
       "coefficients_per_sd": [
-        0.2886224686968099,
-        0.15245873714570335,
-        -0.058341246545679445,
-        0.0787930941584746,
-        -0.03979880359092028,
-        0.28231913144492493,
-        0.3454786504782399,
-        0.19777569496628722
+        0.516761756271316,
+        0.5400975119860365,
+        -0.11478407389361947,
+        -0.052254533900117695,
+        0.03175742611877773,
+        0.30946485140718416,
+        0.10552139806738016,
+        0.35875804996779914,
+        0.5061392062924162,
+        0.3547627553678715
       ],
       "coefficient_se": [
-        0.231576598781536,
-        0.29416774669496976,
-        0.13663955470396322,
-        0.16483335144949454,
-        0.15832087167779935,
-        0.5630525654401854,
-        0.4856475961077679,
-        0.38797309492859894
+        0.2756494675497393,
+        0.3622596704717941,
+        0.13462607128967638,
+        0.17639574448418727,
+        0.1686403301317237,
+        0.21194205618038514,
+        0.15880238080334322,
+        0.5477116439366888,
+        0.4852623675596259,
+        0.384352742871453
       ],
-      "tau_squared": 0.17342859203398817,
+      "tau_squared": 0.16103836511579045,
       "tau_squared_without_moderators": 0.18655599538157944,
-      "between_cohort_variance_explained": 0.0703670944519399,
-      "f_statistic": 1.1150276095713172,
-      "degrees_of_freedom": 9.0,
-      "joint_p_value": 0.4334273339053277,
+      "between_cohort_variance_explained": 0.1367826866866193,
+      "f_statistic": 1.270473859588057,
+      "degrees_of_freedom": 7.0,
+      "joint_p_value": 0.38623111215853995,
       "t_statistics": [
-        1.2463369365273806,
-        0.5182714245820831,
-        -0.4269718726182826,
-        0.4780166966550884,
-        -0.2513806497472758,
-        0.5014081255880832,
-        0.711377248126183,
-        0.5097665213168585
+        1.8747061652788046,
+        1.49091261327167,
+        -0.8526140055490242,
+        -0.29623466287647304,
+        0.1883145395527407,
+        1.460138950165685,
+        0.6644824689250418,
+        0.6550126402083005,
+        1.0430217550925687,
+        0.9230134608055135
       ],
       "p_values": [
-        0.2441038479250405,
-        0.6167683402751931,
-        0.6794322577448992,
-        0.6440351921590928,
-        0.8071655280341559,
-        0.6281187654676267,
-        0.49487391976716033,
-        0.6224796872393359
+        0.10296359179351927,
+        0.17960685540669408,
+        0.4220840457699087,
+        0.775646612876039,
+        0.8559730649915707,
+        0.18762800527589962,
+        0.5276564389962357,
+        0.5333847739577119,
+        0.3316148798268181,
+        0.3867093837005677
       ],
       "ci_low": [
-        -0.23524019297328774,
-        -0.5129949381045305,
-        -0.367441393940807,
-        -0.29408585249103336,
-        -0.39794549747730956,
-        -0.9913942624974956,
-        -0.753132537652677,
-        -0.6798804206994308
+        -0.13504565963543558,
+        -0.3165104901855781,
+        -0.4331241469618473,
+        -0.46936418918519096,
+        -0.3670135883073094,
+        -0.19169847456939482,
+        -0.2699865627908776,
+        -0.9363741861646471,
+        -0.6413239564244066,
+        -0.5540870615921718
       ],
       "ci_high": [
-        0.8124851303669076,
-        0.8179124123959371,
-        0.2507589008494481,
-        0.4516720408079825,
-        0.31834789029546895,
-        1.5560325253873455,
-        1.4440898386091567,
-        1.075431810632005
+        1.1685691721780676,
+        1.396705514157651,
+        0.20355599917460834,
+        0.36485512138495557,
+        0.4305284405448649,
+        0.8106281773837631,
+        0.4810293589256379,
+        1.6538902861002454,
+        1.653602369009239,
+        1.2636125723279148
       ]
     },
     {
@@ -450,44 +526,52 @@
   "family_composition": [
     {
       "family": "all descriptors",
-      "n_tests": 8,
+      "n_tests": 10,
       "meta_p_holm": {
-        "median_inter_selection_interval": 0.012119403531018924,
-        "median_selections_per_record": 0.6221919066680156,
+        "median_inter_selection_interval": 0.015149254413773655,
+        "median_selections_per_record": 0.8295892088906874,
         "n_conditions": 1.0,
         "max_target_index": 1.0,
         "n_distinct_targets": 1.0,
+        "grid_size": 1.0,
+        "has_checkerboard_paradigm": 1.0,
         "mean_accuracy": 1.0,
         "accuracy_sd": 1.0,
-        "fraction_at_ceiling": 0.46677175859140996
+        "fraction_at_ceiling": 0.6001351181889556
       },
       "spearman_p_holm": {
-        "median_inter_selection_interval": 0.005474930749307286,
-        "median_selections_per_record": 0.7033767391473171,
+        "median_inter_selection_interval": 0.006843663436634107,
+        "median_selections_per_record": 0.9378356521964228,
         "n_conditions": 1.0,
         "max_target_index": 1.0,
         "n_distinct_targets": 1.0,
+        "grid_size": 1.0,
+        "has_checkerboard_paradigm": 1.0,
         "mean_accuracy": 1.0,
         "accuracy_sd": 1.0,
-        "fraction_at_ceiling": 0.16355882839929128
+        "fraction_at_ceiling": 0.21028992222766021
       }
     },
     {
       "family": "protocol descriptors",
-      "n_tests": 5,
+      "n_tests": 7,
       "meta_p_holm": {
-        "median_inter_selection_interval": 0.0075746272068868276,
-        "median_selections_per_record": 0.4147946044453437,
+        "median_inter_selection_interval": 0.010604478089641559,
+        "median_selections_per_record": 0.6221919066680156,
         "n_conditions": 1.0,
         "max_target_index": 1.0,
-        "n_distinct_targets": 1.0
+        "n_distinct_targets": 1.0,
+        "grid_size": 1.0,
+        "has_checkerboard_paradigm": 0.7578756204072234
       },
       "spearman_p_holm": {
-        "median_inter_selection_interval": 0.0034218317183170536,
-        "median_selections_per_record": 0.4689178260982114,
+        "median_inter_selection_interval": 0.004790564405643875,
+        "median_selections_per_record": 0.7033767391473171,
         "n_conditions": 1.0,
         "max_target_index": 1.0,
-        "n_distinct_targets": 1.0
+        "n_distinct_targets": 1.0,
+        "grid_size": 1.0,
+        "has_checkerboard_paradigm": 0.832329224506151
       }
     },
     {
@@ -506,26 +590,30 @@
     },
     {
       "family": "both analyses pooled",
-      "n_tests": 16,
+      "n_tests": 20,
       "meta_p_holm": {
-        "median_inter_selection_interval": 0.022723881620660483,
+        "median_inter_selection_interval": 0.028783583386169945,
         "median_selections_per_record": 1.0,
         "n_conditions": 1.0,
         "max_target_index": 1.0,
         "n_distinct_targets": 1.0,
+        "grid_size": 1.0,
+        "has_checkerboard_paradigm": 1.0,
         "mean_accuracy": 1.0,
         "accuracy_sd": 1.0,
-        "fraction_at_ceiling": 0.866861837384047
+        "fraction_at_ceiling": 1.0
       },
       "spearman_p_holm": {
-        "median_inter_selection_interval": 0.010949861498614571,
+        "median_inter_selection_interval": 0.013687326873268214,
         "median_selections_per_record": 1.0,
         "n_conditions": 1.0,
         "max_target_index": 1.0,
         "n_distinct_targets": 1.0,
+        "grid_size": 1.0,
+        "has_checkerboard_paradigm": 1.0,
         "mean_accuracy": 1.0,
         "accuracy_sd": 1.0,
-        "fraction_at_ceiling": 0.32711765679858257
+        "fraction_at_ceiling": 0.42057984445532043
       }
     }
   ],
@@ -711,6 +799,30 @@
       "withheld_at_max_variance_explained": "StudyA",
       "spearman_p_value_min": 0.5092198628175352,
       "spearman_p_value_max": 0.996236145115781
+    },
+    {
+      "covariate": "grid_size",
+      "n_refits": 18,
+      "meta_p_value_min": 0.1516243764614568,
+      "meta_p_value_max": 0.8649445989484967,
+      "withheld_at_min_meta_p": "StudyJ",
+      "variance_explained_min": 0.0,
+      "variance_explained_max": 0.09573308034006334,
+      "withheld_at_max_variance_explained": "StudyJ",
+      "spearman_p_value_min": 0.13469882414340686,
+      "spearman_p_value_max": 0.9044810502420634
+    },
+    {
+      "covariate": "has_checkerboard_paradigm",
+      "n_refits": 18,
+      "meta_p_value_min": 0.07385676650801537,
+      "meta_p_value_max": 0.5715289196798418,
+      "withheld_at_min_meta_p": "StudyH",
+      "variance_explained_min": 0.0,
+      "variance_explained_max": 0.2767582671637221,
+      "withheld_at_max_variance_explained": "StudyH",
+      "spearman_p_value_min": 0.10220222989735056,
+      "spearman_p_value_max": 0.5574624351198404
     },
     {
       "covariate": "mean_accuracy",

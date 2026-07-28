@@ -5,16 +5,20 @@ of these are not recorded as fields, but several are recoverable from the recons
 the analysis records. If they track the cohort-specific calibration slope, then some of the apparent
 transportability failure is an omitted-variable problem rather than an irreducible one.
 
-Five of the eight descriptors are properties of the protocol proper.
+Seven of the ten descriptors are properties of the protocol proper.
 `median_inter_selection_interval` is the time a cohort spent per selection, recovered from the
 within-file spacing of the reconstructed selection timestamps. It is the time-domain signature of
 the stopping rule: a cohort that averaged more stimulus repetitions before committing to a character
 took longer over each one. `n_conditions` counts the distinct stimulus conditions a study
 contributed, and is the closest the archive comes to naming paradigm variety;
 `median_selections_per_record` reflects how long a copy-spelling record ran and how many of its
-feedback outcomes survived reconstruction; `max_target_index` and `n_distinct_targets` are proxies
-for the size of the speller matrix, bounded below by the alphabet actually spelled rather than equal
-to the matrix, since a 36-cell grid in which only 24 characters were ever copied reports 24.
+feedback outcomes survived reconstruction; `max_target_index` and `n_distinct_targets` are empirical
+proxies for the size of the speller matrix, bounded below by the alphabet actually spelled rather
+than equal to the matrix, since a 36-cell grid in which only 24 characters were ever copied reports
+24. `grid_size` and `has_checkerboard_paradigm` are not proxies: they are transcribed directly from
+the archive's own data descriptor, which documents a grid size and a stimulus paradigm per study
+(:func:`documented_protocol_metadata`), and so are exact rather than a lower bound. The stopping
+rule has no comparable documented field; only the timing signature above stands in for it.
 
 The other three, `mean_accuracy`, `accuracy_sd` and `fraction_at_ceiling`, are summaries of the same
 outcomes the calibration slope is fitted to, and none of them is evidence about protocol. Outcome
@@ -38,12 +42,12 @@ assumes no functional form and is unaffected by the weighting, but it is seconda
 per-cohort standard errors, gives no effect size on the scale of the slope, and at 18 cohorts has
 little power to separate a moderate association from none.
 
-Both families are corrected across the eight descriptors by the Holm step-down procedure, which
+Both families are corrected across the ten descriptors by the Holm step-down procedure, which
 controls the family-wise error rate under any dependence between the tests. That property matters
 here rather than being a formality, because the descriptors are strongly rank-correlated with one
 another and a correction assuming independence would not be valid. The two families are corrected
-separately, because the meta-regression and the rank correlation are two analyses of the same eight
-questions rather than sixteen independent ones, and pooling them would penalise the primary analysis
+separately, because the meta-regression and the rank correlation are two analyses of the same ten
+questions rather than twenty independent ones, and pooling them would penalise the primary analysis
 for the existence of its own sensitivity check. The family is a choice, and a choice that moves a p
 value, so :func:`family_composition_sensitivity` reports every defensible definition of it rather
 than leaving a reader to wonder which one was picked after seeing the answer.
@@ -72,12 +76,57 @@ from scipy import stats
 from bigp3_als.expanded import _cohort_slopes, _moment_tau_squared, _weighted_least_squares
 from bigp3_als.heterogeneity import random_effects
 
+# Grid size and stimulus paradigm(s), transcribed from Table 1 of the archive's own descriptor
+# (tmp/pdfs/bigp3bci_v1_0_0.pdf, "Summary of BCI Studies in bigP3BCI v1.0.0 Dataset"), restricted to
+# the 18 studies that contribute an eligible online outcome. Grid size is rows times columns. A study
+# is coded checkerboard-present if any of its documented paradigms is a checkerboard variant (CB,
+# CBcol, sCB/CBs), because those variants share the flash-adjacency-avoidance design the checkerboard
+# paradigm was built for, regardless of what else that study also administered. Only StudyD (RC alone)
+# and StudyJ (RC, PB) lack a checkerboard variant among the 18 contributing cohorts.
+_DOCUMENTED_PROTOCOL_METADATA = {
+    "StudyA": (72, True),
+    "StudyB": (36, True),
+    "StudyD": (72, False),
+    "StudyE": (72, True),
+    "StudyF": (72, True),
+    "StudyG": (72, True),
+    "StudyH": (72, True),
+    "StudyI": (72, True),
+    "StudyJ": (36, False),
+    "StudyK": (72, True),
+    "StudyL": (36, True),
+    "StudyM": (72, True),
+    "StudyN": (36, True),
+    "StudyO": (72, True),
+    "StudyQ": (72, True),
+    "StudyR": (72, True),
+    "StudyS1": (72, True),
+    "StudyS2": (72, True),
+}
+
+
+def documented_protocol_metadata() -> pd.DataFrame:
+    """Return the archive's own documented grid size and checkerboard-paradigm indicator, per study.
+
+    Unlike ``_matrix_size_proxies``, these values are not reconstructed from trial data — they are
+    transcribed from the archive's own data descriptor and are exact rather than a lower bound.
+    """
+    return pd.DataFrame(
+        [
+            {"study": study, "grid_size": size, "has_checkerboard_paradigm": checkerboard}
+            for study, (size, checkerboard) in _DOCUMENTED_PROTOCOL_METADATA.items()
+        ]
+    )
+
+
 COVARIATES = (
     "median_inter_selection_interval",
     "median_selections_per_record",
     "n_conditions",
     "max_target_index",
     "n_distinct_targets",
+    "grid_size",
+    "has_checkerboard_paradigm",
     "mean_accuracy",
     "accuracy_sd",
     "fraction_at_ceiling",
@@ -92,6 +141,8 @@ DESCRIPTOR_KIND = {
     "n_conditions": "protocol descriptor",
     "max_target_index": "protocol descriptor",
     "n_distinct_targets": "protocol descriptor",
+    "grid_size": "protocol descriptor",
+    "has_checkerboard_paradigm": "protocol descriptor",
     "mean_accuracy": "outcome summary",
     "accuracy_sd": "outcome summary",
     "fraction_at_ceiling": "outcome summary",
@@ -158,13 +209,17 @@ def _selection_timing(trials: pd.DataFrame) -> pd.DataFrame | None:
 
 
 def _matrix_size_proxies(trials: pd.DataFrame) -> pd.DataFrame | None:
-    """Recover per study what can be said about the size of the speller matrix.
+    """Recover per study what the reconstructed trials themselves say about the speller matrix.
 
-    The archive records no matrix dimension. The index of the intended character is recorded, so its
-    maximum and its number of distinct values bound the alphabet from below. Neither equals the
-    matrix: a cohort that copied only 24 characters from a 36-cell grid reports 24, and one study
-    indexes its targets from 10 rather than 1, which inflates the maximum without widening the
-    alphabet. Both are reported so that the two failure modes do not hide in one number.
+    The archive's own descriptor documents an intended grid size per study
+    (:func:`documented_protocol_metadata`), but that is the matrix as designed, not necessarily the
+    alphabet actually spelled from it. The index of the intended character is recorded in the trial
+    data, so its maximum and its number of distinct values bound the alphabet actually used from
+    below. Neither equals the documented matrix: a cohort that copied only 24 characters from a
+    36-cell grid reports 24, and one study indexes its targets from 10 rather than 1, which inflates
+    the maximum without widening the alphabet. Both are reported so that the two failure modes do not
+    hide in one number, and so that the documented matrix and the alphabet actually exercised remain
+    distinguishable.
     """
     if "target" not in trials.columns:
         return None
@@ -206,7 +261,7 @@ def protocol_covariates(trials: pd.DataFrame, records: pd.DataFrame) -> pd.DataF
         .reset_index()
     )
     covariates = conditions.merge(outcome, on="study", how="outer")
-    for extra in (_selection_timing(trials), _matrix_size_proxies(trials)):
+    for extra in (_selection_timing(trials), _matrix_size_proxies(trials), documented_protocol_metadata()):
         if extra is not None:
             covariates = covariates.merge(extra, on="study", how="left")
     return covariates
@@ -462,7 +517,7 @@ def joint_moderator_fit(
     Testing descriptors one at a time answers whether any single one accounts for the spread. It
     does not answer whether they account for it together, which is what a reviewer proposing
     omitted-variable bias is claiming. The descriptors are collinear, so a joint fit can leave less
-    of the variance accounted for than the better single moderator did, and with five moderators on
+    of the variance accounted for than the better single moderator did, and with seven moderators on
     18 cohorts the fit is close to the limit of what the data identify. The joint F test is reported
     in preference to the individual coefficients for that reason.
     """

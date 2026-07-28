@@ -2,12 +2,14 @@
 
 The cohorts disagree about the calibration mapping by more than sampling error explains, and the
 first objection to reading that as a transportability limit is that the source studies also differ
-in stimulus paradigm, matrix design, electrode type and stopping rule. Most of those are not
-recorded, but five descriptors are recoverable from the reconstructed trials and the analysis
-records, and this script tests each of them as a moderator of the cohort calibration slope.
+in stimulus paradigm, matrix design, electrode type and stopping rule. The stopping rule and the
+electrode configuration are not recorded as fields, but ten descriptors are available: eight
+recoverable from the reconstructed trials and the analysis records, and two (grid size and
+stimulus paradigm) transcribed directly from the archive's own data descriptor. This script tests
+each of them as a moderator of the cohort calibration slope.
 
 The primary analysis is a precision-weighted random-effects meta-regression, corrected across the
-five descriptors by Holm. The rank correlations are reported beside it. The joint fits and the
+ten descriptors by Holm. The rank correlations are reported beside it. The joint fits and the
 leave-one-cohort-out refits are there so that a null is not read as more solid than 18 cohorts can
 make it.
 """
