@@ -306,6 +306,8 @@ def render_calibration_curves(
     als_studies: tuple[str, ...],
     directory: Path,
     bins: int = 10,
+    cohorts: tuple[str, ...] | None = None,
+    filename: str = "figure_calibration_curves",
 ) -> None:
     """Plot observed against estimated accuracy, one panel per withheld cohort.
 
@@ -313,6 +315,10 @@ def render_calibration_curves(
     positioned at the selection-weighted mean estimate and the observed accuracy of the records in
     it. Points above the identity line are bins whose accuracy the mapping understated and points
     below are bins whose accuracy it overstated, which is the direction the forest does not show.
+
+    ``cohorts``, when given, restricts the panel grid to that subset (used for a readable
+    main-text figure); the default ``None`` draws every cohort (used for the full supplementary
+    figure). ``filename`` lets the two versions be written without one overwriting the other.
     """
     require_columns(predictions, {"held_out_study", "predicted_probability", "correct", "n"})
     frame = predictions
@@ -321,16 +327,23 @@ def render_calibration_curves(
     if frame.empty:
         raise ValueError("no primary predictions available to draw calibration curves")
 
-    cohorts = sorted(frame["held_out_study"].unique())
-    columns = min(6, len(cohorts))
-    rows = math.ceil(len(cohorts) / columns)
+    available = sorted(frame["held_out_study"].unique())
+    if cohorts is not None:
+        missing = sorted(set(cohorts) - set(available))
+        if missing:
+            raise ValueError(f"cohorts not present in predictions: {missing}")
+        cohort_list = list(cohorts)
+    else:
+        cohort_list = available
+    columns = min(6, len(cohort_list))
+    rows = math.ceil(len(cohort_list) / columns)
     fig, axes = plt.subplots(
         rows, columns, figsize=(1.62 * columns, 1.78 * rows + 0.5),
         sharex=True, sharey=True, constrained_layout=True,
     )
     flat = np.atleast_1d(np.asarray(axes)).ravel()
 
-    for axis, cohort in zip(flat, cohorts, strict=False):
+    for axis, cohort in zip(flat, cohort_list, strict=False):
         cohort_frame = frame.loc[frame["held_out_study"] == cohort]
         binned = _calibration_bins(cohort_frame, bins)
         colour = ALS_COLOR if cohort in als_studies else OTHER_COLOR
@@ -356,12 +369,12 @@ def render_calibration_curves(
         axis.spines["top"].set_visible(False)
         axis.spines["right"].set_visible(False)
 
-    for axis in flat[len(cohorts):]:
+    for axis in flat[len(cohort_list):]:
         axis.set_axis_off()
 
     fig.supxlabel("Estimated session accuracy (equal-count bin of the estimate)", fontsize=10)
     fig.supylabel("Observed session accuracy", fontsize=10)
-    _save(fig, directory, "figure_calibration_curves")
+    _save(fig, directory, filename)
 
 
 def _build_cohort_type_relationship(

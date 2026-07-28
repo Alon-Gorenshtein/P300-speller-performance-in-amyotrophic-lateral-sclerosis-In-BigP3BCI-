@@ -30,6 +30,7 @@ from bigp3_als.render_expanded import (
 
 PRIMARY_SE_METHOD = "cluster"
 EXPECTED_COHORTS = 18
+MAIN_TEXT_COHORTS = ALS_STUDIES + ("StudyH", "StudyS2")
 
 
 def main() -> None:
@@ -61,6 +62,9 @@ def main() -> None:
 
     render_calibration_forest(calibration, summary, ALS_STUDIES, figures)
     render_calibration_curves(predictions, ALS_STUDIES, figures)
+    render_calibration_curves(
+        predictions, ALS_STUDIES, figures, cohorts=MAIN_TEXT_COHORTS, filename="figure_calibration_curves_main"
+    )
     render_transportability(metrics, pooling, ALS_STUDIES, figures)
     render_skill_by_cohort(metrics, benchmark, ALS_STUDIES, figures)
     render_cohort_type_relationship(records, ALS_STUDIES, figures)
@@ -68,7 +72,8 @@ def main() -> None:
     negative = _negative_skill_cohorts(metrics, benchmark)
     print(f"figures written to {figures}")
     print("  figure_calibration_forest        Figure 1")
-    print("  figure_calibration_curves        Figure 2")
+    print("  figure_calibration_curves        Figure S2 (all 18 cohorts)")
+    print("  figure_calibration_curves_main   Figure 2 (6-cohort subset)")
     print("  figure_transportability          Figure 3")
     print("  figure_skill_by_cohort           Figure 4")
     print("  figure_cohort_type_relationship  Figure S1")

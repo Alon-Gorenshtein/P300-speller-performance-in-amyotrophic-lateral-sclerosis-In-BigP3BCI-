@@ -241,7 +241,15 @@ At the far end of that range the calibration score of one cohort is being treate
 
 Two limits of this analysis should be read alongside it. Reliability is estimated per cohort from as few as 8 sessions, so each ratio is itself imprecise, and the correction treats lambda as known. And attenuation is the only mechanism modelled: it addresses measurement error in the predictor and says nothing about differences in protocol, population or stopping rule, which are treated separately in the moderator analysis.
 
-## S10. Reproducibility
+## S10. The full 18-cohort calibration-curve figure
+
+The main-text Figure 2 shows six representative cohorts, so that the panels are legible at the size a printed page allows. This section gives the same figure for every withheld cohort.
+
+**Figure S2. Observed against estimated session accuracy, one panel per withheld cohort, all 18 cohorts.** The main-text Figure 2 shows six representative cohorts (the four ALS cohorts and the two non-ALS extremes of the calibration-slope range); this figure shows every cohort. Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. A cohort supports at most as many bins as it has distinct estimates, and the estimate is a property of the session rather than of the record, so two of the 18 cohorts draw eight bins rather than ten. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated, so the panels carry the direction of the miscalibration that Figure 1 summarises as a spread. The number in each panel is observed minus estimated accuracy across that whole cohort.
+
+![](../output/expanded/figures/figure_calibration_curves.png){width=100%}
+
+## S11. Reproducibility
 
 ### Recomputing any estimate
 
@@ -276,6 +284,6 @@ Recomputing all 739 held-out estimates from the printed values reproduces the fr
 
 The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, per-cohort calibration and heterogeneity, predictor precision and reliability with the disattenuated heterogeneity of S9, the estimand comparison, the protocol-moderator analysis, sensitivity analyses, the comparator-predictor sweep, the fold-coefficient export, and the rendering of every figure from those frozen outputs. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `cohort_calibration.csv`, `heterogeneity_summary.json`, `predictor_precision.csv`, `predictor_reliability.csv`, `estimand_comparison.csv`, `sensitivity_analyses.csv`, `comparator_metrics.csv`, `fold_coefficients.csv`, `protocol_covariates.csv` and `protocol_meta_regression.json`. The repository test suite contains 162 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, the promised sensitivity, comparator and fold-coefficient analyses, the session-ordering assumption behind the preceding-session analysis, and rendering.
 
-## S11. Transparency statement
+## S12. Transparency statement
 
 As stated in the Methods, under Ethics, the study involved no new data collection, participant contact, prospective enrolment, or intervention. It does not establish a diagnostic, prognostic, causal, or treatment effect. Character-level online selection accuracy is an operational endpoint and should not be presented as communication success, quality of life, or a clinical outcome. The source studies vary in protocol, and the archive does not permit cross-study person-level linkage. Four source studies carry a documented ALS population; the remaining cohorts are described as other cohorts because the documentation does not support a positive characterisation, and no participant-level clinical characteristics were available.

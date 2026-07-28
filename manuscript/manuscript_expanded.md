@@ -284,7 +284,7 @@ In 18 independent P300-speller cohorts, calibration-derived decoder discriminabi
 
 **Figure 1. Calibration slope and intercept in each withheld cohort, against the values a transportable mapping would take.** Each row is one cohort withheld from model development, with its estimate and 95% confidence interval, marked by whether the archive documents an ALS study population. Standard errors are clustered on participant. Each panel is ordered by its own estimate, so a cohort does not occupy the same row in panel a as in panel b. The dashed line is the value a mapping that transported exactly would take, one for the slope in panel a and zero for the intercept in panel b; the band is the 95% interval for a cohort not represented in the archive and the solid line within it is the pooled estimate. That band is computed at the point estimate of tau, which is itself imprecise, so it widens and narrows with the values of tau reported in the Results. Intervals running past the axis are drawn with an arrow. The between-cohort standard deviation tau and I-squared are given beneath each panel; I-squared is descriptive only, for the reason given in the Results.
 
-**Figure 2. Observed against estimated session accuracy, one panel per withheld cohort.** Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. A cohort supports at most as many bins as it has distinct estimates, and the estimate is a property of the session rather than of the record, so two of the 18 cohorts draw eight bins rather than ten. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated, so the panels carry the direction of the miscalibration that Figure 1 summarises as a spread. The number in each panel is observed minus estimated accuracy across that whole cohort.
+**Figure 2. Observed against estimated session accuracy, in the four ALS cohorts and the two non-ALS cohorts at either end of the calibration-slope range (Table 2).** Each point is one of up to ten equal-count bins of the estimate within that cohort, placed at the selection-weighted mean estimate and the observed accuracy of the records in it, with point area increasing with the selections it rests on. The dashed line is equality. Points above it are bins whose accuracy the mapping understated and points below are bins whose accuracy it overstated. The number in each panel is observed minus estimated accuracy across that whole cohort. The full 18-cohort version of this figure is Figure S2.
 
 **Figure 3. Estimation error in each withheld cohort, with the two uncertainty statements.** Each point is one cohort withheld from model development. The darker band is the 95% interval for the mean across the observed cohorts; the lighter band is the 95% interval for a cohort not represented in the archive. The two answer different questions and only the second describes what a reader should expect in their own setting.
 
@@ -292,7 +292,7 @@ In 18 independent P300-speller cohorts, calibration-derived decoder discriminabi
 
 ![](../output/expanded/figures/figure_calibration_forest.png){width=100%}
 
-![](../output/expanded/figures/figure_calibration_curves.png){width=100%}
+![](../output/expanded/figures/figure_calibration_curves_main.png){width=100%}
 
 ![](../output/expanded/figures/figure_transportability.png){width=88%}
 
