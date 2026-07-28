@@ -45,6 +45,10 @@ from bigp3_als.render import LABEL_COLOR, _save, require_columns
 
 ALS_COLOR = "#B24745"
 OTHER_COLOR = "#374E55"
+# Marker shape is a second, color-independent channel encoding ALS-vs-other cohort type, so the
+# distinction survives grayscale reproduction and is legible to readers with color-vision deficiency.
+ALS_MARKER = "D"
+OTHER_MARKER = "o"
 BAND_COLOR = "#79AF97"
 
 # The same critical value the analysis used to write the interval columns of cohort_calibration.csv.
@@ -75,9 +79,8 @@ def render_transportability(
     summary = summary.iloc[0]
 
     positions = np.arange(len(per_study))
-    colours = [
-        ALS_COLOR if study in als_studies else OTHER_COLOR for study in per_study["held_out_study"]
-    ]
+    is_als = per_study["held_out_study"].isin(als_studies).to_numpy()
+    values = per_study[metric].to_numpy()
 
     fig, ax = plt.subplots(figsize=(6.6, 5.4))
     ax.axvspan(
@@ -98,7 +101,11 @@ def render_transportability(
     )
     ax.axvline(summary["mean"], color=LABEL_COLOR, linewidth=1.2, zorder=2,
                label="mean across withheld cohorts")
-    ax.scatter(per_study[metric], positions, c=colours, s=44, zorder=3)
+    # A single scatter() call cannot vary marker shape by point, so the ALS and other-cohort
+    # subsets are drawn as two calls sharing the same size and z-order.
+    ax.scatter(values[is_als], positions[is_als], color=ALS_COLOR, marker=ALS_MARKER, s=44, zorder=3)
+    ax.scatter(values[~is_als], positions[~is_als], color=OTHER_COLOR, marker=OTHER_MARKER, s=44,
+               zorder=3)
 
     ax.set_yticks(positions)
     ax.set_yticklabels([_cohort_label(s) for s in per_study["held_out_study"]])
@@ -110,8 +117,8 @@ def render_transportability(
 
     handles, labels = ax.get_legend_handles_labels()
     marker_handles = [
-        plt.Line2D([], [], marker="o", linestyle="none", color=ALS_COLOR, label="ALS cohort"),
-        plt.Line2D([], [], marker="o", linestyle="none", color=OTHER_COLOR, label="Other cohort"),
+        plt.Line2D([], [], marker=ALS_MARKER, linestyle="none", color=ALS_COLOR, label="ALS cohort"),
+        plt.Line2D([], [], marker=OTHER_MARKER, linestyle="none", color=OTHER_COLOR, label="Other cohort"),
     ]
     ax.legend(
         handles=handles + marker_handles,
@@ -219,10 +226,12 @@ def _forest_panel(
 
     arrow_length = 0.05 * (high - low)
     for position, row in zip(positions, frame.itertuples(), strict=True):
-        colour = ALS_COLOR if row.held_out_study in als_studies else OTHER_COLOR
+        row_is_als = row.held_out_study in als_studies
+        colour = ALS_COLOR if row_is_als else OTHER_COLOR
+        marker = ALS_MARKER if row_is_als else OTHER_MARKER
         ax.plot([max(row.lower, low), min(row.upper, high)], [position, position],
                 color=colour, linewidth=1.5, solid_capstyle="butt", zorder=3)
-        ax.plot([getattr(row, quantity)], [position], marker="o", markersize=5.0,
+        ax.plot([getattr(row, quantity)], [position], marker=marker, markersize=5.0,
                 color=colour, zorder=4)
         if row.lower < low:
             ax.annotate("", xy=(low, position), xytext=(low + arrow_length, position),
@@ -267,8 +276,8 @@ def render_calibration_forest(
 
     handles, _ = axes[0].get_legend_handles_labels()
     handles += [
-        plt.Line2D([], [], marker="o", linestyle="none", color=ALS_COLOR, label="ALS cohort"),
-        plt.Line2D([], [], marker="o", linestyle="none", color=OTHER_COLOR, label="Other cohort"),
+        plt.Line2D([], [], marker=ALS_MARKER, linestyle="none", color=ALS_COLOR, label="ALS cohort"),
+        plt.Line2D([], [], marker=OTHER_MARKER, linestyle="none", color=OTHER_COLOR, label="Other cohort"),
     ]
     fig.legend(handles=handles, loc="outside lower center", ncol=3, frameon=False, fontsize=8.5)
     _save(fig, directory, "figure_calibration_forest")
@@ -347,11 +356,12 @@ def render_calibration_curves(
         cohort_frame = frame.loc[frame["held_out_study"] == cohort]
         binned = _calibration_bins(cohort_frame, bins)
         colour = ALS_COLOR if cohort in als_studies else OTHER_COLOR
+        marker = ALS_MARKER if cohort in als_studies else OTHER_MARKER
         axis.plot([0, 1], [0, 1], linestyle="--", linewidth=0.8, color="#9CA3AF", zorder=0)
         axis.plot(binned["predicted"], binned["observed"], color=colour, linewidth=1.0,
                   alpha=0.55, zorder=1)
         axis.scatter(binned["predicted"], binned["observed"],
-                     s=6.0 + 0.9 * np.sqrt(binned["selections"]), color=colour,
+                     s=6.0 + 0.9 * np.sqrt(binned["selections"]), color=colour, marker=marker,
                      edgecolors="white", linewidths=0.5, zorder=2)
         weights = cohort_frame["n"].to_numpy(dtype=float)
         departure = float(
@@ -386,12 +396,16 @@ def _build_cohort_type_relationship(
     frame["is_als"] = frame["study"].isin(als_studies)
 
     fig, ax = plt.subplots(figsize=(6.0, 4.6))
-    for is_als, colour, name in ((False, OTHER_COLOR, "Other cohorts"), (True, ALS_COLOR, "ALS cohorts")):
+    for is_als, colour, marker, name in (
+        (False, OTHER_COLOR, OTHER_MARKER, "Other cohorts"),
+        (True, ALS_COLOR, ALS_MARKER, "ALS cohorts"),
+    ):
         subset = frame.loc[frame["is_als"] == is_als]
         if subset.empty:
             continue
         ax.scatter(subset[feature], subset["accuracy"], s=np.sqrt(subset["n"]) * 3.0,
-                   color=colour, alpha=0.45, edgecolors="none", label=f"{name} (n = {len(subset)})")
+                   color=colour, marker=marker, alpha=0.45, edgecolors="none",
+                   label=f"{name} (n = {len(subset)})")
 
     ax.set_xlabel("Calibration discriminability (grouped cross-validated AUC)")
     ax.set_ylabel("Observed online session accuracy")
