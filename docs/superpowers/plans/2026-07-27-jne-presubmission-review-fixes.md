@@ -12,9 +12,9 @@
 
 - Run all Python through `uv run` with `UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1`. A project-local `.venv` on this exFAT volume accumulates AppleDouble `._*.mplstyle` sidecars that break `import matplotlib.pyplot`.
 - The canonical manuscript is `manuscript/manuscript_expanded.md` (338 lines, 18-cohort analysis). `manuscript/manuscript.md` describes the old 4-cohort-only design and is stale — do not edit it as part of this plan, and do not treat its stale PDF (`manuscript/manuscript.pdf`) as current. `submission/SUPERSEDED_DO_NOT_SUBMIT.md` incorrectly names `manuscript/manuscript.md` as canonical; Task 16 corrects that pointer.
-- The canonical supplement is `supplementary/supplement_expanded.md` (281 lines, sections S1–S11, Tables S1–S9). It is byte-identical to `build_expanded/supplement.md`. `supplementary/supplement.md` (70 lines, sections S1–S5) is the stale 4-cohort supplement — do not edit it.
+- The canonical supplement is `supplementary/supplement_expanded.md`. As of Task 5 (which added Figure S2 as its own new section, renumbering the two sections after it), it has sections S1–S12, Tables S1–S9. `supplementary/supplement.md` (70 lines, sections S1–S5) is the stale 4-cohort supplement — do not edit it.
 - The canonical cover letter is `manuscript/cover_letter_expanded.md`. `manuscript/cover_letter.md` is stale.
-- Table S9 already exists (`supplementary/supplement_expanded.md:247`, "Fitted coefficients of every development fold," under section header `## S10. Reproducibility`) and the manuscript's two citations of it (`manuscript_expanded.md:91`, `:199`) are internally consistent — line 91 cites the table by its own caption number, line 199 cites section S9 (a different, correctly-numbered section). There is no broken cross-reference here; do not renumber tables.
+- Table S9 already exists ("Fitted coefficients of every development fold," originally under section header `## S10. Reproducibility`, now `## S11. Reproducibility` after Task 5's renumbering — the table's own caption number, `Table S9`, did not change; table numbers and section numbers are independent in this document) and the manuscript's two citations of it are internally consistent — one cites the table by its own caption number, the other cites section S9 (a different, correctly-numbered section, untouched by Task 5). There is no broken cross-reference here; do not renumber tables, and when a later task says "S10" for this section, read it as "S11."
 - `pytest.ini_options.addopts = "-ra -m 'not slow'"` in `pyproject.toml` deselects `slow`-marked tests by default. `pytest tests/test_regression_baseline.py` alone collects zero tests and looks green — always pass `-m slow` when you mean to run it.
 - statsmodels 0.14 has no CR2/bias-reduced-linearization cluster-robust estimator for GLM and no cluster-bootstrap helper; there is no ready-made Python package for CR2 on a binomial GLM in this dependency set. Task 2 implements a participant-cluster bootstrap instead (one of the review's own listed options), reusing the resampling pattern already in `src/bigp3_als/validation.py:_resample_clusters` / `_bootstrap_intervals`.
 - No em dashes anywhere in prose. Run `python3 ~/.claude/skills/de-ai-writing/scripts/scan_ai_writing.py <file>` on every manuscript, supplement, and cover-letter file you touch before committing it.
@@ -1074,7 +1074,7 @@ git commit -m "docs: describe the ALS cohorts as the originally planned subgroup
 
 **Files:**
 - Modify: `manuscript/manuscript_expanded.md` (`### Protocol Descriptors as Moderators`, `### Sensitivity Analyses`)
-- Modify: `supplementary/supplement_expanded.md` (new subsection under `## S6. Sensitivity analyses`, or a new `S12`)
+- Modify: `supplementary/supplement_expanded.md` (new subsection under `## S6. Sensitivity analyses`; `S12` is now taken by "Transparency statement" after Task 5's renumbering, so do not use that number for anything new — if a standalone new section is needed instead of a subsection, use `S13`)
 
 **Interfaces:** None — prose edit, verified by word count.
 
@@ -1313,7 +1313,7 @@ Do this step last, after every other manuscript-editing task in this plan is com
 
 - [ ] **Step 3: Register the new file in the supplement's file inventory**
 
-If `supplementary/supplement_expanded.md`'s `## S10. Reproducibility` / "Pipeline and outputs" subsection lists supplementary deliverables, add one sentence noting the TRIPOD checklist is a separate file (`supplementary/tripod_checklist.md`) submitted alongside the supplement, not a numbered section within it.
+If `supplementary/supplement_expanded.md`'s Reproducibility section (originally `## S10`, now `## S11` after Task 5's renumbering — check the current section header text, don't assume the number) / "Pipeline and outputs" subsection lists supplementary deliverables, add one sentence noting the TRIPOD checklist is a separate file (`supplementary/tripod_checklist.md`) submitted alongside the supplement, not a numbered section within it.
 
 - [ ] **Step 4: Commit**
 
