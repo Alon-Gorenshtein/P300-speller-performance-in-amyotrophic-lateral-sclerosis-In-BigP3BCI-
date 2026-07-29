@@ -2,7 +2,7 @@
 
 *Journal of Neural Engineering, Paper*
 
-**Authors:** Alon Gorenshtein, MD^1,2^; Yosef Adiniaev^2^; Yiftach Barash, MD^2,3^; Eyal Klang, MD^2,3^; Oved Daniel, MD^4^
+**Authors:** Alon Gorenshtein, MD^1,2^; Yosef Adiniaev^2^; Tom Liba, MD^5^; Yiftach Barash, MD^2,3^; Eyal Klang, MD^2,3^; Oved Daniel, MD^4^
 
 **Affiliations:**
 
@@ -10,6 +10,7 @@
 2. BRIDGE GenAI Lab, Beth Israel Deaconess Medical Center
 3. Department of Radiology, Beth Israel Deaconess Medical Center, Harvard Medical School
 4. Neurology Division, Tel Aviv Sourasky University Medical Center
+5. Azrieli Faculty of Medicine, Bar-Ilan University, Safed, Israel
 
 **Address correspondence to:** Alon Gorenshtein, MD, Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School (agorensh@bidmc.harvard.edu).
 
@@ -319,11 +320,11 @@ In 18 source-study cohorts, calibration-derived decoder discriminability was rel
 
 **Ethics approval:** Institutional review board approval was not required; the determination is stated in full in the Methods, under Ethics.
 
-**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
+**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. T.L.: investigation, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
 
 ## Data availability statement
 
-BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/study_bigp3_als_calibration (commit eaabf263425c19494d8fcaf27c84ca86ab5122ef); a versioned archive with its own DOI will be minted via Zenodo upon acceptance and this citation updated accordingly. The archive is not redistributed.
+BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/P300-speller-performance-in-amyotrophic-lateral-sclerosis-In-BigP3BCI-; a versioned archive with its own DOI will be minted via Zenodo upon acceptance and this citation updated accordingly. The archive is not redistributed.
 
 ## References
 
