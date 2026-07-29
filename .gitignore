@@ -33,6 +33,11 @@ manuscript/references_source_diffs.txt
 manuscript/references_source_for_zotero.bib
 manuscript/references_source_verified.json
 manuscript/references_source_zotero_plan.json
+manuscript/references_expanded_AMA.txt
+manuscript/references_expanded_IEEE.tex
+manuscript/references_expanded_for_zotero.bib
+manuscript/manuscript_refs_verified.json
+manuscript/manuscript_refs_diffs.txt
 
 # macOS AppleDouble sidecars created on the external exFAT volume.
 ._*
