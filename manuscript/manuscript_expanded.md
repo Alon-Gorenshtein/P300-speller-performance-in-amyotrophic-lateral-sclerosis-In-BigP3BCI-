@@ -2,15 +2,14 @@
 
 *Journal of Neural Engineering, Paper*
 
-**Authors:** Alon Gorenshtein, MD^1,2^; Yosef Adiniaev^2^; Mahmud Omar, MD^2,3^; Yiftach Barash, MD^2,4^; Eyal Klang, MD^2,4^; Oved Daniel, MD^5^
+**Authors:** Alon Gorenshtein, MD^1,2^; Yosef Adiniaev^2^; Yiftach Barash, MD^2,3^; Eyal Klang, MD^2,3^; Oved Daniel, MD^4^
 
 **Affiliations:**
 
 1. Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School
 2. BRIDGE GenAI Lab, Beth Israel Deaconess Medical Center
-3. The Windreich Department of Artificial Intelligence and Human Health, Icahn School of Medicine at Mount Sinai, New York
-4. Department of Radiology, Beth Israel Deaconess Medical Center, Harvard Medical School
-5. Neurology Division, Tel Aviv Sourasky University Medical Center
+3. Department of Radiology, Beth Israel Deaconess Medical Center, Harvard Medical School
+4. Neurology Division, Tel Aviv Sourasky University Medical Center
 
 **Address correspondence to:** Alon Gorenshtein, MD, Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School (agorensh@bidmc.harvard.edu).
 
@@ -22,11 +21,11 @@ A calibration-derived score has been related to online P300-speller accuracy in 
 
 ### Approach
 
-Retrospective secondary analysis of BigP3BCI 1.0.0. Of 20 source studies, 18 yielded eligible online outcomes: 271 participants, 739 session-condition records, 19,611 character selections. The four documented amyotrophic lateral sclerosis (ALS) cohorts were the originally planned subgroup, before widening to every source study with an eligible online outcome. The predictor was calibration-derived decoder discriminability: cross-validated discriminability of a classifier fitted only to calibration epochs. One source study at a time was withheld from development. Between-cohort variation was summarised by the random-effects standard deviation tau, with participant-clustered standard errors.
+Retrospective secondary analysis of BigP3BCI 1.0.0, the largest published evaluation of this relationship to date: 18 of 20 source studies yielded eligible online outcomes, contributing 271 participants, 739 session-condition records, and 19,611 character selections. The four documented amyotrophic lateral sclerosis (ALS) cohorts were the originally planned subgroup, before widening to every source study with an eligible online outcome. The predictor was calibration-derived decoder discriminability: cross-validated discriminability of a classifier fitted only to calibration epochs. One source study at a time was withheld from development. Between-cohort variation was summarised by the random-effects standard deviation tau, with participant-clustered standard errors.
 
 ### Main Results
 
-The association was positive in all 18 cohorts but varied widely in magnitude and precision (Pearson r 0.190 to 0.928; participant-level r = 0.714, p < 0.001). Pooled estimation error was 0.098 (95% CI 0.091 to 0.107) against a development-mean benchmark of 0.146. Calibration did not transport: the intercept had tau 0.87, with a 95% interval for an unrepresented cohort of -1.97 to 1.85 on the log-odds scale, spanning mappings that badly understate and badly overstate accuracy. Slope heterogeneity led to the same conclusion, at tau 0.43 and an unrepresented-cohort interval of 0.111 to 2.005. Skill was negative in one of 18 cohorts. The four ALS cohorts alone gave an uncorrected between-cohort slope spread of 0.223, against 0.560 overall.
+The association was positive in all 18 cohorts but varied widely in magnitude and precision (Pearson r 0.190 to 0.928; participant-level r = 0.714, p < 0.001). Pooled estimation error was 0.098 (95% CI 0.091 to 0.107) against a benchmark of 0.146. Calibration did not transport: the intercept had tau 0.87, with a 95% interval for an unrepresented cohort of -1.97 to 1.85 on the log-odds scale, and the slope varied more than tenfold across cohorts (tau 0.43, unrepresented-cohort interval 0.111 to 2.005). A protocol proxy for the stopping rule, median time per selection, reduced the between-cohort slope variance by 66%. The four ALS cohorts alone gave an uncorrected between-cohort slope spread of 0.223, against 0.560 overall.
 
 ### Significance
 
@@ -330,7 +329,7 @@ In 18 source-study cohorts, calibration-derived decoder discriminability was rel
 
 **Ethics approval:** Institutional review board approval was not required; the determination is stated in full in the Methods, under Ethics.
 
-**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. M.O.: methodology, software, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
+**Author contributions:** Contributions are described using the CRediT taxonomy. A.G.: conceptualization, methodology, software, formal analysis, data curation, validation, visualization, and writing of the original draft. Y.A.: software, data curation, formal analysis, validation, and review and editing of the manuscript. Y.B.: methodology, validation, and review and editing of the manuscript. E.K.: conceptualization, methodology, supervision, resources, and review and editing of the manuscript. O.D.: conceptualization, methodology, investigation, formal analysis, clinical interpretation, supervision, writing of the original draft, and review and editing of the manuscript. All authors critically reviewed the manuscript and approved the final version submitted for publication. A.G. (corresponding author) had full access to all data in the study and takes responsibility for the integrity of the data and the accuracy of the analysis.
 
 ## Data availability statement
 
