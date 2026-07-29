@@ -21,7 +21,7 @@ A calibration-derived score has been related to online P300-speller accuracy in 
 
 ### Approach
 
-Retrospective secondary analysis of BigP3BCI 1.0.0, the largest published evaluation of this relationship to date: 18 of 20 source studies yielded eligible online outcomes, contributing 271 participants, 739 session-condition records, and 19,611 character selections. The four documented amyotrophic lateral sclerosis (ALS) cohorts were the originally planned subgroup, before widening to every source study with an eligible online outcome. The predictor was calibration-derived decoder discriminability: cross-validated discriminability of a classifier fitted only to calibration epochs. One source study at a time was withheld from development. Between-cohort variation was summarised by the random-effects standard deviation tau, with participant-clustered standard errors.
+Retrospective secondary analysis of BigP3BCI 1.0.0, the largest published evaluation of this relationship to date: 18 of 20 source studies yielded eligible online outcomes, contributing 271 participants, 739 session-condition records, and 19,611 character selections. Four cohorts document an amyotrophic lateral sclerosis (ALS) population. The predictor was calibration-derived decoder discriminability: cross-validated discriminability of a classifier fitted only to calibration epochs. One source study at a time was withheld from development. Between-cohort variation was summarised by the random-effects standard deviation tau, with participant-clustered standard errors.
 
 ### Main Results
 
