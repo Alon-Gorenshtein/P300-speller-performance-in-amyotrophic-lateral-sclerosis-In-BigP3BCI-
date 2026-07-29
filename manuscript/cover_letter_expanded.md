@@ -1,27 +1,21 @@
-# Cover letter
-
 27 July 2026
 
-Re: Submission of "Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts" as a Paper
+The Editors  
+Journal of Neural Engineering
 
-Dear Editors of *Journal of Neural Engineering*,
+Dear Editors,
 
-We submit the manuscript named above for consideration as a Paper in *Journal of Neural Engineering*.
+We submit for your consideration as a Paper "Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts." A calibration-derived score has repeatedly been related to online P300-speller accuracy within the cohort where it was measured, including by Mainsah and colleagues in this journal (*J Neural Eng* 2016;13:066007), who derived speller accuracy analytically from a calibration-derived detectability index. This manuscript asks whether such a mapping, once fitted, transports to a cohort it has never seen.
 
-**Submission and journal fit.** A calibration-derived score has repeatedly been related to online P300-speller accuracy within the cohort where it was measured, including by Mainsah and colleagues in this journal (*J Neural Eng* 2016;13:066007), who derived speller accuracy analytically from a calibration-derived detectability index. Whether a mapping fitted in one set of cohorts transports to a cohort it has never seen is the question that decides whether such a score can be reported anywhere other than where it was developed, and it is the question this manuscript answers.
+Using the public BigP3BCI archive, we evaluated a calibration-derived score across 18 source-study cohorts with a leave-one-study-out design (271 participants, 739 session-condition records, 19,611 selections), rather than within a single cohort, as every prior report has done. Each withheld cohort's expected accuracy was estimated purely from the other 17.
 
-**What is new.** Using the public BigP3BCI archive, we evaluated a calibration-derived score across 18 source-study cohorts with a leave-one-study-out design (271 participants, 739 session-condition records, 19,611 selections), rather than the single-cohort evaluations the literature has reported to date. Each withheld cohort's expected accuracy was estimated purely from the other 17, with no information from that cohort used in fitting the mapping evaluated against it.
+The association was positive in every withheld cohort, though precision varied enough that six of the eighteen 95% confidence intervals included zero; pooled at the participant level the relationship was precisely estimated (r = 0.714, p < 0.001). The fitted mapping did not transport: the calibration intercept had a between-cohort standard deviation of tau = 0.87 (95% interval for an unrepresented cohort, -1.97 to 1.85 log-odds), and the slope showed the same pattern (tau = 0.43, interval 0.111 to 2.005). Both conclusions hold at the lower confidence limit of tau and under an independent bootstrap estimate. A four-cohort ALS-only subgroup gave a materially tighter, more favourable picture (uncorrected slope spread 0.223, against 0.560 across all 18), demonstrating how few-cohort evaluation understates real-world variability.
 
-**Principal results.** The association held in every withheld cohort (participant-level r = 0.714) but the fitted mapping from score to expected accuracy did not transport: the calibration intercept had a between-cohort standard deviation of tau = 0.87, spanning a 95% interval for an unrepresented cohort of -1.97 to 1.85 on the log-odds scale, and the slope agreed at tau = 0.43. Both conclusions hold at the lower confidence limit of tau, so the finding does not depend on the number of cohorts being read favourably. A four-cohort subgroup limited to the documented ALS cohorts alone, evaluated on its own, gave a materially tighter and more favourable picture (uncorrected between-cohort slope spread 0.223, against 0.560 across all 18). This is a concrete demonstration of how few-cohort evaluation understates real-world variability.
+The manuscript separates two claims often reported together: an association present in every cohort, and a mapping that transports between them. The score may support ranking sessions within a setting after local validation; it should not be used to report expected accuracy in a cohort where the mapping was not developed, without local recalibration.
 
-**Why this matters to your readership.** The manuscript separates two claims the field has tended to report together: an association that appears in every cohort examined, and a calibrated mapping that transports between them. A calibration score can support ranking sessions within a setting and can support a data-quality screen; it should not be used to report an expected accuracy in a cohort where the mapping was not developed, without local recalibration. This is a transportability evaluation of a widely proposed relationship, not a classifier-improvement study.
+This manuscript is original, is not under consideration elsewhere, and has not been posted as a preprint. The authors declare no competing interests.
 
-**Declarations.** The authors declare no competing interests. This work has not been submitted elsewhere and is not under consideration by any other journal.
-
-Sincerely,
-
-Alon Gorenshtein, MD
-
-Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School
-
+Sincerely,  
+Alon Gorenshtein, MD  
+Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School  
 agorensh@bidmc.harvard.edu
