@@ -19,6 +19,7 @@ from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
+from bigp3_als.alignment import euclidean_align, reference_covariance
 from bigp3_als.edf import REQUIRED_EVENT_CHANNELS, SHARED_EEG_CHANNELS, parse_source_path, select_edf_paths
 
 
@@ -328,3 +329,78 @@ def build_calibration_features(cache_path: Path) -> pd.DataFrame:
         raise ValueError("no Train EDF files found in source cache")
     rows = [_session_feature_row(paths, cache_path) for _, paths in sorted(grouped_paths.items())]
     return pd.DataFrame(rows).sort_values(["study", "participant_id", "session_id"], ignore_index=True)
+
+
+def _alignment_feature_row(
+    session_paths: list[Path], cache_path: Path, arms: tuple[str, ...]
+) -> dict[str, object]:
+    """Return one session's alignment and nonlinear scores, plus its reference covariance.
+
+    The baseline `calibration_auc` is recomputed here and returned as
+    `calibration_auc_reproduced`. It is not used by the manuscript; it exists so the caller can
+    prove this pass reproduces the frozen feature file before any new column derived in the same
+    pass is trusted.
+    """
+    source = parse_source_path(session_paths[0].relative_to(cache_path).as_posix())
+    epochs_list, labels_list, groups_list = [], [], []
+    for group_index, path in enumerate(session_paths):
+        epochs, labels, _, _ = _extract_file_epochs(path)
+        epochs_list.append(epochs)
+        labels_list.append(labels)
+        groups_list.append(np.repeat(group_index, len(labels)))
+    epochs = np.concatenate(epochs_list)
+    labels = np.concatenate(labels_list)
+    groups = np.concatenate(groups_list)
+    row: dict[str, object] = {
+        "study": source.study,
+        "participant_id": source.participant_id,
+        "study_participant_id": source.study_participant_id,
+        "session_id": source.session_id,
+        "n_calibration_epochs": int(len(labels)),
+    }
+    reference = reference_covariance(epochs) if len(labels) else None
+    if (
+        int((labels == 1).sum()) < MIN_TARGET_EPOCHS
+        or int((labels == 0).sum()) < MIN_NONTARGET_EPOCHS
+        or len(np.unique(groups)) < 2
+    ):
+        for column in ("calibration_auc_reproduced", *arms):
+            row[column] = np.nan
+        return {**row, "reference_covariance": reference}
+    try:
+        row["calibration_auc_reproduced"] = calibration_discriminability(epochs, labels, groups)
+        if "calibration_auc_ea_session" in arms:
+            aligned = euclidean_align(epochs, reference)
+            row["calibration_auc_ea_session"] = calibration_discriminability(aligned, labels, groups)
+        if "calibration_auc_rbf" in arms:
+            row["calibration_auc_rbf"] = nonlinear_discriminability(epochs, labels, groups, "rbf")
+        if "calibration_auc_gbm" in arms:
+            row["calibration_auc_gbm"] = nonlinear_discriminability(
+                epochs, labels, groups, "gradient_boosting"
+            )
+    except ValueError:
+        for column in ("calibration_auc_reproduced", *arms):
+            row.setdefault(column, np.nan)
+    return {**row, "reference_covariance": reference}
+
+
+def build_alignment_features(
+    cache_path: Path, arms: tuple[str, ...]
+) -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
+    """Return the alignment feature table and the per-session reference covariances."""
+    grouped_paths: dict[tuple[str, str, str], list[Path]] = defaultdict(list)
+    for edf_path in select_edf_paths(cache_path):
+        source = parse_source_path(edf_path.relative_to(cache_path).as_posix())
+        if source.phase == "Train":
+            grouped_paths[(source.study, source.participant_id, source.session_id)].append(edf_path)
+    if not grouped_paths:
+        raise ValueError("no Train EDF files found in source cache")
+    rows, references = [], {}
+    for key, paths in sorted(grouped_paths.items()):
+        row = _alignment_feature_row(paths, cache_path, arms)
+        reference = row.pop("reference_covariance")
+        if reference is not None:
+            references["|".join(key)] = reference
+        rows.append(row)
+    frame = pd.DataFrame(rows).sort_values(["study", "participant_id", "session_id"], ignore_index=True)
+    return frame, references
