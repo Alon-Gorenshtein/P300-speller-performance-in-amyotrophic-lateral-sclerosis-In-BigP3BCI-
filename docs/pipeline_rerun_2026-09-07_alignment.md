@@ -75,12 +75,24 @@ same way the other three arms already are.
 
 19 of the 20 cohort references sit between 1.215e+02 (StudyN) and 9.147e+02 (StudyO), a range typical
 of a 16-by-16 covariance pooled over thousands of epochs. StudyK is an outlier at 2.687e+03, roughly
-3 to 22 times every other cohort's value, but StudyK still sits four orders of magnitude below any
-numerically concerning range for a double-precision inverse-square-root whitener (the eigenvalue
-floor in `alignment.inverse_square_root` only engages once a matrix's own condition number approaches
-1e10). No cohort crossed the pass's own `> 1e4` flag threshold, so nothing here indicates the
-whitener is amplifying noise; StudyK's elevated but still well-conditioned reference is noted because
-it is the one cohort furthest from the pack, not because it is unsafe.
+3 to 22 times every other cohort's value.
+
+Session count does not explain it: StudyK and StudyE both pool exactly 8 sessions, yet StudyE's
+condition number (5.002e+02) sits squarely inside the unremarkable range. What actually singles
+StudyK out is total pooled calibration epochs, the quantity `pooled_reference` weights by, not the
+number of sessions contributing to the average: StudyK pools 16,071 epochs, the fewest of any of the
+20 studies, against StudyE's 34,272, roughly double, and against the archive-wide range that runs up
+to StudyQ's 460,644. StudyK's pooled covariance is simply built from the least data of any cohort
+reference, so it is the least well estimated, and less averaging leaves more of any one session's
+particular epoch sample in the pooled matrix. StudyK is worth flagging in the supplement as both the
+smallest-data and the most extreme-conditioned cohort reference in the archive.
+
+That said, StudyK still sits four orders of magnitude below any numerically concerning range for a
+double-precision inverse-square-root whitener (the eigenvalue floor in `alignment.inverse_square_root`
+only engages once a matrix's own condition number approaches 1e10). No cohort crossed the pass's own
+`> 1e4` flag threshold, so nothing here indicates the whitener is amplifying noise; StudyK's elevated
+but still well-conditioned reference is noted because it is the one cohort furthest from the pack and
+built from the least data, not because it is unsafe.
 
 ### Score-level movement
 
