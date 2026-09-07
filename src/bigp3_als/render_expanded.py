@@ -517,6 +517,15 @@ def render_recalibration_curve(summary: pd.DataFrame, directory: Path) -> None:
     # collides their tick annotations. Categorical positions, one slot per rung actually present in
     # the data, give every rung equal room regardless of its value.
     present = sorted(set(summary["n_local_participants"]))
+    # A size outside the declared ladder has no slot and .map(slot) below would turn it into NaN,
+    # which matplotlib simply omits rather than plots or errors on. A row silently missing from a
+    # figure is the exact failure this repository's figure script exists to prevent, so this must
+    # raise rather than render an incomplete plot that looks complete.
+    unlisted = sorted(set(present) - set(LADDER_ORDER))
+    if unlisted:
+        raise ValueError(
+            f"n_local_participants value(s) not in LADDER_ORDER, would be dropped silently: {unlisted}"
+        )
     ticks = [n for n in LADDER_ORDER if n in present]
     slot = {n: index for index, n in enumerate(ticks)}
 

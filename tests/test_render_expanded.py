@@ -189,6 +189,18 @@ def test_recalibration_curve_rejects_a_frame_missing_a_required_column(tmp_path:
         render_recalibration_curve(summary, tmp_path)
 
 
+def test_recalibration_curve_rejects_a_local_participant_count_outside_the_ladder(
+    tmp_path: Path,
+) -> None:
+    # LADDER_ORDER fixes the x-axis slots. A size it does not list would map to NaN and vanish from
+    # the plot rather than raise, which is a figure silently missing a row.
+    summary = _recalibration_summary()
+    summary.loc[0, "n_local_participants"] = 5
+
+    with pytest.raises(ValueError, match="5"):
+        render_recalibration_curve(summary, tmp_path)
+
+
 def test_alignment_transport_writes_both_formats(tmp_path: Path) -> None:
     render_alignment_transport(_alignment_transport(), tmp_path)
 
