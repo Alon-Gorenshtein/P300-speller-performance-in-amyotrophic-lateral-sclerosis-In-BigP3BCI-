@@ -41,6 +41,14 @@ rest of the codebase uses (`validation._fit_calibration_model_guarded`) on the t
 the recalibrated evaluation-set probabilities, and `recalibration_summary` reports both directly
 (so a reader can see whether either mapping's intercept sits near 0 and slope near 1) and as a
 paired distance-from-ideal improvement, pooled at the cohort level like everything else.
+
+A null result at a given size is only informative if it states what effect size it could have ruled
+out. `recalibration_summary` also reports a minimum detectable effect for the MAE, intercept and
+slope improvements: the true mean improvement that would have put the cohort-level CI's lower bound
+exactly at zero, given the between-cohort SD and cohort count actually observed at that size. Because
+`n_cohorts_contributing` falls across the ladder, this bound is tightest in the middle of the range
+and loosest at the top; a null at n=16, where only 6 cohorts contribute, rules out a much larger
+effect than the same null at n=6 does, and the two must not be read as equally informative.
 """
 
 from __future__ import annotations
@@ -285,6 +293,17 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
             cohort_labels, slope_improvement
         )
 
+        # Minimum detectable effect: the true mean improvement that would put the CI's lower bound
+        # exactly at zero, given the between-cohort SD and cohort count actually observed here. It is
+        # the same margin already added and subtracted to build the CI (ci_high - mean, equivalently
+        # mean - ci_low), named and reported on its own so a null result states what it could have
+        # ruled out rather than just that nothing crossed zero. A wide bound at a given size does not
+        # mean the true effect is small, it means this size could not have detected anything smaller
+        # than the bound.
+        mae_minimum_detectable_effect = cohort_high - cohort_mean
+        intercept_minimum_detectable_effect = intercept_improvement_high - intercept_improvement_mean
+        slope_minimum_detectable_effect = slope_improvement_high - slope_improvement_mean
+
         rows.append(
             {
                 "method": method,
@@ -307,6 +326,7 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
                 "cohort_improvement_ci_low": cohort_low,
                 "cohort_improvement_ci_high": cohort_high,
                 "n_cohorts_contributing": n_cohorts_contributing,
+                "mae_minimum_detectable_effect": mae_minimum_detectable_effect,
                 # Calibration parameters, transported versus recalibrated, each with its own
                 # cohort-level 95% CI, plus the paired distance-from-ideal improvement.
                 "calibration_identified_fraction": float(block["calibration_identified"].mean()),
@@ -326,9 +346,11 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
                 "cohort_mean_intercept_improvement": intercept_improvement_mean,
                 "cohort_intercept_improvement_ci_low": intercept_improvement_low,
                 "cohort_intercept_improvement_ci_high": intercept_improvement_high,
+                "intercept_minimum_detectable_effect": intercept_minimum_detectable_effect,
                 "cohort_mean_slope_improvement": slope_improvement_mean,
                 "cohort_slope_improvement_ci_low": slope_improvement_low,
                 "cohort_slope_improvement_ci_high": slope_improvement_high,
+                "slope_minimum_detectable_effect": slope_minimum_detectable_effect,
             }
         )
     return pd.DataFrame(rows).sort_values(["method", "n_local_participants"], ignore_index=True)

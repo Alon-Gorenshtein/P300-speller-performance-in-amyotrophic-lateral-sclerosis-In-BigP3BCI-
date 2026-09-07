@@ -205,3 +205,71 @@ def test_recalibrated_intercept_moves_closer_to_zero_than_the_transported_interc
 
     assert abs(row["recalibrated_calibration_intercept_mean"]) < abs(row["transported_calibration_intercept_mean"])
     assert row["cohort_mean_intercept_improvement"] > 0
+
+
+def _mae_fixture(cohort_values: dict[str, float], n_local_participants: int = 5) -> pd.DataFrame:
+    """One identified draw per cohort. Holding mean_absolute_error at 0 makes the paired improvement
+    (transported minus recalibrated) equal to the given value directly, so a fixture can specify the
+    per-cohort improvement to be pooled without going through a real local refit."""
+    return pd.DataFrame(
+        [
+            {
+                "held_out_study": cohort,
+                "n_local_participants": n_local_participants,
+                "n_local_selections": 100,
+                "draw": 0,
+                "method": "intercept_only",
+                "identified": True,
+                "mean_absolute_error": 0.0,
+                "transported_mean_absolute_error": value,
+                **_NO_CALIBRATION,
+            }
+            for cohort, value in cohort_values.items()
+        ]
+    )
+
+
+def test_minimum_detectable_effect_scales_with_cohort_spread_and_cohort_count() -> None:
+    # Scaling every cohort's improvement by a constant factor scales its between-cohort SD by the
+    # same factor; the cohort count and degrees of freedom are unchanged, so the minimum detectable
+    # effect (t-critical times standard error) must scale by exactly the same factor.
+    modest = _mae_fixture({"StudyA": 1.0, "StudyB": 2.0, "StudyC": 3.0})
+    scaled = _mae_fixture({"StudyA": 3.0, "StudyB": 6.0, "StudyC": 9.0})
+
+    modest_row = recalibration_summary(modest).iloc[0]
+    scaled_row = recalibration_summary(scaled).iloc[0]
+
+    assert scaled_row["mae_minimum_detectable_effect"] == pytest.approx(
+        3.0 * modest_row["mae_minimum_detectable_effect"]
+    )
+
+    # Repeating the same three values to reach six cohorts adds degrees of freedom and averages the
+    # standard error over more cohorts, so the bound must shrink even though the underlying spread of
+    # any one value is unchanged.
+    doubled = _mae_fixture(
+        {"StudyA": 1.0, "StudyB": 2.0, "StudyC": 3.0, "StudyD": 1.0, "StudyE": 2.0, "StudyF": 3.0}
+    )
+    doubled_row = recalibration_summary(doubled).iloc[0]
+
+    assert doubled_row["mae_minimum_detectable_effect"] < modest_row["mae_minimum_detectable_effect"]
+
+
+def test_an_improvement_exactly_at_the_minimum_detectable_effect_gives_a_ci_touching_zero() -> None:
+    # The between-cohort SD, and so the minimum detectable effect, is unchanged by adding the same
+    # constant to every cohort's value. Shift an arbitrary fixture so its mean lands exactly on its
+    # own (unchanged) minimum detectable effect; the resulting CI's lower bound must be exactly zero,
+    # since ci_low = mean - minimum_detectable_effect by construction.
+    baseline = _mae_fixture({"StudyA": 1.0, "StudyB": 2.0, "StudyC": 3.0, "StudyD": 10.0})
+    baseline_row = recalibration_summary(baseline).iloc[0]
+    shift = baseline_row["mae_minimum_detectable_effect"] - baseline_row["cohort_mean_improvement"]
+
+    shifted = _mae_fixture(
+        {"StudyA": 1.0 + shift, "StudyB": 2.0 + shift, "StudyC": 3.0 + shift, "StudyD": 10.0 + shift}
+    )
+    shifted_row = recalibration_summary(shifted).iloc[0]
+
+    assert shifted_row["mae_minimum_detectable_effect"] == pytest.approx(
+        baseline_row["mae_minimum_detectable_effect"]
+    )
+    assert shifted_row["cohort_mean_improvement"] == pytest.approx(shifted_row["mae_minimum_detectable_effect"])
+    assert shifted_row["cohort_improvement_ci_low"] == pytest.approx(0.0, abs=1e-9)
