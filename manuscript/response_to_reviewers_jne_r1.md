@@ -178,7 +178,9 @@ Two blocks moved. The Discussion passage reporting the joint bootstrap's within-
 
 We then worked through the Discussion paragraph by paragraph and removed statistics that the Results already state, keeping the interpretation and cross-referencing the number. The first paragraph no longer re-lists tau, its confidence interval and the slope range; the fold-stability paragraph no longer repeats coefficients of variation that Supplementary Table S12 carries; the predictor-precision paragraph no longer repeats the reliability range.
 
-We should be transparent that the revision also *added* text, because three of the reviewers' comments required new Methods and Results. The net effect is that the main text is no longer than the version the reviewers read, despite carrying three new analyses. We took the reviewer's comment to be about redundancy rather than about a page target, and we have removed redundancy rather than content.
+We should be transparent about the net effect, because it goes the other way and we would rather state it plainly than have the reviewer discover it. The trimming removed roughly 150 words of redundancy; the three new analyses the reviewers asked for added roughly 2,100 words of Methods and Results. The main text is therefore longer than the version the reviewers read, approximately 8,600 words against 6,600, and remains well inside this journal's 12,000-word limit for a Paper.
+
+We could not find a way to add three analyses and shorten the paper at the same time without removing content the reviewers asked us to add. We took this comment to be about redundancy rather than a page target, and the redundancy the reviewer identified is gone: the estimator-agreement material now sits in the Supplement, where its tables already were, and the Discussion no longer restates statistics the Results give. If the editorial preference is for a shorter paper regardless, we would welcome direction on which of the new analyses should move to the Supplement in full, and we would suggest the nonlinear-boundary result as the least load-bearing of the three.
 
 **Comment 1.5.**
 
