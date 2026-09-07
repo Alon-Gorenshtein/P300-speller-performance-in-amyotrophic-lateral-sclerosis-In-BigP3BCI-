@@ -389,6 +389,7 @@ def _alignment_feature_row(
         "study_participant_id": source.study_participant_id,
         "session_id": source.session_id,
         "n_calibration_epochs": int(len(labels)),
+        "feature_exclusion_reason": None,
     }
     reference = reference_covariance(epochs) if len(labels) else None
     underpowered = (
@@ -400,21 +401,26 @@ def _alignment_feature_row(
         if underpowered:
             for column in arms:
                 row[column] = np.nan
-            return {**row, "reference_covariance": reference}
+            return {**row, "reference_covariance": reference, "feature_exclusion_reason": "insufficient_epochs"}
+        if "calibration_auc_ea_cohort" in arms and source.study not in cohort_references:
+            # Deliberately outside the ValueError guard below: a study absent from the pooled
+            # cohort-reference dict is a configuration error in the caller (a cohort the
+            # reference-building pass never saw), not a per-session numerical failure. Raising here
+            # stops the run instead of silently NaN-ing every session from that study.
+            raise ValueError(f"no pooled cohort reference for study {source.study}")
         try:
             if "calibration_auc_ea_cohort" in arms:
-                if source.study not in cohort_references:
-                    raise ValueError(f"no pooled cohort reference for study {source.study}")
                 aligned = euclidean_align(epochs, cohort_references[source.study])
                 row["calibration_auc_ea_cohort"] = calibration_discriminability(aligned, labels, groups)
-        except ValueError:
+        except ValueError as error:
             for column in arms:
                 row.setdefault(column, np.nan)
+            row["feature_exclusion_reason"] = str(error)
         return {**row, "reference_covariance": reference}
     if underpowered:
         for column in ("calibration_auc_reproduced", *arms):
             row[column] = np.nan
-        return {**row, "reference_covariance": reference}
+        return {**row, "reference_covariance": reference, "feature_exclusion_reason": "insufficient_epochs"}
     try:
         row["calibration_auc_reproduced"] = calibration_discriminability(epochs, labels, groups)
         if "calibration_auc_ea_session" in arms:
@@ -426,9 +432,10 @@ def _alignment_feature_row(
             row["calibration_auc_gbm"] = nonlinear_discriminability(
                 epochs, labels, groups, "gradient_boosting"
             )
-    except ValueError:
+    except ValueError as error:
         for column in ("calibration_auc_reproduced", *arms):
             row.setdefault(column, np.nan)
+        row["feature_exclusion_reason"] = str(error)
     return {**row, "reference_covariance": reference}
 
 

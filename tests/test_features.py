@@ -244,3 +244,49 @@ def test_cohort_score_differs_from_the_session_own_reference_score_when_pooled_r
     # Empirically 0.012 for this fixed configuration; 0.005 leaves ample margin while still
     # failing hard if a refactor made the two scores coincide.
     assert abs(small_own["calibration_auc_ea_session"] - small_cohort["calibration_auc_ea_cohort"]) > 0.005
+
+
+def test_cohort_arm_raises_for_a_study_missing_from_the_pooled_reference_dict(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A study absent from `cohort_references` is a caller configuration error, not a per-session
+    numerical failure: it must stop the run rather than be swallowed into a NaN row alongside
+    genuine underpowered-session and non-convergence failures."""
+    epochs, labels = _synthetic_session_epochs(12, np.eye(4), n_target=15, n_nontarget=50)
+    paths = _session_paths("StudyZ", "P1", "S1")
+    _install_synthetic_extraction(monkeypatch, dict(zip(paths, _split_two_files(epochs, labels))))
+
+    with pytest.raises(ValueError, match="no pooled cohort reference for study StudyZ"):
+        _alignment_feature_row(paths, _FAKE_CACHE, ("calibration_auc_ea_cohort",), {"StudyOther": np.eye(4)})
+
+
+def test_feature_exclusion_reason_distinguishes_underpowered_from_computed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An arm's NaN must be traceable to why it is NaN, the same guarantee `_session_feature_row`
+    already gives the published feature table."""
+    powered_epochs, powered_labels = _synthetic_session_epochs(13, np.eye(4), n_target=15, n_nontarget=50)
+    powered_paths = _session_paths("StudyZ", "P1", "S1")
+    underpowered_epochs, underpowered_labels = _synthetic_session_epochs(
+        14, np.eye(4), n_target=3, n_nontarget=5
+    )
+    underpowered_paths = _session_paths("StudyZ", "P2", "S2")
+    _install_synthetic_extraction(
+        monkeypatch,
+        {
+            **dict(zip(powered_paths, _split_two_files(powered_epochs, powered_labels))),
+            **dict(zip(underpowered_paths, _split_two_files(underpowered_epochs, underpowered_labels))),
+        },
+    )
+
+    powered_row = _alignment_feature_row(
+        powered_paths, _FAKE_CACHE, ("calibration_auc_ea_cohort",), {"StudyZ": np.eye(4)}
+    )
+    underpowered_row = _alignment_feature_row(
+        underpowered_paths, _FAKE_CACHE, ("calibration_auc_ea_cohort",), {"StudyZ": np.eye(4)}
+    )
+
+    assert np.isfinite(powered_row["calibration_auc_ea_cohort"])
+    assert powered_row["feature_exclusion_reason"] is None
+    assert np.isnan(underpowered_row["calibration_auc_ea_cohort"])
+    assert underpowered_row["feature_exclusion_reason"] == "insufficient_epochs"
