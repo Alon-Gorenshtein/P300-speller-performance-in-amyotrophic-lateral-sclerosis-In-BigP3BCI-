@@ -9,6 +9,7 @@ import pytest
 from bigp3_als.recalibration import (
     LOCAL_SIZES,
     MINIMUM_EVALUATION_PARTICIPANTS,
+    common_cohorts,
     recalibration_draws,
     recalibration_summary,
 )
@@ -97,3 +98,68 @@ def test_local_sizes_are_ascending_and_start_at_one() -> None:
     assert LOCAL_SIZES[0] == 1
     assert list(LOCAL_SIZES) == sorted(LOCAL_SIZES)
     assert MINIMUM_EVALUATION_PARTICIPANTS >= 3
+
+
+def test_cohort_level_mean_averages_within_cohort_before_pooling_across_cohorts() -> None:
+    # StudyA contributes a single identified draw at improvement 10; StudyB contributes nine
+    # identified draws at improvement 0. A flat, draw-level mean is dominated by StudyB's nine rows
+    # (1.0). Averaging within cohort first, then pooling the two cohort means, weights the cohorts
+    # equally (5.0). The two orders must give different numbers, and each must land in its own column.
+    rows = [
+        {
+            "held_out_study": "StudyA",
+            "n_local_participants": 5,
+            "n_local_selections": 100,
+            "draw": 0,
+            "method": "intercept_only",
+            "identified": True,
+            "mean_absolute_error": 0.0,
+            "transported_mean_absolute_error": 10.0,
+        }
+    ]
+    rows += [
+        {
+            "held_out_study": "StudyB",
+            "n_local_participants": 5,
+            "n_local_selections": 100,
+            "draw": draw,
+            "method": "intercept_only",
+            "identified": True,
+            "mean_absolute_error": 0.0,
+            "transported_mean_absolute_error": 0.0,
+        }
+        for draw in range(9)
+    ]
+    draws = pd.DataFrame(rows)
+
+    summary = recalibration_summary(draws)
+    row = summary.set_index(["method", "n_local_participants"]).loc[("intercept_only", 5)]
+
+    assert row["mean_improvement"] == pytest.approx(1.0)
+    assert row["cohort_mean_improvement"] == pytest.approx(5.0)
+    assert row["n_cohorts_contributing"] == 2
+
+
+def test_common_cohorts_are_exactly_those_present_at_every_size() -> None:
+    # StudyA and StudyB both reach size 4; StudyC is only large enough to appear at size 1.
+    draws = pd.DataFrame(
+        {
+            "held_out_study": ["StudyA", "StudyA", "StudyB", "StudyB", "StudyC"],
+            "n_local_participants": [1, 4, 1, 4, 1],
+            "n_local_selections": [10, 10, 10, 10, 10],
+            "draw": [0, 0, 0, 0, 0],
+            "method": "intercept_only",
+            "identified": True,
+            "mean_absolute_error": 0.05,
+            "transported_mean_absolute_error": 0.10,
+        }
+    )
+
+    assert common_cohorts(draws) == {"StudyA", "StudyB"}
+
+    full = recalibration_summary(draws)
+    restricted = recalibration_summary(draws, cohorts=common_cohorts(draws))
+
+    # At size 1 all three cohorts are present, so restricting to the common set must drop StudyC.
+    assert full.set_index("n_local_participants").loc[1, "n_cohorts"] == 3
+    assert restricted.set_index("n_local_participants").loc[1, "n_cohorts"] == 2

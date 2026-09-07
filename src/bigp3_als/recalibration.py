@@ -20,6 +20,16 @@ huge-but-finite coefficient with a fitted probability on the boundary. That is t
 `heterogeneity._bootstrap_standard_errors` guards, and the same guard is applied here: a draw that
 fails it is flagged rather than scored, and the flagged fraction is reported, because silently
 dropping the hardest draws would make recalibration look cheaper than it is.
+
+`recalibration_summary` reports two different kinds of interval and they answer different
+questions. The draw-level `improvement_low`/`improvement_high` describe how much one site's own
+experience can vary from draw to draw; they are a percentile range, not a confidence interval for
+a mean. The cohort-level `cohort_improvement_ci_low`/`cohort_improvement_ci_high` average within
+each cohort first and pool across cohorts, matching the unit of replication used everywhere else in
+this package, and that is the interval that answers whether the mean improvement is real.
+`common_cohorts` restricts a summary to the cohorts present at every tested size, because otherwise
+the ladder confounds the recalibration effect with a cohort mix that gets smaller and easier at
+larger local sizes.
 """
 
 from __future__ import annotations
@@ -27,6 +37,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+from scipy import stats
 
 from bigp3_als.validation import RANDOM_SEED, _expanded_binary, _FITTED_BOUNDARY
 
@@ -126,14 +137,64 @@ def recalibration_draws(
     return pd.DataFrame(rows)
 
 
-def recalibration_summary(draws: pd.DataFrame) -> pd.DataFrame:
-    """Summarise the paired improvement over the transported mapping, per method and local size."""
+def common_cohorts(draws: pd.DataFrame) -> set[str]:
+    """Cohorts present at every local size the draws table covers.
+
+    `n_cohorts` in the summary falls across the ladder as small cohorts stop being large enough to
+    keep `MINIMUM_EVALUATION_PARTICIPANTS` in reserve, and the surviving cohorts are systematically
+    the larger, easier ones. A curve read across sizes without restricting to this set is not a
+    learning curve, it is a learning curve confounded with a shrinking, easier cohort mix. Pass the
+    result to `recalibration_summary`'s `cohorts` argument to trace the curve on a fixed cohort set
+    instead.
+    """
+    sizes = sorted(draws["n_local_participants"].unique())
+    cohorts_by_size = (
+        set(draws.loc[draws["n_local_participants"] == size, "held_out_study"].unique())
+        for size in sizes
+    )
+    return set.intersection(*cohorts_by_size)
+
+
+def _pool_across_cohorts(identified: pd.DataFrame) -> tuple[float, float, float, int]:
+    """Mean, 95% CI bounds and cohort count for the paired improvement, cohort as the unit.
+
+    This is inference on whether the mean improvement is real, at the level the rest of the paper
+    treats as the unit of replication (one estimate per cohort, per `heterogeneity.py`'s pooling).
+    It is a different question from `improvement_low`/`improvement_high` in `recalibration_summary`,
+    which describe how much one site's own draw-to-draw experience varies and are not a stand-in for
+    this. Averaging within cohort before pooling across cohorts also stops a cohort that happened to
+    contribute many draws from outweighing one that contributed few.
+    """
+    per_cohort = (
+        identified["transported_mean_absolute_error"] - identified["mean_absolute_error"]
+    ).groupby(identified["held_out_study"]).mean()
+    n_cohorts = int(per_cohort.shape[0])
+    if n_cohorts == 0:
+        return np.nan, np.nan, np.nan, 0
+    mean = float(per_cohort.mean())
+    if n_cohorts < 2:
+        return mean, np.nan, np.nan, n_cohorts
+    standard_error = float(per_cohort.std(ddof=1) / np.sqrt(n_cohorts))
+    margin = float(stats.t.ppf(0.975, df=n_cohorts - 1) * standard_error)
+    return mean, mean - margin, mean + margin, n_cohorts
+
+
+def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) -> pd.DataFrame:
+    """Summarise the paired improvement over the transported mapping, per method and local size.
+
+    Pass `cohorts` (for example, `common_cohorts(draws)`) to restrict the summary to a fixed set of
+    cohorts, so a curve traced across `n_local_participants` is not also tracing a change in which
+    cohorts were large enough to contribute at each size.
+    """
+    if cohorts is not None:
+        draws = draws.loc[draws["held_out_study"].isin(cohorts)]
     rows: list[dict[str, object]] = []
     for (method, size), block in draws.groupby(["method", "n_local_participants"], sort=True):
         identified = block.loc[block["identified"]]
         paired = (
             identified["transported_mean_absolute_error"] - identified["mean_absolute_error"]
         ).to_numpy(dtype=float)
+        cohort_mean, cohort_low, cohort_high, n_cohorts_contributing = _pool_across_cohorts(identified)
         rows.append(
             {
                 "method": method,
@@ -144,10 +205,18 @@ def recalibration_summary(draws: pd.DataFrame) -> pd.DataFrame:
                 "median_local_selections": float(block["n_local_selections"].median()),
                 "transported_mae": float(identified["transported_mean_absolute_error"].mean()),
                 "recalibrated_mae": float(identified["mean_absolute_error"].mean()),
+                # Draw-level spread: how variable one site's own experience is, across draws and
+                # cohorts pooled together. NOT a confidence interval for the mean, anywhere it is used.
                 "mean_improvement": float(paired.mean()) if len(paired) else np.nan,
                 "improvement_low": float(np.percentile(paired, 2.5)) if len(paired) else np.nan,
                 "improvement_high": float(np.percentile(paired, 97.5)) if len(paired) else np.nan,
                 "win_fraction": float(np.mean(paired > 0)) if len(paired) else np.nan,
+                # Cohort-level inference: whether the mean improvement is distinguishable from zero,
+                # with the cohort as the unit of replication. This IS the confidence interval.
+                "cohort_mean_improvement": cohort_mean,
+                "cohort_improvement_ci_low": cohort_low,
+                "cohort_improvement_ci_high": cohort_high,
+                "n_cohorts_contributing": n_cohorts_contributing,
             }
         )
     return pd.DataFrame(rows).sort_values(["method", "n_local_participants"], ignore_index=True)
