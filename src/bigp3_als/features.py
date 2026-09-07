@@ -9,7 +9,10 @@ import mne
 import numpy as np
 import pandas as pd
 from scipy.signal import butter, sosfiltfilt
+from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.kernel_approximation import Nystroem
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedGroupKFold
@@ -110,6 +113,36 @@ def _grouped_cv_predictions(
             model = make_pipeline(
                 StandardScaler(), LinearDiscriminantAnalysis(solver="lsqr", shrinkage="auto")
             )
+        elif classifier == "rbf":
+            # A radial-basis kernel boundary, reached through a Nystroem approximation rather than
+            # an exact support-vector machine. A session carries on the order of ten thousand
+            # calibration epochs and an exact kernel machine is quadratic in that count, which would
+            # put the extraction pass into days. The approximation is fitted inside the training
+            # fold only, so the grouped split still holds.
+            model = make_pipeline(
+                StandardScaler(),
+                # gamma=None resolves to 1 / n_features, the RBF-approximation default; Nystroem
+                # does not accept SVC's "scale" string in this scikit-learn version.
+                Nystroem(kernel="rbf", gamma=None, n_components=300, random_state=20260718),
+                LogisticRegression(C=1.0, class_weight="balanced", max_iter=1000, random_state=20260718),
+            )
+        elif classifier == "gradient_boosting":
+            # A tree ensemble on a principal-component reduction of the same epoch features. The
+            # reduction is what makes the arm affordable: boosting bins every feature, and binning
+            # a thousand of them per fold costs more than the whole rest of the pass. Both stages
+            # are fitted inside the training fold.
+            model = make_pipeline(
+                StandardScaler(),
+                PCA(n_components=40, svd_solver="randomized", random_state=20260718),
+                HistGradientBoostingClassifier(
+                    max_iter=100,
+                    max_leaf_nodes=15,
+                    learning_rate=0.1,
+                    l2_regularization=1.0,
+                    early_stopping=False,
+                    random_state=20260718,
+                ),
+            )
         else:
             raise ValueError(f"unknown calibration classifier: {classifier}")
         model.fit(features[train_indices], labels[train_indices])
@@ -139,6 +172,19 @@ def shrinkage_lda_discriminability(
 ) -> float:
     """Estimate grouped-CV AUC of a conventional regularized LDA comparator."""
     return float(roc_auc_score(labels, _grouped_cv_predictions(epochs, labels, groups, "shrinkage_lda")))
+
+
+def nonlinear_discriminability(
+    epochs: np.ndarray, labels: np.ndarray, groups: np.ndarray, classifier: str = "rbf"
+) -> float:
+    """Estimate grouped-CV AUC of a nonlinear decision boundary on the same calibration epochs.
+
+    Both scores the study reports so far come from linear decoders, so a mapping that fails to
+    transport could in principle be a property of linear boundaries rather than of the
+    calibration-to-accuracy relationship. This arm holds the epochs, the grouped split and the
+    metric fixed and varies only the boundary.
+    """
+    return float(roc_auc_score(labels, _grouped_cv_predictions(epochs, labels, groups, classifier)))
 
 
 def _bandpass(data: np.ndarray, sampling_frequency: float) -> np.ndarray:
