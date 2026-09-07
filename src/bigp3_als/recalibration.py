@@ -49,6 +49,23 @@ exactly at zero, given the between-cohort SD and cohort count actually observed 
 `n_cohorts_contributing` falls across the ladder, this bound is tightest in the middle of the range
 and loosest at the top; a null at n=16, where only 6 cohorts contribute, rules out a much larger
 effect than the same null at n=6 does, and the two must not be read as equally informative.
+
+The recalibrated calibration slope for `intercept_and_slope` is heavy-tailed, not merely noisy: its
+mean at some sizes sits far outside any plausible slope (for example, deep negative), while its
+median stays close to 1. `recalibration_summary` reports the median alongside the mean for exactly
+this reason, and separately reports the fraction of identified draws whose recalibrated slope falls
+outside a stated sane range and the fraction that come back negative, since a negative slope is a
+qualitatively different failure (the local refit inverted the mapping) from a merely imprecise one.
+The mechanism, confirmed by hand on several of the most extreme draws: the two-parameter local refit
+itself is well-behaved and passes its own identification guard with a slope near zero, which makes
+the recalibrated probability nearly constant across the whole evaluation set; fitting a SECOND
+calibration model to diagnose a near-constant predictor is an ill-conditioned regression regardless
+of evaluation sample size, and it converges to a huge-but-finite intercept/slope pair whose fitted
+values stay comfortably inside the identification guard's boundary. `_fit_calibration_model_guarded`
+guards against complete separation (fitted values driven to the 0/1 boundary) and exact design-rank
+deficiency; it does not and is not extended here to guard against near-zero predictor variance short
+of exact singularity, so these draws are correctly identified by the letter of the guard and reported
+as such. The instability is real and belongs in the fraction columns, not filtered out of them.
 """
 
 from __future__ import annotations
@@ -81,6 +98,12 @@ MINIMUM_EVALUATION_PARTICIPANTS = 3
 DRAWS = 200
 PROBABILITY_FLOOR = 1e-6
 PARTICIPANT_COLUMN = "study_participant_id"
+
+# A plainly stated range a calibration slope has no business leaving: below 0 the mapping is
+# inverted (higher predicted accuracy tracks lower observed accuracy), above 3 predicted accuracy is
+# amplified far past what transportability's own tau=0.43 heterogeneity in this parameter has ever
+# shown. Used only to report how often a draw's recalibrated slope leaves it, never to reject a fit.
+_SANE_SLOPE_RANGE = (0.0, 3.0)
 
 
 def _logit(probabilities: np.ndarray) -> np.ndarray:
@@ -277,6 +300,26 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
         recalibrated_slope_mean, recalibrated_slope_low, recalibrated_slope_high, _ = _pool_across_cohorts(
             cohort_labels, calibrated["recalibrated_calibration_slope"]
         )
+        # The recalibrated slope for intercept_and_slope is heavy-tailed, not merely noisy (verified
+        # by hand: see module docstring). Its mean can sit far outside any plausible slope while its
+        # median stays near 1; report the median for both mappings so the comparison stays paired.
+        transported_intercept_median = float(calibrated["transported_calibration_intercept"].median())
+        recalibrated_intercept_median = float(calibrated["recalibrated_calibration_intercept"].median())
+        transported_slope_median = float(calibrated["transported_calibration_slope"].median())
+        recalibrated_slope_median = float(calibrated["recalibrated_calibration_slope"].median())
+        # How often the recalibrated slope leaves a plainly sane range, and how often it is negative
+        # outright (the local refit inverted the mapping, a qualitatively different failure from a
+        # merely imprecise slope). Draw-level fractions, like identified_fraction and win_fraction,
+        # not cohort-pooled. For intercept_only these equal the transported slope's own fractions,
+        # since its recalibrated slope is identical to the transported one by construction.
+        recalibrated_slope_values = calibrated["recalibrated_calibration_slope"]
+        recalibrated_slope_negative_fraction = float((recalibrated_slope_values < 0).mean())
+        recalibrated_slope_out_of_range_fraction = float(
+            (
+                (recalibrated_slope_values < _SANE_SLOPE_RANGE[0])
+                | (recalibrated_slope_values > _SANE_SLOPE_RANGE[1])
+            ).mean()
+        )
         # Perfect calibration is intercept 0, slope 1. A positive value here means the recalibrated
         # mapping sits closer to that target than the transported one did, on the same draw.
         intercept_improvement = (
@@ -332,17 +375,25 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
                 "calibration_identified_fraction": float(block["calibration_identified"].mean()),
                 "n_cohorts_calibration": n_cohorts_calibration,
                 "transported_calibration_intercept_mean": transported_intercept_mean,
+                "transported_calibration_intercept_median": transported_intercept_median,
                 "transported_calibration_intercept_ci_low": transported_intercept_low,
                 "transported_calibration_intercept_ci_high": transported_intercept_high,
                 "recalibrated_calibration_intercept_mean": recalibrated_intercept_mean,
+                "recalibrated_calibration_intercept_median": recalibrated_intercept_median,
                 "recalibrated_calibration_intercept_ci_low": recalibrated_intercept_low,
                 "recalibrated_calibration_intercept_ci_high": recalibrated_intercept_high,
                 "transported_calibration_slope_mean": transported_slope_mean,
+                "transported_calibration_slope_median": transported_slope_median,
                 "transported_calibration_slope_ci_low": transported_slope_low,
                 "transported_calibration_slope_ci_high": transported_slope_high,
                 "recalibrated_calibration_slope_mean": recalibrated_slope_mean,
+                "recalibrated_calibration_slope_median": recalibrated_slope_median,
                 "recalibrated_calibration_slope_ci_low": recalibrated_slope_low,
                 "recalibrated_calibration_slope_ci_high": recalibrated_slope_high,
+                # Draw-level instability, not a cohort-pooled statistic: how often the recalibrated
+                # slope leaves a plainly sane range, and how often it inverts the mapping outright.
+                "recalibrated_slope_out_of_range_fraction": recalibrated_slope_out_of_range_fraction,
+                "recalibrated_slope_negative_fraction": recalibrated_slope_negative_fraction,
                 "cohort_mean_intercept_improvement": intercept_improvement_mean,
                 "cohort_intercept_improvement_ci_low": intercept_improvement_low,
                 "cohort_intercept_improvement_ci_high": intercept_improvement_high,

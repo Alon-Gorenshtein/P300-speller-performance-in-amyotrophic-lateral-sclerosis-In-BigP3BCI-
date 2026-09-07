@@ -273,3 +273,66 @@ def test_an_improvement_exactly_at_the_minimum_detectable_effect_gives_a_ci_touc
     )
     assert shifted_row["cohort_mean_improvement"] == pytest.approx(shifted_row["mae_minimum_detectable_effect"])
     assert shifted_row["cohort_improvement_ci_low"] == pytest.approx(0.0, abs=1e-9)
+
+
+def _calibration_fixture(rows: list[dict]) -> pd.DataFrame:
+    """One identified, calibration_identified draw per given row. MAE columns are held at 0 (unused
+    by the assertions these fixtures support); only the calibration columns given per row vary."""
+    return pd.DataFrame(
+        [
+            {
+                "n_local_participants": 5,
+                "n_local_selections": 100,
+                "draw": index,
+                "method": "intercept_and_slope",
+                "identified": True,
+                "mean_absolute_error": 0.0,
+                "transported_mean_absolute_error": 0.0,
+                "calibration_identified": True,
+                "transported_calibration_intercept": 0.0,
+                "transported_calibration_slope": 1.0,
+                **row,
+            }
+            for index, row in enumerate(rows)
+        ]
+    )
+
+
+def test_recalibrated_slope_median_is_robust_to_a_heavy_tailed_mean() -> None:
+    # Three ordinary slopes near 1 and one extreme outlier at -10000, the same order of magnitude of
+    # pathology seen in the real intercept_and_slope draws (a near-zero local slope makes the
+    # recalibrated probability nearly constant, which makes the downstream calibration fit
+    # ill-conditioned). The mean is dragged far from 1 by the single outlier; the median should not be.
+    rows = _calibration_fixture(
+        [
+            {"held_out_study": "StudyA", "recalibrated_calibration_intercept": 0.1, "recalibrated_calibration_slope": 0.9},
+            {"held_out_study": "StudyA", "recalibrated_calibration_intercept": 0.2, "recalibrated_calibration_slope": 1.1},
+            {"held_out_study": "StudyB", "recalibrated_calibration_intercept": 0.0, "recalibrated_calibration_slope": 1.0},
+            {"held_out_study": "StudyB", "recalibrated_calibration_intercept": 20000.0, "recalibrated_calibration_slope": -10000.0},
+        ]
+    )
+
+    summary = recalibration_summary(rows)
+    row = summary.iloc[0]
+
+    assert row["recalibrated_calibration_slope_median"] == pytest.approx(0.95, abs=0.2)
+    assert row["recalibrated_calibration_slope_mean"] < -2000
+
+
+def test_negative_and_out_of_range_slope_fractions_count_the_right_draws() -> None:
+    # Four draws: two sane (0.9, 1.1), one negative (-0.5, an inverted mapping), one positive but
+    # outside the stated [0, 3] sane range (5.0).
+    rows = _calibration_fixture(
+        [
+            {"held_out_study": "StudyA", "recalibrated_calibration_intercept": 0.0, "recalibrated_calibration_slope": 0.9},
+            {"held_out_study": "StudyA", "recalibrated_calibration_intercept": 0.0, "recalibrated_calibration_slope": 1.1},
+            {"held_out_study": "StudyB", "recalibrated_calibration_intercept": 0.0, "recalibrated_calibration_slope": -0.5},
+            {"held_out_study": "StudyB", "recalibrated_calibration_intercept": 0.0, "recalibrated_calibration_slope": 5.0},
+        ]
+    )
+
+    summary = recalibration_summary(rows)
+    row = summary.iloc[0]
+
+    assert row["recalibrated_slope_negative_fraction"] == pytest.approx(0.25)
+    assert row["recalibrated_slope_out_of_range_fraction"] == pytest.approx(0.5)
