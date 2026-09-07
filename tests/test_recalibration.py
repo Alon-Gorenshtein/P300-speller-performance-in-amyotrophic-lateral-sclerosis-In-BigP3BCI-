@@ -11,6 +11,7 @@ from bigp3_als.recalibration import (
     LOCAL_SIZES,
     MINIMUM_EVALUATION_PARTICIPANTS,
     common_cohorts,
+    cross_method_comparison,
     instability_by_smaller_side,
     recalibration_draws,
     recalibration_summary,
@@ -421,3 +422,76 @@ def test_smaller_side_grouping_is_the_union_of_local_smaller_and_evaluation_smal
 
     assert counts == {3: 1, 4: 3, 5: 1}
     assert result["n_draws"].sum() == len(rows)
+
+
+def _cross_method_row(
+    held_out_study: str, n_local_participants: int, draw: int, method: str, identified: bool,
+    transported_mae: float = 1.0, mae: float = 1.0,
+) -> dict[str, object]:
+    return {
+        "held_out_study": held_out_study,
+        "n_local_participants": n_local_participants,
+        "draw": draw,
+        "method": method,
+        "identified": identified,
+        "transported_mean_absolute_error": transported_mae,
+        "mean_absolute_error": mae if identified else np.nan,
+    }
+
+
+def test_cross_method_comparison_restricts_to_the_intersection_of_both_methods_identified_sets() -> None:
+    # Four (study, draw) pairs at one size: only (StudyA, draw 0) and (StudyB, draw 1) have BOTH
+    # methods identified. (StudyA, draw 1) is intercept_only-only and (StudyB, draw 0) is
+    # intercept_and_slope-only; neither may appear in the restricted comparison.
+    rows = [
+        _cross_method_row("StudyA", 5, 0, "intercept_only", True, mae=0.6),
+        _cross_method_row("StudyA", 5, 0, "intercept_and_slope", True, mae=0.5),
+        _cross_method_row("StudyA", 5, 1, "intercept_only", True, mae=0.7),
+        _cross_method_row("StudyA", 5, 1, "intercept_and_slope", False),
+        _cross_method_row("StudyB", 5, 0, "intercept_only", False),
+        _cross_method_row("StudyB", 5, 0, "intercept_and_slope", True, mae=0.4),
+        _cross_method_row("StudyB", 5, 1, "intercept_only", True, mae=0.8),
+        _cross_method_row("StudyB", 5, 1, "intercept_and_slope", True, mae=0.9),
+    ]
+    draws = pd.DataFrame(rows)
+
+    result = cross_method_comparison(draws)
+    row = result.set_index("n_local_participants").loc[5]
+
+    assert row["n_draws_both_identified"] == 2
+    assert row["n_cohorts"] == 2
+    # StudyA draw 0: intercept_only improvement 1.0-0.6=0.4, intercept_and_slope 1.0-0.5=0.5.
+    # StudyB draw 1: intercept_only improvement 1.0-0.8=0.2, intercept_and_slope 1.0-0.9=0.1.
+    # One draw per cohort here, so the cohort mean is just that draw's value.
+    assert row["intercept_only_mean_improvement"] == pytest.approx((0.4 + 0.2) / 2)
+    assert row["intercept_and_slope_mean_improvement"] == pytest.approx((0.5 + 0.1) / 2)
+    # Paired difference per cohort: StudyA 0.4-0.5=-0.1, StudyB 0.2-0.1=0.1; mean 0.0.
+    assert row["cohort_mean_difference"] == pytest.approx(0.0)
+
+
+def test_cross_method_comparison_has_no_rows_at_a_size_with_no_matching_draws() -> None:
+    # n_local_participants=1 never runs intercept_and_slope (see recalibration_draws), so the inner
+    # merge on (held_out_study, n_local_participants, draw) must find no match there at all, not a
+    # row with a NaN comparison.
+    rows = [_cross_method_row("StudyA", 1, 0, "intercept_only", True, mae=0.6)]
+    draws = pd.DataFrame(rows)
+
+    result = cross_method_comparison(draws)
+
+    assert result.empty
+
+
+def test_cross_method_comparison_respects_the_cohorts_filter() -> None:
+    rows = [
+        _cross_method_row("StudyA", 5, 0, "intercept_only", True, mae=0.6),
+        _cross_method_row("StudyA", 5, 0, "intercept_and_slope", True, mae=0.5),
+        _cross_method_row("StudyB", 5, 0, "intercept_only", True, mae=0.6),
+        _cross_method_row("StudyB", 5, 0, "intercept_and_slope", True, mae=0.5),
+    ]
+    draws = pd.DataFrame(rows)
+
+    restricted = cross_method_comparison(draws, cohorts={"StudyA"})
+
+    row = restricted.set_index("n_local_participants").loc[5]
+    assert row["n_cohorts"] == 1
+    assert row["n_draws_both_identified"] == 1

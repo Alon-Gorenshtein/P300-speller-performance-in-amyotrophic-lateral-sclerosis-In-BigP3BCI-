@@ -9,6 +9,7 @@ import pandas as pd
 
 from bigp3_als.recalibration import (
     common_cohorts,
+    cross_method_comparison,
     instability_by_smaller_side,
     recalibration_draws,
     recalibration_summary,
@@ -46,12 +47,25 @@ def main() -> None:
     # so the tabulation is not itself confounded by cohorts entering and leaving across sizes.
     instability = instability_by_smaller_side(draws, cohorts=balanced_cohorts)
 
+    # recalibration_summary compares each method against the transported mapping on its own
+    # identified subset, which is not the same as comparing the two methods against each other
+    # (see cross_method_comparison's docstring for why that matters below n=14). Written to its own
+    # files, one per ladder, so the per-method tables above are untouched by this addition.
+    cross_method = cross_method_comparison(draws)
+    balanced_cross_method = cross_method_comparison(draws, cohorts=balanced_cohorts)
+
     arguments.output_directory.mkdir(parents=True, exist_ok=True)
     draws.to_csv(arguments.output_directory / "recalibration_draws.csv", index=False)
     summary.to_csv(arguments.output_directory / "recalibration_summary.csv", index=False)
     balanced_summary.to_csv(arguments.output_directory / "recalibration_summary_balanced.csv", index=False)
     instability.to_csv(
         arguments.output_directory / "recalibration_instability_by_smaller_side.csv", index=False
+    )
+    cross_method.to_csv(
+        arguments.output_directory / "recalibration_cross_method_comparison.csv", index=False
+    )
+    balanced_cross_method.to_csv(
+        arguments.output_directory / "recalibration_cross_method_comparison_balanced.csv", index=False
     )
 
     print("All-available cohorts at each size:")
@@ -60,6 +74,10 @@ def main() -> None:
     print(balanced_summary.to_string(index=False))
     print("\nRecalibrated-slope instability by the smaller of the local/evaluation split:")
     print(instability.to_string(index=False))
+    print("\nBoth-methods-identified cross-method comparison, all-available cohorts:")
+    print(cross_method.to_string(index=False))
+    print("\nBoth-methods-identified cross-method comparison, balanced ladder:")
+    print(balanced_cross_method.to_string(index=False))
 
 
 if __name__ == "__main__":

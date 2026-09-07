@@ -14,6 +14,13 @@ and slope also changes how steeply estimated accuracy tracks the score, needs at
 participants, and pays for the extra flexibility in variance. Which of the two wins first, and at
 what local sample size, is the operational answer a site needs.
 
+`recalibration_summary` reports each method over its own `identified` subset, which is the right
+conditioning for comparing a method against the transported mapping but not for comparing the two
+methods against each other: below n=14 the two subsets differ, since a draw can be identified for
+one refit and not the other. `cross_method_comparison` restricts to draws where both methods were
+identified and reports the paired difference between them on that shared subset, so a claim that one
+method dominates the other is checked on a comparison that holds the evaluated draws fixed.
+
 A local draw can separate: if every drawn participant spelled perfectly there is no finite
 maximum-likelihood fit, and statsmodels 0.14 does not raise on this, it converges at maxiter to a
 huge-but-finite coefficient with a fitted probability on the boundary. That is the same failure mode
@@ -447,6 +454,86 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
             }
         )
     return pd.DataFrame(rows).sort_values(["method", "n_local_participants"], ignore_index=True)
+
+
+def cross_method_comparison(draws: pd.DataFrame, cohorts: set[str] | None = None) -> pd.DataFrame:
+    """Compare `intercept_only` and `intercept_and_slope` on exactly the same draws.
+
+    `recalibration_summary` reports each method's improvement over its own `identified` subset,
+    which is a paired comparison of each method against the transported mapping, but NOT a paired
+    comparison of the two methods against each other: below n=14 the two subsets differ (at
+    n=2 balanced, 174 of 1,128 draws are identified for `intercept_only` but not for
+    `intercept_and_slope`), and the two methods' summaries can then differ partly because they were
+    evaluated on different draws, not because of anything the refit itself did.
+
+    `intercept_only` and `intercept_and_slope` are fit on the identical local/evaluation split for
+    a given `(held_out_study, n_local_participants, draw)`, since `recalibration_draws` draws the
+    local participants once per draw and reuses that same split for every method (see its
+    docstring). This restricts each size to the draws where BOTH methods were identified, using
+    that triple as the match key, then reports each method's own mean improvement over the
+    transported mapping and the cohort-level paired difference between them
+    (`intercept_only` minus `intercept_and_slope`) on that shared subset, so a claim comparing the
+    two methods can be checked against a comparison that holds the evaluated draws fixed.
+    """
+    if cohorts is not None:
+        draws = draws.loc[draws["held_out_study"].isin(cohorts)]
+    key = ["held_out_study", "n_local_participants", "draw"]
+    columns = [*key, "identified", "transported_mean_absolute_error", "mean_absolute_error"]
+    intercept_only = draws.loc[draws["method"] == "intercept_only", columns]
+    intercept_and_slope = draws.loc[draws["method"] == "intercept_and_slope", columns]
+    merged = intercept_only.merge(
+        intercept_and_slope, on=key, how="inner",
+        suffixes=("_intercept_only", "_intercept_and_slope"), validate="one_to_one",
+    )
+    both_identified = merged.loc[
+        merged["identified_intercept_only"] & merged["identified_intercept_and_slope"]
+    ]
+
+    rows: list[dict[str, object]] = []
+    for size, block in both_identified.groupby("n_local_participants", sort=True):
+        cohort_labels = block["held_out_study"]
+        improvement_intercept_only = (
+            block["transported_mean_absolute_error_intercept_only"] - block["mean_absolute_error_intercept_only"]
+        )
+        improvement_intercept_and_slope = (
+            block["transported_mean_absolute_error_intercept_and_slope"]
+            - block["mean_absolute_error_intercept_and_slope"]
+        )
+        io_mean, io_low, io_high, _ = _pool_across_cohorts(cohort_labels, improvement_intercept_only)
+        # Paired at the draw level (both improvements come from the same evaluation split), then
+        # pooled at the cohort level like every other inferential quantity in this module.
+        difference = improvement_intercept_only - improvement_intercept_and_slope
+        ias_mean, ias_low, ias_high, _ = _pool_across_cohorts(
+            cohort_labels, improvement_intercept_and_slope
+        )
+        diff_mean, diff_low, diff_high, n_cohorts_diff = _pool_across_cohorts(cohort_labels, difference)
+        rows.append(
+            {
+                "n_local_participants": int(size),
+                "n_draws_both_identified": int(len(block)),
+                "n_cohorts": int(cohort_labels.nunique()),
+                "intercept_only_mean_improvement": io_mean,
+                "intercept_only_improvement_ci_low": io_low,
+                "intercept_only_improvement_ci_high": io_high,
+                "intercept_and_slope_mean_improvement": ias_mean,
+                "intercept_and_slope_improvement_ci_low": ias_low,
+                "intercept_and_slope_improvement_ci_high": ias_high,
+                # intercept_only minus intercept_and_slope: positive means intercept_only improved
+                # more, on the identical draws both methods were scored on.
+                "cohort_mean_difference": diff_mean,
+                "cohort_difference_ci_low": diff_low,
+                "cohort_difference_ci_high": diff_high,
+                "n_cohorts_contributing": n_cohorts_diff,
+            }
+        )
+    frame = pd.DataFrame(rows)
+    if frame.empty:
+        # No (held_out_study, n_local_participants, draw) triple had both methods present at all,
+        # e.g. a `draws` table restricted to n_local_participants=1, where intercept_and_slope never
+        # runs. Returned as-is rather than sorted, since there is no n_local_participants column to
+        # sort by yet.
+        return frame
+    return frame.sort_values("n_local_participants", ignore_index=True)
 
 
 def instability_by_smaller_side(
