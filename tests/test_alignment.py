@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from bigp3_als.alignment import (
+    ALIGNMENT_SPECS,
+    cohort_standardised,
     euclidean_align,
     inverse_square_root,
     pooled_reference,
@@ -71,3 +74,78 @@ def test_pooled_reference_weights_recordings_by_their_epoch_count() -> None:
     pooled = pooled_reference([first, second], [1.0, 3.0])
 
     assert np.allclose(pooled, np.diag([2.5, 2.5]))
+
+
+def test_cohort_standardisation_uses_session_values_not_repeated_records() -> None:
+    # Two sessions per cohort, one of which was run under three conditions and the other under one.
+    # Standardising over records would centre on the repeated session; standardising over sessions
+    # centres on the midpoint of the two.
+    records = pd.DataFrame(
+        {
+            "study": ["A"] * 4,
+            "study_participant_id": ["A:1", "A:1", "A:1", "A:2"],
+            "session_id": ["S1", "S1", "S1", "S2"],
+            "condition": ["CB", "RC", "CBcol", "CB"],
+            "calibration_auc": [0.9, 0.9, 0.9, 0.7],
+        }
+    )
+
+    standardised = cohort_standardised(records, "calibration_auc", method="z")
+
+    assert standardised.iloc[0] == pytest.approx(1.0)
+    assert standardised.iloc[3] == pytest.approx(-1.0)
+
+
+def test_cohort_standardisation_is_computed_within_each_cohort_separately() -> None:
+    records = pd.DataFrame(
+        {
+            "study": ["A", "A", "B", "B"],
+            "study_participant_id": ["A:1", "A:2", "B:1", "B:2"],
+            "session_id": ["S1", "S2", "S1", "S2"],
+            "condition": ["CB"] * 4,
+            "calibration_auc": [0.60, 0.70, 0.85, 0.95],
+        }
+    )
+
+    standardised = cohort_standardised(records, "calibration_auc", method="z")
+
+    assert standardised.tolist() == pytest.approx([-1.0, 1.0, -1.0, 1.0])
+
+
+def test_cohort_standardisation_rank_method_is_monotone_and_finite() -> None:
+    records = pd.DataFrame(
+        {
+            "study": ["A"] * 5,
+            "study_participant_id": [f"A:{i}" for i in range(5)],
+            "session_id": [f"S{i}" for i in range(5)],
+            "condition": ["CB"] * 5,
+            "calibration_auc": [0.5, 0.6, 0.7, 0.8, 0.9],
+        }
+    )
+
+    standardised = cohort_standardised(records, "calibration_auc", method="rank")
+
+    assert np.isfinite(standardised).all()
+    assert standardised.is_monotonic_increasing
+
+
+def test_cohort_standardisation_returns_missing_for_a_single_session_cohort() -> None:
+    records = pd.DataFrame(
+        {
+            "study": ["A"],
+            "study_participant_id": ["A:1"],
+            "session_id": ["S1"],
+            "condition": ["CB"],
+            "calibration_auc": [0.8],
+        }
+    )
+
+    assert cohort_standardised(records, "calibration_auc", method="z").isna().all()
+
+
+def test_every_alignment_specification_names_one_feature_and_a_role() -> None:
+    names = [spec.name for spec in ALIGNMENT_SPECS]
+
+    assert len(names) == len(set(names))
+    assert all(len(spec.features) == 1 for spec in ALIGNMENT_SPECS)
+    assert all(spec.role in {"alignment", "nonlinear"} for spec in ALIGNMENT_SPECS)
