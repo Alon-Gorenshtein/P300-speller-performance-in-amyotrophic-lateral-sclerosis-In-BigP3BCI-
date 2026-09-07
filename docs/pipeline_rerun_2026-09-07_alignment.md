@@ -30,6 +30,12 @@ configuration: the smoke test alone went from 6 min 56 s to 53 min 33 s, a ratio
 section is from the corrected, final run; the two full-pass outputs were diffed against each other to
 confirm the fix changed only `calibration_auc_gbm` (see that section).
 
+**For whoever reruns this script next:** budget the full pass at roughly 4 hours and the smoke test
+alone at 50 to 60 minutes under the `PCA(150)`, class-balanced GBM configuration this file leaves in
+place. The original plan's estimates, under a minute for the smoke test and about 50 minutes for the
+full pass, were correct for the initial unfair GBM configuration only and do not hold once the
+fairness fix is applied.
+
 ## The smoke test failed against the brief's named reference file, and that failure is not a code defect
 
 The brief's Step 3 named `output/intermediate/calibration_features.csv` as the smoke-test
@@ -122,6 +128,21 @@ position outside either pre-registered band means its transportability result in
 read as partly informative about the linear score's own behaviour (through the correlation) and
 partly its own thing (through the residual reordering and the mean AUC gap), rather than cleanly
 assigned to one interpretation.
+
+**The most useful single number this pass produces for the referee's question is that the two
+nonlinear arms agree with each other almost exactly, not with the linear baseline.** RBF's mean AUC
+is 0.71401 and the fair GBM arm's is 0.71394, a difference of 0.00006, against a linear baseline mean
+of 0.80463: both nonlinear arms fall short of the linear model by essentially the same amount (0.0906
+and 0.0907). A kernel approximation with a logistic head and a boosted-tree ensemble on a
+principal-component reduction are structurally unrelated ways of fitting a nonlinear boundary, built
+from different libraries, different hyperparameters and, for GBM, a different dimensionality
+reduction entirely. Two unrelated model families landing within six hundred-thousandths of an AUC
+point of each other is much stronger evidence than either arm alone that roughly 0.714 is a genuine
+ceiling this data imposes on nonlinear calibration discriminability, rather than an artefact of one
+modelling choice. Had the original, unfair GBM configuration's mean of 0.6548 been reported instead,
+it would have implied a materially larger linear advantage over nonlinear boundaries (a gap of 0.150
+rather than 0.091) and would have obscured this convergence entirely, since 0.6548 sits nowhere near
+either the linear baseline or the RBF arm.
 
 ## GBM arm fairness correction, made before any transportability analysis used the column
 
