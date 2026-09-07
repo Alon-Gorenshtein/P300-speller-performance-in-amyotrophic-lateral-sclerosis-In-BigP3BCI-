@@ -30,11 +30,12 @@ configuration: the smoke test alone went from 6 min 56 s to 53 min 33 s, a ratio
 section is from the corrected, final run; the two full-pass outputs were diffed against each other to
 confirm the fix changed only `calibration_auc_gbm` (see that section).
 
-**For whoever reruns this script next:** budget the full pass at roughly 4 hours and the smoke test
-alone at 50 to 60 minutes under the `PCA(150)`, class-balanced GBM configuration this file leaves in
-place. The original plan's estimates, under a minute for the smoke test and about 50 minutes for the
-full pass, were correct for the initial unfair GBM configuration only and do not hold once the
-fairness fix is applied.
+**For whoever reruns this script next:** the plan budgeted about 50 minutes for the full pass and
+under 10 minutes for the smoke test. Under the `PCA(150)`, class-balanced GBM configuration this file
+leaves in place, the real figures are roughly 4 hours for the full pass and 50 to 60 minutes for the
+smoke test, both far past the plan's estimate. The plan's numbers held only for the initial, unfair
+GBM configuration (6 min 56 s smoke, 40 min 52 s full, both consistent with "about 50 minutes" and
+"under 10 minutes") and do not hold once the fairness fix is applied.
 
 ## The smoke test failed against the brief's named reference file, and that failure is not a code defect
 
