@@ -41,8 +41,9 @@ sample size could have detected" are read off the same axis.
 ``render_alignment_transport`` carries whether standard EEG re-alignment repairs the transport
 failure. It does not: every alignment variant leaves tau close to the primary score's, and the two
 that move it furthest (cohort z-score, cohort rank) do so while raising pooled error, which is the
-opposite of a repair. I-squared is not drawn, because the manuscript may not lean on it, and a figure
-that showed it would invite a reader to.
+opposite of a repair. This figure does not draw I-squared, because the manuscript may not lean on it
+for this arm comparison, and a figure that showed it would invite a reader to; the published
+calibration forest (``render_calibration_forest``) draws I-squared and continues to.
 """
 
 from __future__ import annotations
