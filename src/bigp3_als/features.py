@@ -356,14 +356,22 @@ def build_calibration_features(cache_path: Path) -> pd.DataFrame:
 
 
 def _alignment_feature_row(
-    session_paths: list[Path], cache_path: Path, arms: tuple[str, ...]
+    session_paths: list[Path],
+    cache_path: Path,
+    arms: tuple[str, ...],
+    cohort_references: dict[str, np.ndarray] | None = None,
 ) -> dict[str, object]:
     """Return one session's alignment and nonlinear scores, plus its reference covariance.
 
-    The baseline `calibration_auc` is recomputed here and returned as
-    `calibration_auc_reproduced`. It is not used by the manuscript; it exists so the caller can
-    prove this pass reproduces the frozen feature file before any new column derived in the same
-    pass is trusted.
+    With `cohort_references` absent, the baseline `calibration_auc` is recomputed here and
+    returned as `calibration_auc_reproduced`. It is not used by the manuscript; it exists so the
+    caller can prove this pass reproduces the frozen feature file before any new column derived in
+    the same pass is trusted.
+
+    With `cohort_references` given, the row computes only `calibration_auc_ea_cohort`, whitening
+    the session's epochs by its cohort's pooled reference rather than its own. The baseline is not
+    recomputed in this path, so a cohort-level pass costs one grouped cross-validation per session
+    instead of two.
     """
     source = parse_source_path(session_paths[0].relative_to(cache_path).as_posix())
     epochs_list, labels_list, groups_list = [], [], []
@@ -383,11 +391,27 @@ def _alignment_feature_row(
         "n_calibration_epochs": int(len(labels)),
     }
     reference = reference_covariance(epochs) if len(labels) else None
-    if (
+    underpowered = (
         int((labels == 1).sum()) < MIN_TARGET_EPOCHS
         or int((labels == 0).sum()) < MIN_NONTARGET_EPOCHS
         or len(np.unique(groups)) < 2
-    ):
+    )
+    if cohort_references is not None:
+        if underpowered:
+            for column in arms:
+                row[column] = np.nan
+            return {**row, "reference_covariance": reference}
+        try:
+            if "calibration_auc_ea_cohort" in arms:
+                if source.study not in cohort_references:
+                    raise ValueError(f"no pooled cohort reference for study {source.study}")
+                aligned = euclidean_align(epochs, cohort_references[source.study])
+                row["calibration_auc_ea_cohort"] = calibration_discriminability(aligned, labels, groups)
+        except ValueError:
+            for column in arms:
+                row.setdefault(column, np.nan)
+        return {**row, "reference_covariance": reference}
+    if underpowered:
         for column in ("calibration_auc_reproduced", *arms):
             row[column] = np.nan
         return {**row, "reference_covariance": reference}
@@ -409,7 +433,9 @@ def _alignment_feature_row(
 
 
 def build_alignment_features(
-    cache_path: Path, arms: tuple[str, ...]
+    cache_path: Path,
+    arms: tuple[str, ...],
+    cohort_references: dict[str, np.ndarray] | None = None,
 ) -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
     """Return the alignment feature table and the per-session reference covariances."""
     grouped_paths: dict[tuple[str, str, str], list[Path]] = defaultdict(list)
@@ -421,7 +447,7 @@ def build_alignment_features(
         raise ValueError("no Train EDF files found in source cache")
     rows, references = [], {}
     for key, paths in sorted(grouped_paths.items()):
-        row = _alignment_feature_row(paths, cache_path, arms)
+        row = _alignment_feature_row(paths, cache_path, arms, cohort_references)
         reference = row.pop("reference_covariance")
         if reference is not None:
             references["|".join(key)] = reference

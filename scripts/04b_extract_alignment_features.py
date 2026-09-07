@@ -14,10 +14,60 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from bigp3_als.alignment import pooled_reference
 from bigp3_als.features import build_alignment_features
 
 KEYS = ["study", "study_participant_id", "session_id"]
 REPRODUCTION_TOLERANCE = 1e-9
+
+
+def _build_cohort_references(covariances_path: Path) -> dict[str, np.ndarray]:
+    """Pool each cohort's session reference covariances, weighted by each session's epoch count.
+
+    The key format is study|participant_id|session_id (Task 3's convention), so the study is the
+    text before the first separator.
+    """
+    archive = np.load(covariances_path)
+    keys = archive["keys"]
+    per_session_references = archive["references"]
+    n_epochs = archive["n_epochs"]
+    studies = np.array([str(key).split("|", 1)[0] for key in keys])
+    cohort_references: dict[str, np.ndarray] = {}
+    for study in sorted(set(studies)):
+        mask = studies == study
+        cohort_references[study] = pooled_reference(per_session_references[mask], n_epochs[mask])
+    return cohort_references
+
+
+def _run_cohort_pass(arguments: argparse.Namespace) -> None:
+    """Compute calibration_auc_ea_cohort only, and merge it into an existing feature file.
+
+    This invocation does not recompute calibration_auc_reproduced, so it costs one grouped
+    cross-validation per session rather than two, and it does not check baseline reproduction:
+    there is no baseline column in this pass's own output to check it against.
+    """
+    cohort_references = _build_cohort_references(arguments.cohort_references)
+    print(f"pooled {len(cohort_references)} cohort references from {arguments.cohort_references}")
+    for study in sorted(cohort_references):
+        condition_number = float(np.linalg.cond(cohort_references[study]))
+        flag = "  <-- poorly conditioned" if condition_number > 1e4 else ""
+        print(f"  {study}: condition number = {condition_number:.3e}{flag}")
+
+    frame, _ = build_alignment_features(
+        arguments.cache, ("calibration_auc_ea_cohort",), cohort_references
+    )
+
+    existing = pd.read_csv(arguments.merge_into)
+    merged = existing.merge(
+        frame[[*KEYS, "calibration_auc_ea_cohort"]], on=KEYS, how="inner", validate="one_to_one"
+    )
+    if not (len(existing) == len(frame) == len(merged)):
+        raise SystemExit(
+            f"session key mismatch: existing file has {len(existing)} rows, new pass has "
+            f"{len(frame)} rows, merged has {len(merged)} rows"
+        )
+    merged.to_csv(arguments.merge_into, index=False)
+    print(f"merged calibration_auc_ea_cohort into {arguments.merge_into} ({len(merged)} rows)")
 
 
 def main() -> None:
@@ -31,7 +81,20 @@ def main() -> None:
                         default=Path("output/intermediate/session_reference_covariances.npz"))
     parser.add_argument("--arms", nargs="+",
                         default=["calibration_auc_ea_session", "calibration_auc_rbf", "calibration_auc_gbm"])
+    parser.add_argument("--cohort-references", type=Path, default=None,
+                        help="npz of per-session reference covariances (Task 3's output) to pool "
+                             "into one reference per cohort; when given, runs the cohort-level "
+                             "Euclidean Alignment arm only and merges it into --merge-into")
+    parser.add_argument("--merge-into", type=Path, default=None,
+                        help="existing alignment feature file to merge calibration_auc_ea_cohort "
+                             "into; required when --cohort-references is given")
     arguments = parser.parse_args()
+
+    if arguments.cohort_references is not None:
+        if arguments.merge_into is None:
+            raise SystemExit("--merge-into is required when --cohort-references is given")
+        _run_cohort_pass(arguments)
+        return
 
     frame, references = build_alignment_features(arguments.cache, tuple(arguments.arms))
 

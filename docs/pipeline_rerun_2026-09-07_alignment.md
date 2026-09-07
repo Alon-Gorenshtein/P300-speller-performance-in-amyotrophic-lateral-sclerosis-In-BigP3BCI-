@@ -11,6 +11,119 @@ reference covariance per session for Task 4's cohort-level alignment arm.
 All commands ran with `UV_PROJECT_ENVIRONMENT=/tmp/calib_venv` and `COPYFILE_DISABLE=1` through
 `uv run`, on the same interpreter as the July pipeline rerun.
 
+## Task 4: cohort-level Euclidean Alignment, run separately from the arms above
+
+The session-level arm above whitens each recording by its own reference covariance, removing that
+recording's own scale but leaving anything a whole cohort shares (amplifier, cap, montage) intact.
+The cohort-level arm this section adds, `calibration_auc_ea_cohort`, instead whitens every session
+by a reference pooled across its own cohort's sessions, so it is the arm aimed directly at the
+Editor-in-Chief's re-alignment question. It reuses Task 3's per-session reference covariances
+(`output/intermediate/session_reference_covariances.npz`) rather than recomputing them: one
+reference per study is built by grouping the 521 session references on the study component of the
+key and pooling them with `alignment.pooled_reference`, weighted by each session's calibration
+epoch count.
+
+Because this pass computes only `calibration_auc_ea_cohort` and does not recompute the baseline, it
+costs one grouped cross-validation per session rather than the two-to-four the arms above needed. A
+5-session timing probe spanning the full epoch-count range (123 to 12,924 epochs; 4,016 epochs/s)
+projected 573 s (9.5 min) for the full 521-session, 2,300,139-epoch archive; the full run itself
+took under that projection and completed cleanly, writing all 521 rows.
+
+Command:
+
+```bash
+caffeinate -ims env UV_PROJECT_ENVIRONMENT=/tmp/calib_venv COPYFILE_DISABLE=1 \
+  uv run python scripts/04b_extract_alignment_features.py --cache data/source_cache_full \
+  --cohort-references output/intermediate/session_reference_covariances.npz \
+  --merge-into output/intermediate/calibration_features_all20_alignment.csv \
+  2>&1 | tee tmp/extract_alignment_pass2.log
+```
+
+`calibration_auc_ea_cohort` was merged into the existing `calibration_features_all20_alignment.csv`
+on `study`, `study_participant_id`, `session_id` with `validate="one_to_one"`; the merge matched all
+521 rows with no key mismatch.
+
+### Cohort references cover 20 studies, not 18
+
+The pooling step groups on whatever study labels are present in the per-session covariance archive,
+which is the full 20-study calibration (Train-phase) archive, including StudyC and StudyP. Those two
+studies are excluded from the manuscript's 18-cohort transportability design because they contribute
+zero eligible Test-phase online-accuracy selections (`docs/source_study_screening.md`), not because
+they lack calibration data; their Train EDF files are present and well-formed, and
+`calibration_features_all20_alignment.csv` is, by its own name, the all-20-study calibration feature
+file that both this pass and Task 3's arms are merged into. Restricting the pooling to 18 studies
+would have left StudyC's 15 sessions and StudyP's 38 sessions with no cohort reference to align
+against, for no benefit, since nothing about computing their cohort-aligned calibration AUC is
+invalid. The table below therefore reports 20 condition numbers, and any consumer of this arm that
+needs the 18-cohort transportability subset should filter by study after this column is in hand, the
+same way the other three arms already are.
+
+### Cohort-reference condition numbers
+
+| Study | Condition number | Study | Condition number |
+| --- | --- | --- | --- |
+| StudyA | 3.906e+02 | StudyK | 2.687e+03 |
+| StudyB | 5.357e+02 | StudyL | 3.974e+02 |
+| StudyC | 2.002e+02 | StudyM | 1.347e+02 |
+| StudyD | 6.660e+02 | StudyN | 1.215e+02 |
+| StudyE | 5.002e+02 | StudyO | 9.147e+02 |
+| StudyF | 5.293e+02 | StudyP | 6.822e+02 |
+| StudyG | 6.958e+02 | StudyQ | 4.305e+02 |
+| StudyH | 4.723e+02 | StudyR | 4.854e+02 |
+| StudyI | 3.421e+02 | StudyS1 | 4.134e+02 |
+| StudyJ | 2.658e+02 | StudyS2 | 4.052e+02 |
+
+19 of the 20 cohort references sit between 1.215e+02 (StudyN) and 9.147e+02 (StudyO), a range typical
+of a 16-by-16 covariance pooled over thousands of epochs. StudyK is an outlier at 2.687e+03, roughly
+3 to 22 times every other cohort's value, but StudyK still sits four orders of magnitude below any
+numerically concerning range for a double-precision inverse-square-root whitener (the eigenvalue
+floor in `alignment.inverse_square_root` only engages once a matrix's own condition number approaches
+1e10). No cohort crossed the pass's own `> 1e4` flag threshold, so nothing here indicates the
+whitener is amplifying noise; StudyK's elevated but still well-conditioned reference is noted because
+it is the one cohort furthest from the pack, not because it is unsafe.
+
+### Score-level movement
+
+Same interpretation bands as the session-level arm: a Spearman correlation above 0.98 against the
+baseline `calibration_auc` means the arm reorders sessions barely at all; below 0.90 means the arm
+measures something materially different.
+
+| Arm | n | Mean | SD | Mean change vs baseline | SD of change | Max \|change\| | Spearman vs `calibration_auc` | Band | Moved up | Moved down |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `calibration_auc_ea_session` | 520 | 0.8005 | 0.1088 | -0.0041 | 0.0199 | 0.0803 | 0.9864 | above 0.98: reorders barely at all | 219 | 301 |
+| `calibration_auc_ea_cohort` | 520 | 0.8021 | 0.1073 | -0.0025 | 0.0170 | 0.1197 | 0.9902 | above 0.98: reorders barely at all | 214 | 306 |
+| `calibration_auc_rbf` | 520 | 0.7140 | 0.0903 | -0.0906 | 0.0546 | 0.2545 | 0.8371 | below 0.90: materially different | 23 | 497 |
+| `calibration_auc_gbm` | 520 | 0.7139 | 0.0951 | -0.0907 | 0.0441 | 0.2274 | 0.9043 | neither band: see below | 11 | 509 |
+
+(Baseline `calibration_auc_reproduced` over the same 520 sessions: mean 0.8046, SD 0.1013.)
+
+`calibration_auc_ea_cohort` lands in the same top band as the session-level arm, and slightly further
+into it: Spearman 0.9902 against 0.9864, meaning whitening by a pooled cohort reference reorders
+sessions even less than whitening each session by its own reference does, and its mean shift
+(-0.0025) is smaller than the session-level arm's (-0.0041). Both alignment arms leave session
+ordering almost untouched; whichever change either arm produces to the tau heterogeneity statistic
+elsewhere in this revision reflects a change in scale, not in which sessions the pipeline judges most
+discriminable. This section is a record of that score-level movement only; it says nothing about
+transportability, which is reported wherever the transportability sweep consumes this column.
+
+### The two alignment arms are not interchangeable: a cheap-and-immediate arm versus a stronger-but-more-demanding one
+
+Session-level and cohort-level alignment answer the Editor's re-alignment question with two
+different deployment stories, and the difference is a real constraint on what either arm can claim,
+not an implementation detail. Session-level Euclidean Alignment whitens a recording by its own
+reference covariance, computed from that recording's own calibration epochs; a new site can apply it
+to its very first user's very first session; nothing outside that one recording is needed. Cohort-
+level alignment whitens a session by a reference pooled across its cohort's other sessions, computed
+here from that cohort's own held-out calibration recordings. That is legitimate transductive,
+label-free, unsupervised adaptation, since it needs no online-accuracy outcome, but it is not free in
+the way the session-level arm is: a new site cannot use it on its first user, because there is no
+cohort yet to pool. It must first collect calibration recordings from several users to estimate its
+own cohort reference before the whitener it fits can be applied to anyone. Read together, these are a
+cheap-and-immediate arm and a stronger-but-more-demanding arm, not two variants of the same
+intervention, and if their transportability behaviour differs, that difference is itself a result
+about what re-alignment can and cannot buy a site depending on how much data it can collect before it
+starts.
+
 ## What was run
 
 | Stage | Command | Wall clock | Exit |
