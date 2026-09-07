@@ -106,11 +106,15 @@ def _grouped_cv_predictions(
     gbm_pca_components = None
     if classifier == "gradient_boosting":
         # The PCA budget has to fit inside the smallest training fold or PCA raises ValueError.
-        # 150 was chosen to bring this arm's feature budget closer to the RBF arm's 300-of-1,024
-        # (the earlier 40 kept about 4% of the space against RBF's 29%, which is not a fair
-        # comparison for a referee question about linear versus nonlinear boundaries), but a fixed
-        # 150 would still fail the one session in the archive whose smallest fold has fewer than
-        # 150 samples. Floor it against the fold size that actually occurred for this session.
+        # 150 was chosen by measuring cumulative explained variance of this exact downsampled
+        # feature representation on real sessions spanning the archive's size range: the earlier
+        # 40 retained only 56 to 80 percent of variance on the four substantive probe sessions,
+        # while 150 retains 90 to 97 percent (see docs/pipeline_rerun_2026-09-07_alignment.md,
+        # "GBM arm fairness correction"). It is a generous budget rather than a tuned one, chosen
+        # so a null result for this arm cannot be attributed to under-resourcing it, not a count
+        # matched against any other arm's own, differently defined, dimensionality reduction. A
+        # fixed 150 would still fail the sessions in the archive whose smallest fold has fewer
+        # than 150 samples, so it is floored against the fold size that actually occurred here.
         smallest_training_fold = min(len(train_indices) for train_indices, _ in splits)
         gbm_pca_components = min(150, smallest_training_fold - 1)
     for train_indices, test_indices in splits:
@@ -143,12 +147,14 @@ def _grouped_cv_predictions(
             # reduction is what makes the arm affordable: boosting bins every feature, and binning
             # a thousand of them per fold costs more than the whole rest of the pass. Both stages
             # are fitted inside the training fold. `n_components` is `gbm_pca_components`, computed
-            # above from the fold sizes actually occurring in this session; `class_weight="balanced"`
-            # matches the baseline and RBF arms, both logistic models fit at the same imbalance. An
-            # earlier version of this branch used a fixed 40 components and left class_weight at its
-            # default, which starved this arm of feature budget relative to RBF's 300-of-1,024 and let
-            # the majority non-target class dominate the boosted-tree loss; neither asymmetry belongs
-            # in an arm meant to test whether a nonlinear boundary changes the transportability result.
+            # above from the fold sizes actually occurring in this session and from the measured
+            # variance a 150-component budget retains; `class_weight="balanced"` matches the
+            # baseline and RBF arms, both logistic models fit at the same imbalance. An earlier
+            # version of this branch used a fixed 40 components, which measurement showed retained
+            # well under the variance a 150-component budget does, and left class_weight at its
+            # default, which let the majority non-target class dominate the boosted-tree loss;
+            # neither asymmetry belongs in an arm meant to test whether a nonlinear boundary
+            # changes the transportability result.
             model = make_pipeline(
                 StandardScaler(),
                 PCA(n_components=gbm_pca_components, svd_solver="randomized", random_state=20260718),

@@ -110,8 +110,9 @@ Nystroem does not recover the linear model's discriminability here.
 baseline at 0.9043. That is neither band: it clears 0.90, so it is not read as measuring something
 materially different from the linear score, but it sits nowhere near the 0.98 line either, so it is
 not read as barely reordering sessions in the way the alignment arm does. Read plainly, a
-class-balanced boosted-tree boundary given a comparable feature budget reorders sessions somewhat
-more like the linear model than the RBF arm does, but still moves 509 of 520 sessions downward, with
+class-balanced boosted-tree boundary given a generously-sized feature budget reorders sessions
+somewhat more like the linear model than the RBF arm does, but still moves 509 of 520 sessions
+downward, with
 a mean shift of -0.0907, similar in size to the RBF arm's -0.0906. Neither nonlinear arm exceeds the
 linear model's discriminability on this archive, which speaks directly to the referee's question:
 whatever is limiting transportability in this cohort archive is not simply an artefact of the
@@ -127,23 +128,62 @@ assigned to one interpretation.
 The first version of the `gradient_boosting` branch in `_grouped_cv_predictions` used
 `PCA(n_components=40)` and left `HistGradientBoostingClassifier`'s `class_weight` at its scikit-learn
 default of `None`, while the linear arms it was meant to compare against, the baseline and the RBF
-arm, both fit `LogisticRegression(class_weight="balanced")`. Two problems followed from that. First,
-40 components keeps about 4% of the 1,024-dimensional downsampled epoch feature space, against the
-RBF arm's 300 of 1,024, about 29%, so the two nonlinear arms were not given comparable information to
-work with. Second, the median non-target-to-target imbalance across the 520 evaluable sessions is
-10.98 to 1, and an unweighted boosted-tree loss at that imbalance is dominated by the majority class,
-while the linear arms' `class_weight="balanced"` corrects for it. A referee asked whether the
-transport failure could be an artefact of linear decision boundaries; an arm that was both starved of
-features and denied the class correction the linear arms received cannot answer that question fairly.
+arm, both fit `LogisticRegression(class_weight="balanced")`. The class-weight omission is
+unambiguous: the median non-target-to-target imbalance across the 520 evaluable sessions is 10.98 to
+1, and an unweighted boosted-tree loss at that imbalance is dominated by the majority class, while the
+linear arms' `class_weight="balanced"` corrects for it.
+
+Whether 40 components was also a real handicap is a question about how much variance that budget
+throws away, and an early draft of this fix answered it by picking a number that matched the RBF
+arm's 300 Nystroem components. That comparison does not hold: Nystroem components approximate a
+kernel, PCA components retain variance, and the two counts are not the same currency. The right way
+to answer the question is to measure the variance a candidate budget retains on real sessions,
+not to match a count from an unrelated reduction.
+
+**Measurement.** Five real sessions from `data/source_cache_full` were probed, spanning the size
+range: the smallest evaluable session (`StudyJ:J_07|SE001`, 123 calibration epochs total), sessions
+near the 25th, 50th and 75th percentiles of `n_calibration_epochs` (`StudyB:B_17|SE003`, 3,778;
+`StudyO:O_17|SE002`, 4,312; `StudyP:P_18|SE002`, 4,320), and the largest session in the archive
+(`StudyA:A_02|SE001`, 12,924). For each, `_downsampled_epoch_features` was built exactly as the
+classifier sees it, `StratifiedGroupKFold` was run with the same `random_state`, and PCA was fit on
+the smallest training fold that split actually produces for that session, the worst case the
+classifier itself trains on. Cumulative explained-variance ratio at 20, 40, 60, 80, 100 and 150
+components:
+
+| Session | Smallest training fold (samples) | 20 | 40 | 60 | 80 | 100 | 150 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `StudyJ:J_07\|SE001` (smallest, 123 epochs) | 65 | 0.8792 | 0.9662 | 0.9974 | 1.0000 | 1.0000 | 1.0000 |
+| `StudyB:B_17\|SE003` (p25, 3,778 epochs) | 2,878 | 0.5578 | 0.6855 | 0.7759 | 0.8211 | 0.8507 | 0.9024 |
+| `StudyO:O_17\|SE002` (p50, 4,312 epochs) | 3,360 | 0.6795 | 0.8089 | 0.8719 | 0.9129 | 0.9377 | 0.9662 |
+| `StudyP:P_18\|SE002` (p75, 4,320 epochs) | 3,360 | 0.6411 | 0.7659 | 0.8356 | 0.8738 | 0.9012 | 0.9405 |
+| `StudyA:A_02\|SE001` (largest, 12,924 epochs) | 10,291 | 0.5796 | 0.7657 | 0.8325 | 0.8693 | 0.8955 | 0.9331 |
+
+The smallest session is a degenerate case: with only 65 samples in its worst training fold, 40
+components already retain 96.6% of the variance, and the budget is capped at the fold size anyway.
+On the four substantive sessions, the ones with enough data for a 1,024-dimensional feature space to
+carry real structure, the picture is different. **The original 40-component budget retained only 56
+to 81 percent of variance. 150 components retains 90 to 97 percent, closing most but not all of the
+gap; no probed session reaches 95% at 150 components except the p50 session at 96.6%.** So both
+suspected defects were real: the missing class weighting was the unambiguous part, and the 40-component
+PCA budget was, independently, throwing away roughly half the variance the classifier's own feature
+representation carries on a typical session.
+
+**The budget used is 150, chosen as generous rather than tuned.** It was not selected to hit a
+variance target exactly, and it does not: three of the four substantive probe sessions fall short of
+95% even at 150 components. It was selected because it recovers most of the variance the 40-component
+budget discarded, at a computational cost the archive could still absorb (see the runtime discussion
+below), and because a generous rather than a precisely-tuned budget means a null result for this arm
+cannot later be attributed to under-resourcing it. A reader checking whether 150 was picked to match
+the RBF arm's component count should read this section as the record that it was not; an earlier
+draft of this fix and its code comments said exactly that, and both have been corrected.
 
 The fix, applied before this record and before Task 4 or Task 5 read the column: `class_weight="balanced"`
 was added to `HistGradientBoostingClassifier`, and the PCA budget was raised to 150 components, floored
 per session at one less than the smallest training fold actually produced by that session's grouped
-split (the smallest fold across the 520 evaluable sessions is 98 samples, so a fixed 150 would still
-raise `ValueError` on at least one session). This is computed once per session inside
-`_grouped_cv_predictions`, before the cross-validation loop, and only affects the `gradient_boosting`
-branch; `Nystroem`, the RBF arm's dimensionality reducer, already caps its own `n_components` at
-`n_samples` internally, which is why the RBF arm needed no equivalent change.
+split. This is computed once per session inside `_grouped_cv_predictions`, before the cross-validation
+loop, and only affects the `gradient_boosting` branch; `Nystroem`, the RBF arm's dimensionality
+reducer, already caps its own `n_components` at `n_samples` internally, which is why the RBF arm
+needed no equivalent change.
 
 The numbers under both configurations, on the same 520 evaluable sessions:
 
