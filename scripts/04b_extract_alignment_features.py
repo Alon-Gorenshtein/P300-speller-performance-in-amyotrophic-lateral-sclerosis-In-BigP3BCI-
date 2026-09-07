@@ -39,6 +39,31 @@ def _build_cohort_references(covariances_path: Path) -> dict[str, np.ndarray]:
     return cohort_references
 
 
+def _merge_cohort_arm(existing: pd.DataFrame, frame: pd.DataFrame, column: str = "calibration_auc_ea_cohort") -> pd.DataFrame:
+    """Merge one cohort-pass column into the existing feature file, refusing to run twice.
+
+    A second run of this pass over a file that already carries `column` would otherwise merge
+    cleanly on the join keys but produce `_x`/`_y` suffix columns for the duplicate name, since
+    pandas suffixes rather than raises on a merge column collision. Neither suffixed name matches
+    any `ALIGNMENT_SPECS` feature, so the arm would then vanish from `alignment_transport.csv`
+    with no diagnostic at all, the same silent-drop failure mode I4 in the final review names for
+    `17_run_alignment.py`. Raising here instead stops the run at the point the mistake is made.
+    """
+    if column in existing.columns:
+        raise SystemExit(
+            f"{column!r} is already a column in the file being merged into; a second merge would "
+            f"produce _x/_y suffix columns that silently vanish from ALIGNMENT_SPECS instead of "
+            f"raising. Refusing to overwrite."
+        )
+    merged = existing.merge(frame[[*KEYS, column]], on=KEYS, how="inner", validate="one_to_one")
+    if not (len(existing) == len(frame) == len(merged)):
+        raise SystemExit(
+            f"session key mismatch: existing file has {len(existing)} rows, new pass has "
+            f"{len(frame)} rows, merged has {len(merged)} rows"
+        )
+    return merged
+
+
 def _run_cohort_pass(arguments: argparse.Namespace) -> None:
     """Compute calibration_auc_ea_cohort only, and merge it into an existing feature file.
 
@@ -58,14 +83,7 @@ def _run_cohort_pass(arguments: argparse.Namespace) -> None:
     )
 
     existing = pd.read_csv(arguments.merge_into)
-    merged = existing.merge(
-        frame[[*KEYS, "calibration_auc_ea_cohort"]], on=KEYS, how="inner", validate="one_to_one"
-    )
-    if not (len(existing) == len(frame) == len(merged)):
-        raise SystemExit(
-            f"session key mismatch: existing file has {len(existing)} rows, new pass has "
-            f"{len(frame)} rows, merged has {len(merged)} rows"
-        )
+    merged = _merge_cohort_arm(existing, frame)
     merged.to_csv(arguments.merge_into, index=False)
     print(f"merged calibration_auc_ea_cohort into {arguments.merge_into} ({len(merged)} rows)")
 
