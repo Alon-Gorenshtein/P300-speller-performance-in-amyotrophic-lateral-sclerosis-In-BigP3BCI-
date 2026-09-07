@@ -30,6 +30,17 @@ this package, and that is the interval that answers whether the mean improvement
 `common_cohorts` restricts a summary to the cohorts present at every tested size, because otherwise
 the ladder confounds the recalibration effect with a cohort mix that gets smaller and easier at
 larger local sizes.
+
+Mean absolute error is not the only outcome that matters here. The paper's transportability failure
+is stated in terms of the calibration intercept and slope (tau 0.87 and 0.43), and a refit only ever
+touches those two parameters directly. If recalibration corrects the intercept and slope but MAE
+stays flat, the honest conclusion is that the mapping's systematic bias is fixable while MAE is
+dominated by irreducible within-cohort variance no refit can touch, not that recalibration "does not
+work". `recalibration_draws` therefore also fits the same guarded logistic-calibration model the
+rest of the codebase uses (`validation._fit_calibration_model_guarded`) on the transported and on
+the recalibrated evaluation-set probabilities, and `recalibration_summary` reports both directly
+(so a reader can see whether either mapping's intercept sits near 0 and slope near 1) and as a
+paired distance-from-ideal improvement, pooled at the cohort level like everything else.
 """
 
 from __future__ import annotations
@@ -39,12 +50,20 @@ import pandas as pd
 import statsmodels.api as sm
 from scipy import stats
 
-from bigp3_als.validation import RANDOM_SEED, _expanded_binary, _FITTED_BOUNDARY
+from bigp3_als.validation import (
+    RANDOM_SEED,
+    _expanded_binary,
+    _fit_calibration_model_guarded,
+    _FITTED_BOUNDARY,
+)
 
 # Local sample sizes, in participants. The ladder is dense at the bottom because that is where the
 # answer lies: a site deciding whether to recalibrate cares about the difference between one
-# participant and six, not between twenty and twenty-four.
-LOCAL_SIZES = (1, 2, 3, 4, 6, 8, 12)
+# participant and six, not between twenty and twenty-four. Extended to 14 and 16 to see whether the
+# curve settles within a realistic local-calibration effort; stopped at 16 because only 6 of the 18
+# cohorts keep 3 evaluation participants in reserve at that size, and at 18 only 2 would (below the
+# floor for a cohort-level CI at all).
+LOCAL_SIZES = (1, 2, 3, 4, 6, 8, 12, 14, 16)
 
 # A cohort must keep at least this many participants outside the local draw, so that the evaluation
 # is not itself a two-participant estimate. Cohorts range from 5 to 24 participants, so this floor
@@ -64,6 +83,17 @@ def _logit(probabilities: np.ndarray) -> np.ndarray:
 def _mean_absolute_error(records: pd.DataFrame, probabilities: np.ndarray) -> float:
     observed = records["correct"].to_numpy(dtype=float) / records["n"].to_numpy(dtype=float)
     return float(np.mean(np.abs(observed - probabilities)))
+
+
+def _calibration_fit(evaluation: pd.DataFrame, probability_column: str) -> tuple[float, float, bool]:
+    """Guarded logistic-calibration intercept and slope on the expanded evaluation observations.
+
+    Reuses `validation._fit_calibration_model_guarded` rather than a second recomputation of the
+    same fit, so these numbers sit on the same scale, with the same identification guard, as the
+    paper's own headline transportability estimates (tau 0.87 intercept, tau 0.43 slope).
+    """
+    labels, probabilities = _expanded_binary(evaluation, probability_column=probability_column)
+    return _fit_calibration_model_guarded(labels, probabilities)
 
 
 def _fit_local(local: pd.DataFrame, with_slope: bool) -> tuple[float, float, bool]:
@@ -114,13 +144,24 @@ def recalibration_draws(
                 transported = evaluation["predicted_probability"].to_numpy(dtype=float)
                 transported_error = _mean_absolute_error(evaluation, transported)
                 eta_evaluation = _logit(transported)
+                # Depends only on the evaluation split for this draw, not on the refit method, so it
+                # is computed once and shared by every method row below rather than refit per method.
+                transported_intercept, transported_slope, transported_calibration_ok = _calibration_fit(
+                    evaluation, "predicted_probability"
+                )
                 for method in methods:
                     intercept, slope, identified = _fit_local(local, method == "intercept_and_slope")
                     error = np.nan
+                    recalibrated_intercept = recalibrated_slope = np.nan
+                    calibration_identified = False
                     if identified:
-                        error = _mean_absolute_error(
-                            evaluation, 1.0 / (1.0 + np.exp(-(intercept + slope * eta_evaluation)))
+                        recalibrated_probability = 1.0 / (1.0 + np.exp(-(intercept + slope * eta_evaluation)))
+                        error = _mean_absolute_error(evaluation, recalibrated_probability)
+                        recalibrated_intercept, recalibrated_slope, recalibrated_calibration_ok = _calibration_fit(
+                            evaluation.assign(_recalibrated_probability=recalibrated_probability),
+                            "_recalibrated_probability",
                         )
+                        calibration_identified = bool(transported_calibration_ok and recalibrated_calibration_ok)
                     rows.append(
                         {
                             "held_out_study": cohort,
@@ -132,6 +173,18 @@ def recalibration_draws(
                             "identified": bool(identified),
                             "mean_absolute_error": float(error) if identified else np.nan,
                             "transported_mean_absolute_error": transported_error,
+                            # Calibration parameters are reported only when both the transported and
+                            # the recalibrated fit are identified, so the pair is always comparable
+                            # rather than one side silently defaulting to a fit that did not converge.
+                            "calibration_identified": calibration_identified,
+                            "transported_calibration_intercept": float(transported_intercept)
+                            if calibration_identified else np.nan,
+                            "transported_calibration_slope": float(transported_slope)
+                            if calibration_identified else np.nan,
+                            "recalibrated_calibration_intercept": float(recalibrated_intercept)
+                            if calibration_identified else np.nan,
+                            "recalibrated_calibration_slope": float(recalibrated_slope)
+                            if calibration_identified else np.nan,
                         }
                     )
     return pd.DataFrame(rows)
@@ -155,19 +208,19 @@ def common_cohorts(draws: pd.DataFrame) -> set[str]:
     return set.intersection(*cohorts_by_size)
 
 
-def _pool_across_cohorts(identified: pd.DataFrame) -> tuple[float, float, float, int]:
-    """Mean, 95% CI bounds and cohort count for the paired improvement, cohort as the unit.
+def _pool_across_cohorts(cohort_labels: pd.Series, values: pd.Series) -> tuple[float, float, float, int]:
+    """Mean, 95% CI bounds and cohort count for a paired quantity, cohort as the unit.
 
-    This is inference on whether the mean improvement is real, at the level the rest of the paper
-    treats as the unit of replication (one estimate per cohort, per `heterogeneity.py`'s pooling).
-    It is a different question from `improvement_low`/`improvement_high` in `recalibration_summary`,
-    which describe how much one site's own draw-to-draw experience varies and are not a stand-in for
-    this. Averaging within cohort before pooling across cohorts also stops a cohort that happened to
-    contribute many draws from outweighing one that contributed few.
+    This is inference on whether a mean effect is real, at the level the rest of the paper treats as
+    the unit of replication (one estimate per cohort, per `heterogeneity.py`'s pooling). It is a
+    different question from the draw-level percentile columns in `recalibration_summary`, which
+    describe how much one site's own draw-to-draw experience varies and are not a stand-in for this.
+    Averaging within cohort before pooling across cohorts also stops a cohort that happened to
+    contribute many draws from outweighing one that contributed few. Used for the paired MAE
+    improvement and, identically, for the calibration intercept, slope and their distance-from-ideal
+    improvements, so all of them are judged by the same standard.
     """
-    per_cohort = (
-        identified["transported_mean_absolute_error"] - identified["mean_absolute_error"]
-    ).groupby(identified["held_out_study"]).mean()
+    per_cohort = values.groupby(cohort_labels).mean()
     n_cohorts = int(per_cohort.shape[0])
     if n_cohorts == 0:
         return np.nan, np.nan, np.nan, 0
@@ -194,7 +247,44 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
         paired = (
             identified["transported_mean_absolute_error"] - identified["mean_absolute_error"]
         ).to_numpy(dtype=float)
-        cohort_mean, cohort_low, cohort_high, n_cohorts_contributing = _pool_across_cohorts(identified)
+        cohort_mean, cohort_low, cohort_high, n_cohorts_contributing = _pool_across_cohorts(
+            identified["held_out_study"], identified["transported_mean_absolute_error"] - identified["mean_absolute_error"]
+        )
+
+        # A refit only ever touches the intercept and slope directly; MAE can stay flat even when
+        # calibration is fixed, if MAE is dominated by within-cohort variance no refit can reach.
+        # These columns let a reader tell the two apart instead of reading a flat MAE curve as
+        # "recalibration does not work".
+        calibrated = block.loc[block["calibration_identified"]]
+        cohort_labels = calibrated["held_out_study"]
+        transported_intercept_mean, transported_intercept_low, transported_intercept_high, n_cohorts_calibration = (
+            _pool_across_cohorts(cohort_labels, calibrated["transported_calibration_intercept"])
+        )
+        recalibrated_intercept_mean, recalibrated_intercept_low, recalibrated_intercept_high, _ = (
+            _pool_across_cohorts(cohort_labels, calibrated["recalibrated_calibration_intercept"])
+        )
+        transported_slope_mean, transported_slope_low, transported_slope_high, _ = _pool_across_cohorts(
+            cohort_labels, calibrated["transported_calibration_slope"]
+        )
+        recalibrated_slope_mean, recalibrated_slope_low, recalibrated_slope_high, _ = _pool_across_cohorts(
+            cohort_labels, calibrated["recalibrated_calibration_slope"]
+        )
+        # Perfect calibration is intercept 0, slope 1. A positive value here means the recalibrated
+        # mapping sits closer to that target than the transported one did, on the same draw.
+        intercept_improvement = (
+            calibrated["transported_calibration_intercept"].abs()
+            - calibrated["recalibrated_calibration_intercept"].abs()
+        )
+        intercept_improvement_mean, intercept_improvement_low, intercept_improvement_high, _ = (
+            _pool_across_cohorts(cohort_labels, intercept_improvement)
+        )
+        slope_improvement = (calibrated["transported_calibration_slope"] - 1.0).abs() - (
+            calibrated["recalibrated_calibration_slope"] - 1.0
+        ).abs()
+        slope_improvement_mean, slope_improvement_low, slope_improvement_high, _ = _pool_across_cohorts(
+            cohort_labels, slope_improvement
+        )
+
         rows.append(
             {
                 "method": method,
@@ -217,6 +307,28 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
                 "cohort_improvement_ci_low": cohort_low,
                 "cohort_improvement_ci_high": cohort_high,
                 "n_cohorts_contributing": n_cohorts_contributing,
+                # Calibration parameters, transported versus recalibrated, each with its own
+                # cohort-level 95% CI, plus the paired distance-from-ideal improvement.
+                "calibration_identified_fraction": float(block["calibration_identified"].mean()),
+                "n_cohorts_calibration": n_cohorts_calibration,
+                "transported_calibration_intercept_mean": transported_intercept_mean,
+                "transported_calibration_intercept_ci_low": transported_intercept_low,
+                "transported_calibration_intercept_ci_high": transported_intercept_high,
+                "recalibrated_calibration_intercept_mean": recalibrated_intercept_mean,
+                "recalibrated_calibration_intercept_ci_low": recalibrated_intercept_low,
+                "recalibrated_calibration_intercept_ci_high": recalibrated_intercept_high,
+                "transported_calibration_slope_mean": transported_slope_mean,
+                "transported_calibration_slope_ci_low": transported_slope_low,
+                "transported_calibration_slope_ci_high": transported_slope_high,
+                "recalibrated_calibration_slope_mean": recalibrated_slope_mean,
+                "recalibrated_calibration_slope_ci_low": recalibrated_slope_low,
+                "recalibrated_calibration_slope_ci_high": recalibrated_slope_high,
+                "cohort_mean_intercept_improvement": intercept_improvement_mean,
+                "cohort_intercept_improvement_ci_low": intercept_improvement_low,
+                "cohort_intercept_improvement_ci_high": intercept_improvement_high,
+                "cohort_mean_slope_improvement": slope_improvement_mean,
+                "cohort_slope_improvement_ci_low": slope_improvement_low,
+                "cohort_slope_improvement_ci_high": slope_improvement_high,
             }
         )
     return pd.DataFrame(rows).sort_values(["method", "n_local_participants"], ignore_index=True)

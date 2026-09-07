@@ -100,6 +100,18 @@ def test_local_sizes_are_ascending_and_start_at_one() -> None:
     assert MINIMUM_EVALUATION_PARTICIPANTS >= 3
 
 
+# recalibration_summary always reads the calibration columns, even from a block where none of the
+# fits were identified, so a fixture built only to exercise the MAE columns still needs them present
+# (as NaN / not identified) rather than omitted.
+_NO_CALIBRATION = {
+    "calibration_identified": False,
+    "transported_calibration_intercept": np.nan,
+    "transported_calibration_slope": np.nan,
+    "recalibrated_calibration_intercept": np.nan,
+    "recalibrated_calibration_slope": np.nan,
+}
+
+
 def test_cohort_level_mean_averages_within_cohort_before_pooling_across_cohorts() -> None:
     # StudyA contributes a single identified draw at improvement 10; StudyB contributes nine
     # identified draws at improvement 0. A flat, draw-level mean is dominated by StudyB's nine rows
@@ -115,6 +127,7 @@ def test_cohort_level_mean_averages_within_cohort_before_pooling_across_cohorts(
             "identified": True,
             "mean_absolute_error": 0.0,
             "transported_mean_absolute_error": 10.0,
+            **_NO_CALIBRATION,
         }
     ]
     rows += [
@@ -127,6 +140,7 @@ def test_cohort_level_mean_averages_within_cohort_before_pooling_across_cohorts(
             "identified": True,
             "mean_absolute_error": 0.0,
             "transported_mean_absolute_error": 0.0,
+            **_NO_CALIBRATION,
         }
         for draw in range(9)
     ]
@@ -152,6 +166,7 @@ def test_common_cohorts_are_exactly_those_present_at_every_size() -> None:
             "identified": True,
             "mean_absolute_error": 0.05,
             "transported_mean_absolute_error": 0.10,
+            **{key: value for key, value in _NO_CALIBRATION.items()},
         }
     )
 
@@ -163,3 +178,30 @@ def test_common_cohorts_are_exactly_those_present_at_every_size() -> None:
     # At size 1 all three cohorts are present, so restricting to the common set must drop StudyC.
     assert full.set_index("n_local_participants").loc[1, "n_cohorts"] == 3
     assert restricted.set_index("n_local_participants").loc[1, "n_cohorts"] == 2
+
+
+def test_perfectly_transported_probabilities_calibrate_near_intercept_zero_slope_one() -> None:
+    # offset=0.0 means the transported probability equals the true probability used to generate
+    # outcomes, so its own calibration fit on the evaluation set should recover intercept near 0 and
+    # slope near 1, up to finite-sample noise.
+    predictions = _cohort(18, offset=0.0, seed=21)
+
+    draws = recalibration_draws(predictions, sizes=(4,), draws=100, seed=31)
+    summary = recalibration_summary(draws)
+    row = summary.set_index(["method", "n_local_participants"]).loc[("intercept_only", 4)]
+
+    assert row["transported_calibration_intercept_mean"] == pytest.approx(0.0, abs=0.3)
+    assert row["transported_calibration_slope_mean"] == pytest.approx(1.0, abs=0.5)
+
+
+def test_recalibrated_intercept_moves_closer_to_zero_than_the_transported_intercept() -> None:
+    # A known +1.2 log-odds offset (same fixture as the pure-offset MAE test) should leave the
+    # transported intercept far from 0, and the recalibrated intercept, refit on local data, closer.
+    predictions = _cohort(18, offset=1.2, seed=22)
+
+    draws = recalibration_draws(predictions, sizes=(6,), draws=100, seed=32)
+    summary = recalibration_summary(draws)
+    row = summary.set_index(["method", "n_local_participants"]).loc[("intercept_only", 6)]
+
+    assert abs(row["recalibrated_calibration_intercept_mean"]) < abs(row["transported_calibration_intercept_mean"])
+    assert row["cohort_mean_intercept_improvement"] > 0
