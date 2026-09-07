@@ -148,6 +148,12 @@ The empirical covariance this joint bootstrap produces (`output/expanded/joint_b
 | Study J and Study M | -0.262 |
 | Study A and Study L | 0.248 |
 
+The two paragraphs that follow were moved here from the main-text Discussion during revision, at Reviewer 1's request that the paper be shortened; they are reproduced unchanged apart from the removal of a pointer to this section.
+
+The 18 folds are also not independent, since any two share up to 16 of 17 development cohorts, and a joint bootstrap addresses that correlation directly: resampling every cohort's participants once per replicate and refitting all 18 folds from that single draw gave a within-replicate between-cohort SD of the slope averaging 0.79 across 2,000 replicates (95% range 0.49 to 1.56) and of the intercept 1.62 (0.94 to 3.36), larger than the meta-analytic tau (0.43, 0.87). This is expected rather than discordant: since the procedure never resamples which 18 cohorts are observed, only participants within each fixed cohort, it mixes genuine heterogeneity with within-cohort sampling noise and estimates something closer to the square root of tau squared plus mean within-cohort sampling variance, structurally at least as large as tau, not a corrected or dependence-aware version of tau itself.
+
+Under the participant-cluster bootstrap (Discussion), Study S1's resamples fell onto the separation boundary often enough that fewer than half of its 2,000 replicates were identified. Repeating cluster-robust pooling on the identical 17 cohorts the bootstrap identified gave tau = 0.44 (slope) and 0.87 (intercept), no closer to the bootstrap's own 0.37/0.77 than the all-18 values of 0.43/0.87 were, so most of the gap reflects the variance estimator rather than Study S1's exclusion.
+
 ## S5. Association at three levels
 
 **Table S6. Association between calibration-derived decoder discriminability and observed accuracy, by level and by cohort.** Pearson intervals are two-sided 95% intervals on the Fisher z scale. The two preceding-session rows order a participant's sessions by the lexical order of their identifiers, which the archive assigns sequentially within a participant; the de-identified timestamps cannot confirm that ordering, so those two rows rest on the assumption that identifier order matches recording order.
@@ -398,16 +404,214 @@ Recomputing all 739 held-out estimates from the printed values reproduces the fr
 
 ### Pipeline and outputs
 
-The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, per-cohort calibration and heterogeneity, predictor precision and reliability with the disattenuated heterogeneity of S9, the estimand comparison, the protocol-moderator analysis, sensitivity analyses, the comparator-predictor sweep, the fold-coefficient export, the joint bootstrap of all 18 development folds, and the rendering of every figure from those frozen outputs. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `cohort_calibration.csv`, `heterogeneity_summary.json`, `predictor_precision.csv`, `predictor_reliability.csv`, `estimand_comparison.csv`, `sensitivity_analyses.csv`, `comparator_metrics.csv`, `fold_coefficients.csv`, `protocol_covariates.csv`, `protocol_meta_regression.json`, `joint_bootstrap_covariance.csv`, `joint_bootstrap_correlation.csv`, `joint_bootstrap_replicate_diagnostics.csv`, `bootstrap_replicate_diagnostics.csv` and `joint_bootstrap_summary.json`. The repository test suite contains 182 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, the promised sensitivity, comparator and fold-coefficient analyses, the session-ordering assumption behind the preceding-session analysis, and rendering. The completed TRIPOD checklist is a separate file, `supplementary/tripod_checklist.md`, submitted alongside this supplement rather than as a numbered section within it.
+The analysis pipeline executes archive validation, source metadata extraction, feedback-phase reconstruction, calibration feature extraction, withheld-cohort validation, the widened-design analyses, per-cohort calibration and heterogeneity, predictor precision and reliability with the disattenuated heterogeneity of S9, the estimand comparison, the protocol-moderator analysis, sensitivity analyses, the comparator-predictor sweep, the fold-coefficient export, the joint bootstrap of all 18 development folds, the alignment and nonlinear sweep, the local-recalibration resampling, and the rendering of every figure from those frozen outputs. Frozen outputs are written to `output/expanded/`: `study_inventory.csv`, `analysis_records.csv`, `external_validation_metrics.csv`, `external_validation_predictions.csv`, `random_effects_pooling.csv`, `als_subgroup_metrics.csv`, `transfer_to_als.csv`, `als_meta_regression.json`, `null_benchmark.csv`, `within_study_association.csv`, `participant_level_association.csv`, `across_session_association.csv`, `across_session_pairs.csv`, `session_clustering.json`, `cohort_calibration.csv`, `heterogeneity_summary.json`, `predictor_precision.csv`, `predictor_reliability.csv`, `estimand_comparison.csv`, `sensitivity_analyses.csv`, `comparator_metrics.csv`, `fold_coefficients.csv`, `protocol_covariates.csv`, `protocol_meta_regression.json`, `joint_bootstrap_covariance.csv`, `joint_bootstrap_correlation.csv`, `joint_bootstrap_replicate_diagnostics.csv`, `bootstrap_replicate_diagnostics.csv` and `joint_bootstrap_summary.json`. The analyses added at revision are run by `scripts/04b_extract_alignment_features.py`, which extracts the alignment and nonlinear calibration scores, and by `scripts/17_run_alignment.py`, `scripts/18_run_recalibration.py` and `scripts/19_probe_pca_variance.py`; they write `alignment_transport.csv`, `alignment_cohort_calibration.csv`, `alignment_transport_se_sensitivity.csv`, `recalibration_draws.csv`, `recalibration_summary.csv`, `recalibration_summary_balanced.csv`, `recalibration_cross_method_comparison.csv`, `recalibration_cross_method_comparison_balanced.csv` and `recalibration_instability_by_smaller_side.csv` to the same directory. The five published outputs named above are byte-identical to the submitted version and the frozen four-cohort regression guard passes unchanged. The repository test suite contains 235 tests covering provenance, European Data Format parsing, event reconstruction, feature extraction, validation, the widened-design analyses, the promised sensitivity, comparator and fold-coefficient analyses, the session-ordering assumption behind the preceding-session analysis, and rendering. The completed TRIPOD checklist is a separate file, `supplementary/tripod_checklist.md`, submitted alongside this supplement rather than as a numbered section within it.
 
-## S12. Transparency statement
+## S12. Data re-alignment and nonlinear decision boundaries
+
+This section supports the Results subsections on alignment and on nonlinear decision boundaries. Six additional arms were run through the identical leave-one-study-out procedure as the primary analysis, so that every row of Tables S13 and S14 differs from the primary row only in how the calibration score was produced. Four arms address alignment and two address the shape of the decision boundary. The tables use short arm labels: Primary is the unaligned score of the main analysis; EA, session and EA, cohort are Euclidean Alignment with a session-level and a cohort-level reference; Score z and Score rank are the two score-space arms; RBF and GBM are the two nonlinear decoders.
+
+Two of the alignment arms act on the epochs before any classifier is fitted. Euclidean Alignment whitens each epoch by the inverse square root of a reference covariance, following He and Wu. The two arms differ only in what that reference is: the session arm uses the mean covariance of that session's own calibration epochs, which is the transductive form the original proposal describes, and the cohort arm uses the participant-count-weighted mean of the session references within the source study, which removes a cohort-wide rather than a session-wide covariance offset. Eigenvalues below a relative floor of 1e-10 are held at the floor before inversion, so that a rank-deficient reference cannot produce an unbounded whitening operator.
+
+The other two alignment arms act on the score rather than the epochs. The standardisation arm replaces each session's calibration score by its z score within its own cohort, using the population standard deviation; the rank arm replaces it by the normal quantile of its within-cohort rank. Both are unsupervised and transductive: they use the withheld cohort's predictor values but none of its outcomes. Neither changes the fitted decoder, so neither changes cross-validated discriminability, which is why neither appears in Table S15.
+
+The two nonlinear arms replace the regularised linear decoder with, respectively, a Nystroem radial-basis kernel approximation at 300 components followed by the same regularised linear head, and a histogram-based gradient-boosted tree ensemble on a principal-component reduction of the same epochs. Both were fitted through the identical grouped cross-validation on identical epochs, and both carry balanced class weights, because the calibration blocks are imbalanced at about 11 to 1. The number of retained components was set from measured retained variance rather than matched to the kernel approximation's component count, which is a different quantity.
+
+**Table S13. Discrimination and estimation error of every alignment and nonlinear arm.** All seven arms use the same 18 cohorts, 739 records and 19,611 selections. Pooled MAE is computed over all withheld predictions, as in the main text. The primary row reproduces the published values to thirteen significant figures. Transportability for the same arms is in Table S14; the two tables are one analysis split across two pages so that neither has to be set at a width that breaks words.
+
+| Arm | Role | Pooled MAE | Brier skill | Character AUC |
+| --- | --- | --- | --- | --- |
+| Primary | primary | 0.098 | 0.110 | 0.748 |
+| EA, session | alignment | 0.095 | 0.124 | 0.756 |
+| EA, cohort | alignment | 0.097 | 0.114 | 0.753 |
+| Score z | alignment | 0.129 | 0.051 | 0.677 |
+| Score rank | alignment | 0.131 | 0.049 | 0.664 |
+| RBF | nonlinear | 0.112 | 0.086 | 0.719 |
+| GBM | nonlinear | 0.113 | 0.075 | 0.723 |
+
+**Table S14. Transportability of every alignment and nonlinear arm.** Companion to Table S13, same arms and same fits. Tau is the random-effects between-cohort standard deviation and PI is the 95% prediction interval for a cohort not represented in the archive, given as lower, upper. Calibration fits are the cluster-robust specification used throughout the main text.
+
+| Arm | Slope tau | Slope 95% PI | Intercept tau | Intercept 95% PI |
+| --- | --- | --- | --- | --- |
+| Primary | 0.432 | 0.111, 2.005 | 0.873 | -1.968, 1.854 |
+| EA, session | 0.419 | 0.136, 1.975 | 0.922 | -2.056, 1.976 |
+| EA, cohort | 0.461 | 0.074, 2.095 | 0.941 | -2.123, 1.994 |
+| Score z | 0.653 | -0.230, 2.621 | 1.675 | -3.591, 3.693 |
+| Score rank | 0.686 | -0.196, 2.802 | 1.562 | -3.581, 3.222 |
+| RBF | 0.461 | 0.015, 2.048 | 1.034 | -2.240, 2.289 |
+| GBM | 0.514 | -0.129, 2.122 | 1.162 | -2.437, 2.637 |
+
+**Table S15. Mean cross-validated calibration-block discriminability by cohort and arm.** One row per contributing cohort; the value is the mean across that cohort's sessions of the grouped cross-validated area under the curve of the classifier fitted to the session's calibration block. EA-S and EA-C are the session-reference and cohort-reference alignment arms. The two score-space arms are monotone transformations of the primary score and leave the fitted decoder untouched, so they are not shown. The bottom row is the mean over the 468 sessions belonging to the 18 cohorts that contribute an online outcome; the main text quotes the corresponding means over all 521 extracted sessions (0.8046 primary, 0.8005 session-reference alignment, 0.8021 cohort-reference alignment, 0.7140 kernel, 0.7139 gradient-boosted), which include two cohorts that have calibration recordings but no analysable Test-phase outcome. The primary decoder discriminates better than both nonlinear decoders in every one of the 18 cohorts.
+
+| Cohort | Sessions | Primary | EA-S | EA-C | RBF | GBM |
+| --- | --- | --- | --- | --- | --- | --- |
+| StudyA | 13 | 0.7883 | 0.7774 | 0.7776 | 0.7098 | 0.6943 |
+| StudyB | 58 | 0.7933 | 0.7900 | 0.7902 | 0.7124 | 0.7094 |
+| StudyD | 17 | 0.8270 | 0.8091 | 0.8107 | 0.7113 | 0.7173 |
+| StudyE | 8 | 0.8168 | 0.8127 | 0.8155 | 0.6928 | 0.6862 |
+| StudyF | 30 | 0.7981 | 0.8110 | 0.8075 | 0.7165 | 0.7211 |
+| StudyG | 20 | 0.8473 | 0.8491 | 0.8492 | 0.7216 | 0.7294 |
+| StudyH | 16 | 0.7600 | 0.7785 | 0.7870 | 0.6632 | 0.6548 |
+| StudyI | 13 | 0.7074 | 0.6813 | 0.6923 | 0.6011 | 0.6046 |
+| StudyJ | 20 | 0.7208 | 0.7022 | 0.7127 | 0.6148 | 0.6287 |
+| StudyK | 8 | 0.6884 | 0.6951 | 0.6945 | 0.5641 | 0.5928 |
+| StudyL | 11 | 0.7856 | 0.7743 | 0.7745 | 0.7236 | 0.7134 |
+| StudyM | 21 | 0.7375 | 0.7189 | 0.7270 | 0.6497 | 0.6553 |
+| StudyN | 16 | 0.7528 | 0.7364 | 0.7429 | 0.6719 | 0.6858 |
+| StudyO | 36 | 0.8736 | 0.8758 | 0.8767 | 0.7751 | 0.7770 |
+| StudyQ | 107 | 0.7715 | 0.7616 | 0.7627 | 0.7088 | 0.6968 |
+| StudyR | 40 | 0.8862 | 0.8827 | 0.8825 | 0.7972 | 0.8005 |
+| StudyS1 | 10 | 0.9331 | 0.9395 | 0.9401 | 0.8062 | 0.8303 |
+| StudyS2 | 24 | 0.8995 | 0.9025 | 0.9026 | 0.7589 | 0.7771 |
+| **All 18** | **468** | **0.8025** | **0.7974** | **0.7993** | **0.7128** | **0.7133** |
+
+**Table S16. Sensitivity of every arm's heterogeneity to the calibration standard-error method.** The primary analysis clusters standard errors on participant; this table repeats the pooling under the three alternatives already used elsewhere in the paper. The ordering of the arms is stable under all three: the two score-space arms carry the largest intercept tau under every method, and no method brings any alignment arm's intercept tau below the primary arm's by a margin the prediction intervals in Table S14 would call meaningful. Absolute values shift because the methods make different assumptions about within-cohort sampling error, which is the same phenomenon described in S4. I2 is given as a percentage.
+
+| Arm | SE method | Slope tau | Slope I2 | Intercept tau | Intercept I2 |
+| --- | --- | --- | --- | --- | --- |
+| Primary | Model | 0.546 | 95.0 | 0.866 | 95.6 |
+| Primary | Quasi-binomial | 0.443 | 79.4 | 0.794 | 83.5 |
+| Primary | Bootstrap | 0.373 | 65.0 | 0.770 | 74.3 |
+| EA, session | Model | 0.510 | 94.4 | 0.843 | 95.5 |
+| EA, session | Quasi-binomial | 0.412 | 78.5 | 0.787 | 84.4 |
+| EA, session | Bootstrap | 0.344 | 61.5 | 0.754 | 74.2 |
+| EA, cohort | Model | 0.583 | 95.7 | 0.887 | 95.8 |
+| EA, cohort | Quasi-binomial | 0.476 | 82.3 | 0.813 | 84.7 |
+| EA, cohort | Bootstrap | 0.383 | 64.5 | 0.773 | 73.1 |
+| Score z | Model | 0.657 | 95.5 | 1.337 | 97.0 |
+| Score z | Quasi-binomial | 0.654 | 87.4 | 1.487 | 93.3 |
+| Score z | Bootstrap | 0.595 | 80.2 | 1.421 | 88.9 |
+| Score rank | Model | 0.686 | 95.6 | 1.329 | 96.7 |
+| Score rank | Quasi-binomial | 0.669 | 86.2 | 1.372 | 90.9 |
+| Score rank | Bootstrap | 0.605 | 79.0 | 1.393 | 87.1 |
+| RBF | Model | 0.616 | 94.1 | 0.999 | 95.6 |
+| RBF | Quasi-binomial | 0.541 | 75.2 | 0.977 | 81.2 |
+| RBF | Bootstrap | 0.442 | 64.3 | 0.945 | 72.7 |
+| GBM | Model | 0.623 | 95.1 | 1.009 | 95.9 |
+| GBM | Quasi-binomial | 0.546 | 77.8 | 1.024 | 83.0 |
+| GBM | Bootstrap | 0.472 | 64.5 | 1.040 | 75.6 |
+
+## S13. Cost of local recalibration
+
+This section supports the Results subsection on local recalibration. Within each withheld cohort, participants were partitioned at random into a local set of a target size and an evaluation set holding the remainder, with a floor of three evaluation participants. The transported mapping and a mapping recalibrated on the local set were then scored on the identical evaluation participants, so that every comparison is paired. Two recalibration types were run, labelled Intercept and Both in the tables: an intercept-only refit, which shifts the transported mapping without changing its slope, and a two-parameter refit of both intercept and slope. The intercept-only refit is defined at one local participant; the two-parameter refit is not, so its ladder starts at two.
+
+Cohorts leave the ladder as the requested local size approaches their participant count, which changes the set of cohorts being averaged from rung to rung. Tables S17 and S18 therefore report a composition-balanced ladder restricted to the six cohorts that survive every rung, so that a change between rungs is a sample-size effect rather than a change of cohorts. Tables S19 and S20 report the all-available ladder for completeness; its cohort count falls from 18 at one local participant to 6 at sixteen, and its rungs are not comparable with one another. Each ladder is given as two tables, design and error followed by improvement and power, for the same width reason as Tables S13 and S14.
+
+**Table S17. Composition-balanced recalibration ladder: design and error.** Six cohorts contribute at every rung. Draws are participant partitions; Identified is the fraction in which the recalibration fit converged and could be scored. Median sel. is the median number of character selections in the local set. MAE, transp. and MAE, recal. are the mean absolute error of the transported and the recalibrated mapping on the same evaluation participants.
+
+| Refit | Local n | Draws | Identified | Median sel. | MAE, transp. | MAE, recal. |
+| --- | --- | --- | --- | --- | --- | --- |
+| Intercept | 1 | 1200 | 0.833 | 60 | 0.097 | 0.112 |
+| Intercept | 2 | 1200 | 0.940 | 120 | 0.093 | 0.097 |
+| Intercept | 3 | 1200 | 0.968 | 180 | 0.091 | 0.093 |
+| Intercept | 4 | 1200 | 0.983 | 246 | 0.090 | 0.091 |
+| Intercept | 6 | 1200 | 0.998 | 396 | 0.090 | 0.087 |
+| Intercept | 8 | 1200 | 1.000 | 528 | 0.090 | 0.087 |
+| Intercept | 12 | 1200 | 1.000 | 792 | 0.090 | 0.086 |
+| Intercept | 14 | 1200 | 1.000 | 924 | 0.091 | 0.086 |
+| Intercept | 16 | 1200 | 1.000 | 1056 | 0.089 | 0.084 |
+| Both | 2 | 1200 | 0.795 | 120 | 0.099 | 0.173 |
+| Both | 3 | 1200 | 0.894 | 180 | 0.095 | 0.125 |
+| Both | 4 | 1200 | 0.924 | 246 | 0.093 | 0.113 |
+| Both | 6 | 1200 | 0.974 | 396 | 0.091 | 0.099 |
+| Both | 8 | 1200 | 0.992 | 528 | 0.090 | 0.094 |
+| Both | 12 | 1200 | 0.999 | 792 | 0.090 | 0.089 |
+| Both | 14 | 1200 | 1.000 | 924 | 0.091 | 0.089 |
+| Both | 16 | 1200 | 1.000 | 1056 | 0.089 | 0.086 |
+
+**Table S18. Composition-balanced recalibration ladder: paired improvement and power.** Companion to Table S17, same draws. Improvement is the cohort-level mean of the transported minus the recalibrated mean absolute error, so a positive value favours recalibrating, with a t-based 95% confidence interval on 5 degrees of freedom. Win is the share of draws in which recalibrating gave the smaller error. MDE 80% is the effect this design would detect with 80% power at that rung, and it bounds how large a benefit could have been present without being seen. No rung's interval excludes zero in the direction that favours recalibrating.
+
+| Refit | Local n | Improvement | 95% CI | Win | MDE 80% |
+| --- | --- | --- | --- | --- | --- |
+| Intercept | 1 | -0.012 | -0.032, 0.008 | 0.321 | 0.027 |
+| Intercept | 2 | -0.004 | -0.020, 0.013 | 0.447 | 0.022 |
+| Intercept | 3 | -0.001 | -0.015, 0.013 | 0.476 | 0.019 |
+| Intercept | 4 | -0.000 | -0.014, 0.014 | 0.494 | 0.019 |
+| Intercept | 6 | 0.003 | -0.010, 0.015 | 0.579 | 0.017 |
+| Intercept | 8 | 0.003 | -0.010, 0.016 | 0.591 | 0.018 |
+| Intercept | 12 | 0.004 | -0.008, 0.016 | 0.626 | 0.017 |
+| Intercept | 14 | 0.005 | -0.006, 0.017 | 0.672 | 0.016 |
+| Intercept | 16 | 0.005 | -0.007, 0.016 | 0.662 | 0.016 |
+| Both | 2 | -0.073 | -0.111, -0.035 | 0.178 | 0.051 |
+| Both | 3 | -0.029 | -0.053, -0.006 | 0.327 | 0.031 |
+| Both | 4 | -0.019 | -0.041, 0.004 | 0.362 | 0.031 |
+| Both | 6 | -0.008 | -0.020, 0.004 | 0.476 | 0.016 |
+| Both | 8 | -0.003 | -0.013, 0.007 | 0.526 | 0.014 |
+| Both | 12 | 0.001 | -0.007, 0.009 | 0.579 | 0.011 |
+| Both | 14 | 0.002 | -0.006, 0.009 | 0.590 | 0.011 |
+| Both | 16 | 0.003 | -0.005, 0.010 | 0.598 | 0.011 |
+
+**Table S19. All-available recalibration ladder: design and error.** As Table S17, but using every cohort that can supply the requested local size. The Cohorts column shows how the composition changes across rungs; because it changes, the rungs of this table are not comparable with one another, and the balanced ladder is the one the main text reports.
+
+| Refit | Local n | Cohorts | Draws | Identified | Median sel. | MAE, transp. | MAE, recal. |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Intercept | 1 | 18 | 3600 | 0.842 | 72 | 0.107 | 0.127 |
+| Intercept | 2 | 18 | 3600 | 0.928 | 144 | 0.104 | 0.113 |
+| Intercept | 3 | 17 | 3400 | 0.950 | 216 | 0.099 | 0.099 |
+| Intercept | 4 | 17 | 3400 | 0.958 | 288 | 0.098 | 0.096 |
+| Intercept | 6 | 15 | 3000 | 0.975 | 432 | 0.098 | 0.093 |
+| Intercept | 8 | 13 | 2600 | 1.000 | 576 | 0.100 | 0.096 |
+| Intercept | 12 | 10 | 2000 | 1.000 | 864 | 0.092 | 0.084 |
+| Intercept | 14 | 9 | 1800 | 1.000 | 971 | 0.086 | 0.081 |
+| Intercept | 16 | 6 | 1200 | 1.000 | 1056 | 0.089 | 0.084 |
+| Both | 2 | 18 | 3600 | 0.810 | 144 | 0.109 | 0.177 |
+| Both | 3 | 17 | 3400 | 0.897 | 216 | 0.101 | 0.126 |
+| Both | 4 | 17 | 3400 | 0.919 | 288 | 0.100 | 0.111 |
+| Both | 6 | 15 | 3000 | 0.948 | 432 | 0.099 | 0.098 |
+| Both | 8 | 13 | 2600 | 0.996 | 576 | 0.100 | 0.098 |
+| Both | 12 | 10 | 2000 | 1.000 | 864 | 0.092 | 0.085 |
+| Both | 14 | 9 | 1800 | 1.000 | 971 | 0.086 | 0.082 |
+| Both | 16 | 6 | 1200 | 1.000 | 1056 | 0.089 | 0.086 |
+
+**Table S20. All-available recalibration ladder: paired improvement and power.** Companion to Table S19, with the same caveat about changing composition. The confidence interval is on one fewer degree of freedom than the cohort count of its own rung.
+
+| Refit | Local n | Cohorts | Improvement | 95% CI | Win | MDE 80% |
+| --- | --- | --- | --- | --- | --- | --- |
+| Intercept | 1 | 18 | -0.016 | -0.028, -0.004 | 0.336 | 0.017 |
+| Intercept | 2 | 18 | -0.006 | -0.018, 0.006 | 0.454 | 0.017 |
+| Intercept | 3 | 17 | 0.001 | -0.007, 0.010 | 0.542 | 0.012 |
+| Intercept | 4 | 17 | 0.004 | -0.005, 0.012 | 0.568 | 0.012 |
+| Intercept | 6 | 15 | 0.006 | -0.003, 0.014 | 0.608 | 0.012 |
+| Intercept | 8 | 13 | 0.004 | -0.005, 0.013 | 0.589 | 0.012 |
+| Intercept | 12 | 10 | 0.008 | -0.003, 0.018 | 0.672 | 0.014 |
+| Intercept | 14 | 9 | 0.006 | -0.003, 0.014 | 0.669 | 0.012 |
+| Intercept | 16 | 6 | 0.005 | -0.007, 0.016 | 0.662 | 0.016 |
+| Both | 2 | 18 | -0.067 | -0.090, -0.045 | 0.276 | 0.031 |
+| Both | 3 | 17 | -0.022 | -0.036, -0.007 | 0.435 | 0.020 |
+| Both | 4 | 17 | -0.008 | -0.021, 0.004 | 0.504 | 0.018 |
+| Both | 6 | 15 | 0.002 | -0.009, 0.013 | 0.591 | 0.015 |
+| Both | 8 | 13 | 0.002 | -0.009, 0.014 | 0.571 | 0.016 |
+| Both | 12 | 10 | 0.007 | -0.005, 0.018 | 0.612 | 0.016 |
+| Both | 14 | 9 | 0.004 | -0.005, 0.014 | 0.600 | 0.013 |
+| Both | 16 | 6 | 0.003 | -0.005, 0.010 | 0.598 | 0.011 |
+
+**Table S21. Instability of the two-parameter refit, by the smaller side of the local and evaluation split.** Smaller side is the smaller of the local and the evaluation participant count, which is the margin this instability tracks rather than the local count alone, because either starved side can leave the diagnostic calibration fit ill-conditioned. Only the negative-slope fraction decreases cleanly across this margin; the out-of-range fraction, the share of fits falling outside a slope of 0 to 3, does not, and its top rung exceeds five of the eight rungs below it. The table is also confounded with cohort composition: the rows at 5, 7 and 9 are contributed by a single cohort, as are those at 10 and 12, while the rows at 2, 3, 4, 6 and 8 mix all six balanced cohorts, so a change from one row to the next can be a cohort swap rather than a sample-size effect. The negative-slope fraction is the quantity the main text reports, at 24.1% for the smallest split.
+
+| Smaller side | Draws | Cohorts | Slope negative | Slope out of range |
+| --- | --- | --- | --- | --- |
+| 2 | 916 | 6 | 0.241 | 0.287 |
+| 3 | 1069 | 6 | 0.157 | 0.221 |
+| 4 | 1904 | 6 | 0.116 | 0.213 |
+| 5 | 200 | 1 | 0.050 | 0.080 |
+| 6 | 1969 | 6 | 0.065 | 0.128 |
+| 7 | 200 | 1 | 0.005 | 0.010 |
+| 8 | 2180 | 6 | 0.031 | 0.106 |
+| 9 | 200 | 1 | 0.000 | 0.020 |
+| 10 | 195 | 1 | 0.000 | 0.082 |
+| 12 | 199 | 1 | 0.000 | 0.126 |
+
+**Table S22. Intercept-only against two-parameter recalibration, on the draws where both were identified.** Restricted to the participant partitions of the composition-balanced ladder in which both recalibration types converged, so the two are compared on identical data. Intercept only and Both are the two refits' mean improvements; Difference is the first minus the second, so a positive value favours the intercept-only refit, with its 95% confidence interval. That difference is positive at every rung, and its interval excludes zero at two, three, four and six local participants; at eight and above the two refits are not separated by this design.
+
+| Local n | Draws | Intercept only | Both | Difference | 95% CI |
+| --- | --- | --- | --- | --- | --- |
+| 2 | 954 | -0.004 | -0.073 | 0.069 | 0.037, 0.101 |
+| 3 | 1073 | -0.002 | -0.029 | 0.028 | 0.014, 0.042 |
+| 4 | 1109 | -0.001 | -0.019 | 0.018 | 0.006, 0.030 |
+| 6 | 1169 | 0.003 | -0.008 | 0.010 | 0.003, 0.018 |
+| 8 | 1190 | 0.003 | -0.003 | 0.006 | -0.002, 0.014 |
+| 12 | 1199 | 0.004 | 0.001 | 0.003 | -0.004, 0.010 |
+| 14 | 1200 | 0.005 | 0.002 | 0.003 | -0.003, 0.010 |
+| 16 | 1200 | 0.005 | 0.003 | 0.002 | -0.004, 0.009 |
+
+## S14. Transparency statement
 
 As stated in the Methods, under Ethics, the study involved no new data collection, participant contact, prospective enrolment, or intervention. It does not establish a diagnostic, prognostic, causal, or treatment effect. Character-level online selection accuracy is an operational endpoint and should not be presented as communication success, quality of life, or a clinical outcome. The source studies vary in protocol, and the archive does not permit cross-study person-level linkage. As detailed in S1, participant identifiers are scoped to each source study rather than to the archive as a whole, so cross-study participant overlap can be neither confirmed nor excluded from the archive's documentation. Four source studies carry a documented ALS population; the remaining cohorts are described as other cohorts because the documentation does not support a positive characterisation, and no participant-level clinical characteristics were available.
-
-
-**Moved from the main text during revision (Reviewer 1, comment 4).**
-
-The 18 folds are also not independent, since any two share up to 16 of 17 development cohorts, and a joint bootstrap addresses that correlation directly: resampling every cohort's participants once per replicate and refitting all 18 folds from that single draw gave a within-replicate between-cohort SD of the slope averaging 0.79 across 2,000 replicates (95% range 0.49 to 1.56) and of the intercept 1.62 (0.94 to 3.36), larger than the meta-analytic tau (0.43, 0.87). This is expected rather than discordant: since the procedure never resamples which 18 cohorts are observed, only participants within each fixed cohort, it mixes genuine heterogeneity with within-cohort sampling noise and estimates something closer to the square root of tau squared plus mean within-cohort sampling variance, structurally at least as large as tau, not a corrected or dependence-aware version of tau itself (supplement, S4).
-
-Under the participant-cluster bootstrap (Discussion), Study S1's resamples fell onto the separation boundary often enough that fewer than half of its 2,000 replicates were identified. Repeating cluster-robust pooling on the identical 17 cohorts the bootstrap identified gave tau = 0.44 (slope) and 0.87 (intercept), no closer to the bootstrap's own 0.37/0.77 than the all-18 values of 0.43/0.87 were, so most of the gap reflects the variance estimator rather than Study S1's exclusion (supplement, S4).
-
