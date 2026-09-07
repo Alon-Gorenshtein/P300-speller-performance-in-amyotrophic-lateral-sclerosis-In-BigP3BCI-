@@ -29,6 +29,20 @@ fitted a straight line separately to the ALS cohorts and to the rest, which is t
 record-level interaction; that test was demoted to the study level because treating 739 records as
 independent overstates its precision by roughly an order of magnitude. The cohort-type contrast is
 carried by the colouring of the forest instead, which asserts no fitted interaction.
+
+``render_recalibration_curve`` carries the cost of local recalibration, not its benefit: nowhere on
+the balanced ladder does the paired improvement in mean absolute error clear zero, and the smallest
+sizes are significantly worse under the slope-and-intercept refit. There is no crossing point, so the
+figure plots the improvement itself, with its interval, against the null it must clear, rather than a
+raw error level against a reference line that would invite a reader to look for one. The minimum
+detectable effect is drawn alongside so "nothing was detected" and "this is how large an effect this
+sample size could have detected" are read off the same axis.
+
+``render_alignment_transport`` carries whether standard EEG re-alignment repairs the transport
+failure. It does not: every alignment variant leaves tau close to the primary score's, and the two
+that move it furthest (cohort z-score, cohort rank) do so while raising pooled error, which is the
+opposite of a repair. I-squared is not drawn, because the manuscript may not lean on it, and a figure
+that showed it would invite a reader to.
 """
 
 from __future__ import annotations
@@ -57,6 +71,42 @@ CRITICAL_VALUE = float(stats.norm.ppf(0.975))
 # frame carrying only standard errors renders. Where the file also carries its own interval the two
 # are required to agree, which catches a figure drifting from the table it is supposed to depict.
 INTERVAL_TOLERANCE = 1e-9
+
+# The balanced-ladder local-participant counts. Not evenly spaced (the design coarsens once
+# selections grow large enough that a fixed multiplicative step in cohorts contributing is no
+# longer available), so they are declared rather than inferred from whatever a given frame contains.
+LADDER_ORDER = (1, 2, 3, 4, 6, 8, 12, 14, 16)
+METHOD_STYLE = {
+    "intercept_only": {"color": OTHER_COLOR, "marker": OTHER_MARKER, "label": "Intercept-only refit"},
+    "intercept_and_slope": {
+        "color": ALS_COLOR, "marker": ALS_MARKER, "label": "Intercept-and-slope refit"
+    },
+}
+
+# Left-to-right reading order the brief specifies: the primary score, then the four EEG
+# re-alignment variants, then the two nonlinear re-scorings.
+ROLE_ORDER = ("primary", "alignment", "nonlinear")
+ROLE_STYLE = {
+    "primary": {"color": ALS_COLOR, "hatch": None, "label": "Primary score"},
+    "alignment": {"color": OTHER_COLOR, "hatch": "//", "label": "EEG re-alignment"},
+    "nonlinear": {"color": BAND_COLOR, "hatch": "xx", "label": "Nonlinear re-scoring"},
+}
+# Arm names as written in alignment_transport.csv, relabelled for the axis. The mapping is display
+# only; the arm column itself, not this label, is what a reader would need to trace a row back to
+# the table.
+ARM_LABELS = {
+    "calibration_auc": "Primary (no alignment)",
+    "calibration_auc_ea_session": "Euclidean alignment, within session",
+    "calibration_auc_ea_cohort": "Euclidean alignment, within cohort",
+    "calibration_auc_cohort_z": "Cohort z-score standardisation",
+    "calibration_auc_cohort_rank": "Cohort rank standardisation",
+    "calibration_auc_rbf": "RBF-kernel nonlinear score",
+    "calibration_auc_gbm": "Gradient-boosted nonlinear score",
+}
+
+
+def _arm_label(arm: str) -> str:
+    return ARM_LABELS.get(arm, arm)
 
 
 def _cohort_label(study: str) -> str:
@@ -443,3 +493,147 @@ def render_cohort_type_relationship(
     """Plot calibration score against observed accuracy, marked by cohort type and unfitted."""
     _save(_build_cohort_type_relationship(records, als_studies, feature), directory,
           "figure_cohort_type_relationship")
+
+
+def render_recalibration_curve(summary: pd.DataFrame, directory: Path) -> None:
+    """Plot the paired improvement in mean absolute error from local recalibration, against zero.
+
+    ``summary`` is the balanced-ladder recalibration table (``recalibration_summary_balanced.csv``):
+    the cohort set contributing to each rung is held fixed at 6, so the curve is not confounded by a
+    changing, progressively easier cohort mix as the ladder thins. Because that set is fixed by
+    construction, the contributing-cohort annotation on this figure reads 6 at every size; that
+    constancy is itself what the annotation is there to show, not evidence the analysis failed to
+    thin anything.
+    """
+    required = {
+        "method", "n_local_participants", "cohort_mean_improvement", "cohort_improvement_ci_low",
+        "cohort_improvement_ci_high", "mae_minimum_detectable_effect", "n_cohorts_contributing",
+        "median_local_selections",
+    }
+    require_columns(summary, required)
+
+    # The ladder is not evenly spaced in participants (1, 2, 3, 4, 6, 8, 12, 14, 16), so plotting it
+    # on its own numeric scale, log or linear, crowds the three largest rungs into a few pixels and
+    # collides their tick annotations. Categorical positions, one slot per rung actually present in
+    # the data, give every rung equal room regardless of its value.
+    present = sorted(set(summary["n_local_participants"]))
+    ticks = [n for n in LADDER_ORDER if n in present]
+    slot = {n: index for index, n in enumerate(ticks)}
+
+    fig, ax = plt.subplots(figsize=(8.4, 5.0))
+    ax.axhline(0.0, color=LABEL_COLOR, linewidth=1.0, zorder=1, label="No improvement")
+
+    # A small additive offset in slot units so the two methods' error bars at a shared rung do not
+    # sit exactly on top of one another.
+    dodge = {"intercept_only": -0.09, "intercept_and_slope": 0.09}
+    selections_by_n: dict[float, float] = {}
+    contributing_by_n: dict[float, set[int]] = {}
+
+    for method in sorted(summary["method"].unique()):
+        style = METHOD_STYLE[method]
+        frame = summary.loc[summary["method"] == method].sort_values("n_local_participants")
+        x = frame["n_local_participants"].map(slot).to_numpy(dtype=float) + dodge.get(method, 0.0)
+        y = frame["cohort_mean_improvement"].to_numpy(dtype=float)
+        low = frame["cohort_improvement_ci_low"].to_numpy(dtype=float)
+        high = frame["cohort_improvement_ci_high"].to_numpy(dtype=float)
+        mde = frame["mae_minimum_detectable_effect"].to_numpy(dtype=float)
+
+        ax.plot(x, y, color=style["color"], linewidth=1.2, alpha=0.9, zorder=2)
+        ax.errorbar(
+            x, y, yerr=[y - low, high - y], fmt=style["marker"], ms=6.5, mfc=style["color"],
+            mec="white", mew=0.7, color=style["color"], ecolor=style["color"], elinewidth=1.3,
+            capsize=3, linestyle="none", zorder=3, label=style["label"],
+        )
+        # The envelope is drawn dashed, not filled, so it reads as a detection threshold rather than
+        # competing visually with the 95% interval already drawn on the observed points.
+        ax.plot(x, mde, color=style["color"], linestyle="--", linewidth=1.0, alpha=0.55, zorder=1)
+        ax.plot(x, -mde, color=style["color"], linestyle="--", linewidth=1.0, alpha=0.55, zorder=1)
+
+        for n, count, sel in zip(
+            frame["n_local_participants"], frame["n_cohorts_contributing"],
+            frame["median_local_selections"], strict=True,
+        ):
+            contributing_by_n.setdefault(n, set()).add(int(count))
+            selections_by_n[n] = sel
+
+    ax.set_xticks(range(len(ticks)))
+    tick_labels = [
+        f"{n}\n{int(selections_by_n[n])} sel\n"
+        f"{'/'.join(str(c) for c in sorted(contributing_by_n[n]))} cohorts"
+        for n in ticks
+    ]
+    ax.set_xticklabels(tick_labels, fontsize=8)
+    ax.set_xlim(-0.5, len(ticks) - 0.5)
+
+    ax.set_xlabel("Local participants used for recalibration")
+    ax.set_ylabel("MAE improvement over the transported mapping\n(cohort mean, 95% CI)")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.legend(loc="lower right", frameon=False, fontsize=9)
+    _save(fig, directory, "figure_recalibration_curve")
+
+
+def render_alignment_transport(transport: pd.DataFrame, directory: Path) -> None:
+    """Plot each re-alignment arm's calibration tau against the primary arm's own value.
+
+    ``transport`` is the per-arm alignment-transport table (``alignment_transport.csv``): the primary
+    calibration score, four standard EEG re-alignment variants of it, and two nonlinear
+    re-scorings, each pooled the same way. Tau carries the comparison; I-squared is never drawn
+    here, matching the standing constraint not to lean on it anywhere in the manuscript. The pooled
+    mean absolute error is annotated on every row because an arm that moves tau without lowering
+    error, or raises error while moving tau, has not repaired anything.
+    """
+    require_columns(transport, {"arm", "role", "mae", "slope_tau", "intercept_tau"})
+    frame = transport.copy()
+    unexpected = sorted(set(frame["role"]) - set(ROLE_ORDER))
+    if unexpected:
+        raise ValueError(f"unexpected arm role(s): {unexpected}")
+    frame["role"] = pd.Categorical(frame["role"], categories=ROLE_ORDER, ordered=True)
+    frame = frame.sort_values("role", kind="mergesort").reset_index(drop=True)
+
+    primary_rows = frame.loc[frame["role"] == "primary"]
+    if len(primary_rows) != 1:
+        raise ValueError(f"expected exactly one primary arm, found {len(primary_rows)}")
+    primary = primary_rows.iloc[0]
+
+    positions = np.arange(len(frame))
+    colors = [ROLE_STYLE[str(role)]["color"] for role in frame["role"]]
+    hatches = [ROLE_STYLE[str(role)]["hatch"] for role in frame["role"]]
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.6), sharey=True, constrained_layout=True)
+    panels = (
+        (axes[0], "intercept_tau", float(primary["intercept_tau"]), "Calibration intercept tau (between-cohort)"),
+        (axes[1], "slope_tau", float(primary["slope_tau"]), "Calibration slope tau (between-cohort)"),
+    )
+    for axis, quantity, reference, title in panels:
+        values = frame[quantity].to_numpy(dtype=float)
+        bars = axis.barh(positions, values, color=colors, height=0.6, edgecolor="white",
+                          linewidth=0.6, zorder=2)
+        for bar, hatch in zip(bars, hatches, strict=True):
+            if hatch:
+                bar.set_hatch(hatch)
+        axis.axvline(reference, color=LABEL_COLOR, linestyle="--", linewidth=1.1, zorder=3)
+        span = float(values.max())
+        for position, value, mae in zip(positions, values, frame["mae"], strict=True):
+            axis.text(value + 0.03 * span, position, f"MAE {mae:.3f}", va="center", fontsize=8,
+                      color=LABEL_COLOR)
+        axis.set_xlabel(title)
+        axis.set_xlim(0, span * 1.34)
+        axis.spines["top"].set_visible(False)
+        axis.spines["right"].set_visible(False)
+
+    axes[0].set_yticks(positions)
+    axes[0].set_yticklabels([_arm_label(arm) for arm in frame["arm"]], fontsize=9)
+    axes[0].invert_yaxis()
+    for axis, letter in zip(axes, "ab", strict=True):
+        axis.text(-0.34, 1.04, letter, transform=axis.transAxes, fontsize=14, fontweight="bold",
+                  color=LABEL_COLOR)
+
+    handles = [
+        plt.Rectangle((0, 0), 1, 1, facecolor=ROLE_STYLE[role]["color"], edgecolor="white",
+                      hatch=ROLE_STYLE[role]["hatch"], label=ROLE_STYLE[role]["label"])
+        for role in ROLE_ORDER
+    ]
+    handles.append(plt.Line2D([], [], color=LABEL_COLOR, linestyle="--", label="Primary arm's own value"))
+    fig.legend(handles=handles, loc="outside lower center", ncol=4, frameon=False, fontsize=9)
+    _save(fig, directory, "figure_alignment_transport")

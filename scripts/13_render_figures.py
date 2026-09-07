@@ -21,9 +21,11 @@ import pandas as pd
 
 from bigp3_als.expanded import ALS_STUDIES, _cohort_slopes
 from bigp3_als.render_expanded import (
+    render_alignment_transport,
     render_calibration_curves,
     render_calibration_forest,
     render_cohort_type_relationship,
+    render_recalibration_curve,
     render_skill_by_cohort,
     render_transportability,
 )
@@ -48,6 +50,8 @@ def main() -> None:
     benchmark = pd.read_csv(directory / "null_benchmark.csv")
     records = pd.read_csv(directory / "analysis_records.csv")
     predictions = pd.read_csv(directory / "external_validation_predictions.csv")
+    recalibration = pd.read_csv(directory / "recalibration_summary_balanced.csv")
+    alignment = pd.read_csv(directory / "alignment_transport.csv")
 
     # _cohort_slopes carries the unit-of-analysis guard the analysis uses: one row per cohort under
     # one specification. Reusing it keeps the figure on the same rows every estimate was fitted on.
@@ -69,6 +73,8 @@ def main() -> None:
     render_transportability(metrics, pooling, ALS_STUDIES, figures)
     render_skill_by_cohort(metrics, benchmark, ALS_STUDIES, figures)
     render_cohort_type_relationship(records, ALS_STUDIES, figures)
+    render_recalibration_curve(recalibration, figures)
+    render_alignment_transport(alignment, figures)
 
     negative = _negative_skill_cohorts(metrics, benchmark)
     print(f"figures written to {figures}")
@@ -78,6 +84,8 @@ def main() -> None:
     print("  figure_transportability          Figure 3")
     print("  figure_skill_by_cohort           Figure 4")
     print("  figure_cohort_type_relationship  Figure S1")
+    print("  figure_recalibration_curve       Figure 5 (recalibration cost, balanced ladder)")
+    print("  figure_alignment_transport       Figure 6 (EEG re-alignment does not repair transport)")
     print(f"cohorts below the development-mean benchmark: {len(negative)} ({', '.join(negative)})")
 
 
