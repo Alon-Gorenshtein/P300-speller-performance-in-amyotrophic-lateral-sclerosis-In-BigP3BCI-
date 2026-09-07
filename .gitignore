@@ -6,14 +6,26 @@ __pycache__/
 data/
 tmp/
 
-# Analysis outputs are not tracked, with one deliberate exception. The manuscript's availability
+# Analysis outputs are not tracked, with two deliberate exceptions. The manuscript's availability
 # statement promises the frozen outputs alongside the code, and the supplement lists all 24 of them
 # by filename, so `output/expanded/` is tracked: the promise is kept on a fresh checkout, and any
 # silent drift in the outputs the paper is written from shows up as a diff. `output/*` rather than
 # `output/` because git cannot re-include a path whose parent directory is itself excluded.
-# The intermediate, final, smoke-test and reference outputs stay untracked.
+# The rest of the intermediate, final, smoke-test and reference outputs stay untracked.
 output/*
 !output/expanded/
+
+# Two files out of output/intermediate/ are also tracked, for the same reproducibility reason as
+# output/expanded/ above: they are the only inputs to six of the seven rows in
+# alignment_transport.csv, regenerating them needs the 51 GB gitignored EDF cache and a four-hour
+# extraction, and both are small (67 KB and 660 KB). Without them, the alignment/nonlinear transport
+# table cannot be regenerated from a fresh checkout at all. `output/intermediate/*` re-excludes
+# everything else in the directory once the directory itself is un-ignored, for the reason given
+# above (git will not look inside a directory it has already excluded).
+!output/intermediate/
+output/intermediate/*
+!output/intermediate/calibration_features_all20_alignment.csv
+!output/intermediate/session_reference_covariances.npz
 
 # Rendered delivery artifacts are reproducible from tracked manuscript sources.
 manuscript/*.pdf
