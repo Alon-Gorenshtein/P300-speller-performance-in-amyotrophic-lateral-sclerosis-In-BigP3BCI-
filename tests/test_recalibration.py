@@ -401,19 +401,19 @@ def test_smaller_side_grouping_is_the_union_of_local_smaller_and_evaluation_smal
     rows = pd.DataFrame(
         [
             # local=4 is the smaller (or tied) side -> smaller_side 4, twice.
-            {"n_local_participants": 4, "n_evaluation_participants": 10, "method": "intercept_and_slope",
-             "calibration_identified": True, "recalibrated_calibration_slope": 0.9},
-            {"n_local_participants": 4, "n_evaluation_participants": 10, "method": "intercept_and_slope",
-             "calibration_identified": True, "recalibrated_calibration_slope": -0.1},
+            {"held_out_study": "StudyX", "n_local_participants": 4, "n_evaluation_participants": 10,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 0.9},
+            {"held_out_study": "StudyX", "n_local_participants": 4, "n_evaluation_participants": 10,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": -0.1},
             # evaluation=4 is the strictly smaller side -> also smaller_side 4.
-            {"n_local_participants": 12, "n_evaluation_participants": 4, "method": "intercept_and_slope",
-             "calibration_identified": True, "recalibrated_calibration_slope": 1.2},
+            {"held_out_study": "StudyX", "n_local_participants": 12, "n_evaluation_participants": 4,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 1.2},
             # a tie: both sides equal 5 -> smaller_side 5, counted once, not twice.
-            {"n_local_participants": 5, "n_evaluation_participants": 5, "method": "intercept_and_slope",
-             "calibration_identified": True, "recalibrated_calibration_slope": 0.7},
+            {"held_out_study": "StudyX", "n_local_participants": 5, "n_evaluation_participants": 5,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 0.7},
             # evaluation=3 is the smaller side -> smaller_side 3, unrelated to the size-4 group.
-            {"n_local_participants": 8, "n_evaluation_participants": 3, "method": "intercept_and_slope",
-             "calibration_identified": True, "recalibrated_calibration_slope": -2.0},
+            {"held_out_study": "StudyX", "n_local_participants": 8, "n_evaluation_participants": 3,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": -2.0},
         ]
     )
 
@@ -422,6 +422,28 @@ def test_smaller_side_grouping_is_the_union_of_local_smaller_and_evaluation_smal
 
     assert counts == {3: 1, 4: 3, 5: 1}
     assert result["n_draws"].sum() == len(rows)
+
+
+def test_instability_by_smaller_side_reports_how_many_cohorts_contribute_each_cell() -> None:
+    # smaller_side=2 is contributed by two cohorts; smaller_side=3 by StudyB alone. The n_cohorts
+    # column must make a single-cohort cell visible rather than reading like every other cell.
+    rows = pd.DataFrame(
+        [
+            {"held_out_study": "StudyA", "n_local_participants": 2, "n_evaluation_participants": 10,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 0.9},
+            {"held_out_study": "StudyB", "n_local_participants": 2, "n_evaluation_participants": 10,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 1.1},
+            {"held_out_study": "StudyB", "n_local_participants": 3, "n_evaluation_participants": 10,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 0.8},
+            {"held_out_study": "StudyB", "n_local_participants": 3, "n_evaluation_participants": 10,
+             "method": "intercept_and_slope", "calibration_identified": True, "recalibrated_calibration_slope": 1.0},
+        ]
+    )
+
+    result = instability_by_smaller_side(rows).set_index("smaller_side")
+
+    assert result.loc[2, "n_cohorts"] == 2
+    assert result.loc[3, "n_cohorts"] == 1
 
 
 def _cross_method_row(

@@ -557,14 +557,27 @@ def instability_by_smaller_side(
     tabulating by `n_evaluation_participants` alone is not a clean decreasing function either, it
     falls through n_evaluation=7-13 then rises again through 14-19).
 
-    What does produce a clean, essentially monotonic decrease is `min(n_local_participants,
-    n_evaluation_participants)`: the diagnostic calibration fit (see module docstring) is
-    ill-conditioned whenever EITHER side of the local/evaluation split is starved, because either a
-    starved local side or a starved evaluation side can leave the recalibrated probability with too
-    little effective variance to fit a second slope through reliably. The instability at
-    `n_local_participants=2` and the instability at `n_local_participants=16` are therefore one
-    mechanism observed from two sides of the same resampling design, not two separate findings about
-    recalibration itself.
+    What does produce a clean, essentially monotonic decrease in `negative_fraction` is
+    `min(n_local_participants, n_evaluation_participants)`: the diagnostic calibration fit (see
+    module docstring) is ill-conditioned whenever EITHER side of the local/evaluation split is
+    starved, because either a starved local side or a starved evaluation side can leave the
+    recalibrated probability with too little effective variance to fit a second slope through
+    reliably. The instability at `n_local_participants=2` and the instability at
+    `n_local_participants=16` are therefore one mechanism observed from two sides of the same
+    resampling design, not two separate findings about recalibration itself.
+
+    `out_of_range_fraction` is NOT a clean monotonic decrease, even though it is driven by the same
+    mechanism (verified directly from both marginals, see above): on the balanced 6-cohort ladder it
+    runs 28.7%, 22.1%, 21.3%, 8.0%, 12.8%, 1.0%, 10.6%, 2.0%, 8.2%, 12.6% for `smaller_side` 2
+    through 12, and the top rung (12.6%) exceeds five of the eight rungs below it. Only
+    `negative_fraction`'s decrease is described as clean above; a claim about `out_of_range_fraction`
+    must not borrow that description.
+
+    The table is also confounded with cohort composition: `smaller_side` values 5, 7 and 9 are
+    contributed by StudyM alone, 10 and 12 by StudyS2 alone, while 2, 3, 4, 6 and 8 mix all six
+    balanced cohorts (the `n_cohorts` column makes this visible directly). An apparent change from
+    one `smaller_side` to the next can therefore be a cohort swap rather than a sample-size effect,
+    for example the drop from `smaller_side=8` (all six cohorts) to `smaller_side=7` (StudyM alone).
     """
     if cohorts is not None:
         draws = draws.loc[draws["held_out_study"].isin(cohorts)]
@@ -574,12 +587,14 @@ def instability_by_smaller_side(
     labelled = pd.DataFrame(
         {
             "smaller_side": smaller_side,
+            "held_out_study": calibrated["held_out_study"],
             "negative": slope < 0,
             "out_of_range": (slope < _SANE_SLOPE_RANGE[0]) | (slope > _SANE_SLOPE_RANGE[1]),
         }
     )
     summary = labelled.groupby("smaller_side").agg(
         n_draws=("negative", "size"),
+        n_cohorts=("held_out_study", "nunique"),
         negative_fraction=("negative", "mean"),
         out_of_range_fraction=("out_of_range", "mean"),
     )
