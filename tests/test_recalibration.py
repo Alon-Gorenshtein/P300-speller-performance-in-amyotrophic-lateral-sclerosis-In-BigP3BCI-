@@ -10,6 +10,7 @@ from bigp3_als.recalibration import (
     LOCAL_SIZES,
     MINIMUM_EVALUATION_PARTICIPANTS,
     common_cohorts,
+    instability_by_smaller_side,
     recalibration_draws,
     recalibration_summary,
 )
@@ -336,3 +337,34 @@ def test_negative_and_out_of_range_slope_fractions_count_the_right_draws() -> No
 
     assert row["recalibrated_slope_negative_fraction"] == pytest.approx(0.25)
     assert row["recalibrated_slope_out_of_range_fraction"] == pytest.approx(0.5)
+
+
+def test_smaller_side_grouping_is_the_union_of_local_smaller_and_evaluation_smaller_with_no_double_counting() -> None:
+    # smaller_side=4 must collect exactly the rows where the local side is 4 and no larger than the
+    # evaluation side, PLUS the rows where the evaluation side is 4 and strictly smaller than the
+    # local side (avoiding double-counting a tie, where the two sides are equal, at 5). No draw may
+    # be counted twice or dropped: the sizes across every smaller_side group must sum to the input.
+    rows = pd.DataFrame(
+        [
+            # local=4 is the smaller (or tied) side -> smaller_side 4, twice.
+            {"n_local_participants": 4, "n_evaluation_participants": 10, "method": "intercept_and_slope",
+             "calibration_identified": True, "recalibrated_calibration_slope": 0.9},
+            {"n_local_participants": 4, "n_evaluation_participants": 10, "method": "intercept_and_slope",
+             "calibration_identified": True, "recalibrated_calibration_slope": -0.1},
+            # evaluation=4 is the strictly smaller side -> also smaller_side 4.
+            {"n_local_participants": 12, "n_evaluation_participants": 4, "method": "intercept_and_slope",
+             "calibration_identified": True, "recalibrated_calibration_slope": 1.2},
+            # a tie: both sides equal 5 -> smaller_side 5, counted once, not twice.
+            {"n_local_participants": 5, "n_evaluation_participants": 5, "method": "intercept_and_slope",
+             "calibration_identified": True, "recalibrated_calibration_slope": 0.7},
+            # evaluation=3 is the smaller side -> smaller_side 3, unrelated to the size-4 group.
+            {"n_local_participants": 8, "n_evaluation_participants": 3, "method": "intercept_and_slope",
+             "calibration_identified": True, "recalibrated_calibration_slope": -2.0},
+        ]
+    )
+
+    result = instability_by_smaller_side(rows)
+    counts = dict(zip(result["smaller_side"], result["n_draws"]))
+
+    assert counts == {3: 1, 4: 3, 5: 1}
+    assert result["n_draws"].sum() == len(rows)

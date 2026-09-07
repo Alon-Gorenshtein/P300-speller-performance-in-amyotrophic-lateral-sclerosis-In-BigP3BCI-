@@ -405,3 +405,53 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
             }
         )
     return pd.DataFrame(rows).sort_values(["method", "n_local_participants"], ignore_index=True)
+
+
+def instability_by_smaller_side(
+    draws: pd.DataFrame,
+    method: str = "intercept_and_slope",
+    cohorts: set[str] | None = None,
+) -> pd.DataFrame:
+    """Tabulate recalibrated-slope instability by whichever side of the local/evaluation split is
+    smaller, rather than by `n_local_participants` alone.
+
+    The instability in the recalibrated calibration slope is U-shaped in `n_local_participants`
+    (high at small local sizes, low in the middle, high again near the top of the ladder). The
+    naive read is two different findings: small local samples destabilise the refit, and separately,
+    large local samples somehow do too. That is wrong. `n_local_participants` and
+    `n_evaluation_participants` trade off along a fixed-size cohort, so tabulating by one alone
+    conflates two populations. Direct evidence this conflation is real: at a fixed
+    `n_evaluation_participants` of 18 in the balanced 6-cohort ladder, draws with
+    `n_local_participants=2` have a 29.4% out-of-range fraction (n=703) while draws with
+    `n_local_participants=6` at that SAME evaluation size have 7.1% (n=169). Same evaluation-set
+    size, very different instability, so evaluation size alone does not determine it (confirmed:
+    tabulating by `n_evaluation_participants` alone is not a clean decreasing function either, it
+    falls through n_evaluation=7-13 then rises again through 14-19).
+
+    What does produce a clean, essentially monotonic decrease is `min(n_local_participants,
+    n_evaluation_participants)`: the diagnostic calibration fit (see module docstring) is
+    ill-conditioned whenever EITHER side of the local/evaluation split is starved, because either a
+    starved local side or a starved evaluation side can leave the recalibrated probability with too
+    little effective variance to fit a second slope through reliably. The instability at
+    `n_local_participants=2` and the instability at `n_local_participants=16` are therefore one
+    mechanism observed from two sides of the same resampling design, not two separate findings about
+    recalibration itself.
+    """
+    if cohorts is not None:
+        draws = draws.loc[draws["held_out_study"].isin(cohorts)]
+    calibrated = draws.loc[(draws["method"] == method) & draws["calibration_identified"]]
+    smaller_side = calibrated[["n_local_participants", "n_evaluation_participants"]].min(axis=1)
+    slope = calibrated["recalibrated_calibration_slope"]
+    labelled = pd.DataFrame(
+        {
+            "smaller_side": smaller_side,
+            "negative": slope < 0,
+            "out_of_range": (slope < _SANE_SLOPE_RANGE[0]) | (slope > _SANE_SLOPE_RANGE[1]),
+        }
+    )
+    summary = labelled.groupby("smaller_side").agg(
+        n_draws=("negative", "size"),
+        negative_fraction=("negative", "mean"),
+        out_of_range_fraction=("out_of_range", "mean"),
+    )
+    return summary.reset_index().sort_values("smaller_side", ignore_index=True)

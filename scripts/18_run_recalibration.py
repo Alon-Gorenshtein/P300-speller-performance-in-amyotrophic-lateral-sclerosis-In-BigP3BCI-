@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from bigp3_als.recalibration import common_cohorts, recalibration_draws, recalibration_summary
+from bigp3_als.recalibration import (
+    common_cohorts,
+    instability_by_smaller_side,
+    recalibration_draws,
+    recalibration_summary,
+)
 
 PRIMARY_MODEL = "calibration_auc"
 
@@ -35,15 +40,26 @@ def main() -> None:
     balanced_cohorts = common_cohorts(draws)
     balanced_summary = recalibration_summary(draws, cohorts=balanced_cohorts)
 
+    # The instability in the recalibrated slope tracks whichever side of the local/evaluation split
+    # is starved, not n_local_participants alone (see instability_by_smaller_side's docstring for
+    # the counterexample that rules out evaluation size alone). Computed on the balanced cohort set
+    # so the tabulation is not itself confounded by cohorts entering and leaving across sizes.
+    instability = instability_by_smaller_side(draws, cohorts=balanced_cohorts)
+
     arguments.output_directory.mkdir(parents=True, exist_ok=True)
     draws.to_csv(arguments.output_directory / "recalibration_draws.csv", index=False)
     summary.to_csv(arguments.output_directory / "recalibration_summary.csv", index=False)
     balanced_summary.to_csv(arguments.output_directory / "recalibration_summary_balanced.csv", index=False)
+    instability.to_csv(
+        arguments.output_directory / "recalibration_instability_by_smaller_side.csv", index=False
+    )
 
     print("All-available cohorts at each size:")
     print(summary.to_string(index=False))
     print(f"\nBalanced ladder ({len(balanced_cohorts)} cohorts present at every tested size):")
     print(balanced_summary.to_string(index=False))
+    print("\nRecalibrated-slope instability by the smaller of the local/evaluation split:")
+    print(instability.to_string(index=False))
 
 
 if __name__ == "__main__":
