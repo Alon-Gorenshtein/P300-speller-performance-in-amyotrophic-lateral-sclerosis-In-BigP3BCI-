@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import stats
 
 from bigp3_als.recalibration import (
     LOCAL_SIZES,
@@ -274,6 +275,58 @@ def test_an_improvement_exactly_at_the_minimum_detectable_effect_gives_a_ci_touc
     )
     assert shifted_row["cohort_mean_improvement"] == pytest.approx(shifted_row["mae_minimum_detectable_effect"])
     assert shifted_row["cohort_improvement_ci_low"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_minimum_detectable_effect_80_exceeds_the_50_percent_column_for_mae_intercept_and_slope() -> None:
+    # 80% power needs a larger true effect than 50% power to detect reliably, for every one of the
+    # three quantities the module reports a minimum detectable effect for.
+    mae_fixture = _mae_fixture({"StudyA": 1.0, "StudyB": 2.0, "StudyC": 3.0, "StudyD": 10.0})
+    mae_row = recalibration_summary(mae_fixture).iloc[0]
+    assert mae_row["mae_minimum_detectable_effect_80"] > mae_row["mae_minimum_detectable_effect"]
+
+    calibration_fixture = _calibration_fixture(
+        [
+            {"held_out_study": "StudyA", "recalibrated_calibration_intercept": 0.1, "recalibrated_calibration_slope": 0.9},
+            {"held_out_study": "StudyB", "recalibrated_calibration_intercept": -0.2, "recalibrated_calibration_slope": 1.2},
+            {"held_out_study": "StudyC", "recalibrated_calibration_intercept": 0.3, "recalibrated_calibration_slope": 0.8},
+            {"held_out_study": "StudyD", "recalibrated_calibration_intercept": -0.1, "recalibrated_calibration_slope": 1.1},
+        ]
+    )
+    calibration_row = recalibration_summary(calibration_fixture).iloc[0]
+    assert (
+        calibration_row["intercept_minimum_detectable_effect_80"]
+        > calibration_row["intercept_minimum_detectable_effect"]
+    )
+    assert (
+        calibration_row["slope_minimum_detectable_effect_80"] > calibration_row["slope_minimum_detectable_effect"]
+    )
+
+
+def test_minimum_detectable_effect_80_ratio_matches_the_t_based_conversion_factor() -> None:
+    # The 80%-power bound is derived by scaling the 50%-power bound by
+    # (t(0.975, df) + t(0.80, df)) / t(0.975, df); the ratio of the two committed columns must equal
+    # that factor exactly, at the degrees of freedom the fixture's own cohort count implies.
+    fixture = _mae_fixture(
+        {"StudyA": 1.0, "StudyB": 2.0, "StudyC": 3.0, "StudyD": 10.0, "StudyE": 4.0, "StudyF": 6.0}
+    )
+    row = recalibration_summary(fixture).iloc[0]
+    df = int(row["n_cohorts_contributing"]) - 1
+    expected_factor = (stats.t.ppf(0.975, df) + stats.t.ppf(0.80, df)) / stats.t.ppf(0.975, df)
+
+    ratio = row["mae_minimum_detectable_effect_80"] / row["mae_minimum_detectable_effect"]
+    assert ratio == pytest.approx(expected_factor)
+
+    # The df=5 case named in the review: six cohorts contributing gives the 1.3577 conversion factor.
+    assert expected_factor == pytest.approx(1.3577, abs=0.0005)
+
+
+def test_minimum_detectable_effect_80_is_nan_when_the_50_percent_column_is_nan() -> None:
+    # A single cohort has no between-cohort SD, so both the 50% and 80% bounds are undefined.
+    single_cohort = _mae_fixture({"StudyA": 1.0})
+    row = recalibration_summary(single_cohort).iloc[0]
+
+    assert np.isnan(row["mae_minimum_detectable_effect"])
+    assert np.isnan(row["mae_minimum_detectable_effect_80"])
 
 
 def _calibration_fixture(rows: list[dict]) -> pd.DataFrame:

@@ -45,7 +45,15 @@ paired distance-from-ideal improvement, pooled at the cohort level like everythi
 A null result at a given size is only informative if it states what effect size it could have ruled
 out. `recalibration_summary` also reports a minimum detectable effect for the MAE, intercept and
 slope improvements: the true mean improvement that would have put the cohort-level CI's lower bound
-exactly at zero, given the between-cohort SD and cohort count actually observed at that size. Because
+exactly at zero, given the between-cohort SD and cohort count actually observed at that size. This is
+a 50% power quantity, the smallest effect that would have reached significance, because a CI's lower
+bound touches zero when the observed mean equals the margin exactly, which happens half the time for
+a true effect at that margin. It is not the conventional 80% power bound, and must not be described
+as such without qualification. Each of the three columns above has an `_80` companion (for example
+`mae_minimum_detectable_effect_80`) reporting the true mean improvement that would have been detected
+80% of the time, computed by scaling the 50% column by `(t(0.975, df) + t(0.80, df)) / t(0.975, df)`
+for the same between-cohort degrees of freedom, so both bounds are derived from the same margin
+rather than from two independent computations that could silently drift apart. Because
 `n_cohorts_contributing` falls across the ladder, this bound is tightest in the middle of the range
 and loosest at the top; a null at n=16, where only 6 cohorts contribute, rules out a much larger
 effect than the same null at n=6 does, and the two must not be read as equally informative.
@@ -263,6 +271,23 @@ def _pool_across_cohorts(cohort_labels: pd.Series, values: pd.Series) -> tuple[f
     return mean, mean - margin, mean + margin, n_cohorts
 
 
+def _detectable_effect_80(margin_50: float, n_cohorts: int) -> float:
+    """Convert a 50% power minimum detectable effect (a 95% CI half width) to an 80% power bound.
+
+    The 50% bound is `t(0.975, df) * SE`, the smallest true effect whose CI lower bound would land
+    exactly at zero (see `recalibration_summary`'s docstring for why that is a 50%, not 80%, power
+    statement). The conventional 80% power bound is `(t(0.975, df) + t(0.80, df)) * SE`. Dividing
+    the second by the first gives a pure multiplier, `(t(0.975, df) + t(0.80, df)) / t(0.975, df)`,
+    that converts the already-computed 50% margin directly rather than recomputing SE from scratch,
+    so the two bounds cannot silently drift apart by using a different standard error.
+    """
+    if n_cohorts < 2 or not np.isfinite(margin_50):
+        return np.nan
+    df = n_cohorts - 1
+    factor = (stats.t.ppf(0.975, df) + stats.t.ppf(0.80, df)) / stats.t.ppf(0.975, df)
+    return margin_50 * factor
+
+
 def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) -> pd.DataFrame:
     """Summarise the paired improvement over the transported mapping, per method and local size.
 
@@ -343,9 +368,23 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
         # ruled out rather than just that nothing crossed zero. A wide bound at a given size does not
         # mean the true effect is small, it means this size could not have detected anything smaller
         # than the bound.
+        #
+        # This is a 50% power bound (see module docstring), not the conventional 80% power bound.
+        # The `_80` companion columns below give the latter, at the same degrees of freedom, so a
+        # reader who wants "how large an effect would this size reliably have caught" has that
+        # number too, without either column being silently taken for the other.
         mae_minimum_detectable_effect = cohort_high - cohort_mean
+        mae_minimum_detectable_effect_80 = _detectable_effect_80(
+            mae_minimum_detectable_effect, n_cohorts_contributing
+        )
         intercept_minimum_detectable_effect = intercept_improvement_high - intercept_improvement_mean
+        intercept_minimum_detectable_effect_80 = _detectable_effect_80(
+            intercept_minimum_detectable_effect, n_cohorts_calibration
+        )
         slope_minimum_detectable_effect = slope_improvement_high - slope_improvement_mean
+        slope_minimum_detectable_effect_80 = _detectable_effect_80(
+            slope_minimum_detectable_effect, n_cohorts_calibration
+        )
 
         rows.append(
             {
@@ -370,6 +409,7 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
                 "cohort_improvement_ci_high": cohort_high,
                 "n_cohorts_contributing": n_cohorts_contributing,
                 "mae_minimum_detectable_effect": mae_minimum_detectable_effect,
+                "mae_minimum_detectable_effect_80": mae_minimum_detectable_effect_80,
                 # Calibration parameters, transported versus recalibrated, each with its own
                 # cohort-level 95% CI, plus the paired distance-from-ideal improvement.
                 "calibration_identified_fraction": float(block["calibration_identified"].mean()),
@@ -398,10 +438,12 @@ def recalibration_summary(draws: pd.DataFrame, cohorts: set[str] | None = None) 
                 "cohort_intercept_improvement_ci_low": intercept_improvement_low,
                 "cohort_intercept_improvement_ci_high": intercept_improvement_high,
                 "intercept_minimum_detectable_effect": intercept_minimum_detectable_effect,
+                "intercept_minimum_detectable_effect_80": intercept_minimum_detectable_effect_80,
                 "cohort_mean_slope_improvement": slope_improvement_mean,
                 "cohort_slope_improvement_ci_low": slope_improvement_low,
                 "cohort_slope_improvement_ci_high": slope_improvement_high,
                 "slope_minimum_detectable_effect": slope_minimum_detectable_effect,
+                "slope_minimum_detectable_effect_80": slope_minimum_detectable_effect_80,
             }
         )
     return pd.DataFrame(rows).sort_values(["method", "n_local_participants"], ignore_index=True)
