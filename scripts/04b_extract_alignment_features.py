@@ -37,8 +37,14 @@ def main() -> None:
 
     frozen = pd.read_csv(arguments.frozen)
     merged = frame.merge(frozen[[*KEYS, "calibration_auc"]], on=KEYS, how="inner", validate="one_to_one")
-    if len(merged) != len(frozen):
-        raise SystemExit(f"session key mismatch: {len(merged)} matched against {len(frozen)} frozen rows")
+    # An inner join drops any row on either side with no match on the other, silently, so checking
+    # the merged count against only one side would pass even if `frame` carried extra unmatched rows
+    # that never got compared. All three counts have to agree for the join to be a true bijection.
+    if not (len(frame) == len(frozen) == len(merged)):
+        raise SystemExit(
+            f"session key mismatch: frame has {len(frame)} rows, frozen has {len(frozen)} rows, "
+            f"merged has {len(merged)} rows"
+        )
     both = merged["calibration_auc"].notna() & merged["calibration_auc_reproduced"].notna()
     if bool((merged["calibration_auc"].isna() != merged["calibration_auc_reproduced"].isna()).any()):
         raise SystemExit("a session is usable in one pass and not the other")

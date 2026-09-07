@@ -101,8 +101,19 @@ def _grouped_cv_predictions(
     n_splits = min(5, len(unique_groups))
     features = _downsampled_epoch_features(epochs)
     splitter = StratifiedGroupKFold(n_splits=n_splits, shuffle=True, random_state=20260718)
+    splits = list(splitter.split(features, labels, groups))
     predictions = np.full(len(labels), np.nan)
-    for train_indices, test_indices in splitter.split(features, labels, groups):
+    gbm_pca_components = None
+    if classifier == "gradient_boosting":
+        # The PCA budget has to fit inside the smallest training fold or PCA raises ValueError.
+        # 150 was chosen to bring this arm's feature budget closer to the RBF arm's 300-of-1,024
+        # (the earlier 40 kept about 4% of the space against RBF's 29%, which is not a fair
+        # comparison for a referee question about linear versus nonlinear boundaries), but a fixed
+        # 150 would still fail the one session in the archive whose smallest fold has fewer than
+        # 150 samples. Floor it against the fold size that actually occurred for this session.
+        smallest_training_fold = min(len(train_indices) for train_indices, _ in splits)
+        gbm_pca_components = min(150, smallest_training_fold - 1)
+    for train_indices, test_indices in splits:
         if classifier == "logistic":
             model = make_pipeline(
                 StandardScaler(),
@@ -131,16 +142,23 @@ def _grouped_cv_predictions(
             # A tree ensemble on a principal-component reduction of the same epoch features. The
             # reduction is what makes the arm affordable: boosting bins every feature, and binning
             # a thousand of them per fold costs more than the whole rest of the pass. Both stages
-            # are fitted inside the training fold.
+            # are fitted inside the training fold. `n_components` is `gbm_pca_components`, computed
+            # above from the fold sizes actually occurring in this session; `class_weight="balanced"`
+            # matches the baseline and RBF arms, both logistic models fit at the same imbalance. An
+            # earlier version of this branch used a fixed 40 components and left class_weight at its
+            # default, which starved this arm of feature budget relative to RBF's 300-of-1,024 and let
+            # the majority non-target class dominate the boosted-tree loss; neither asymmetry belongs
+            # in an arm meant to test whether a nonlinear boundary changes the transportability result.
             model = make_pipeline(
                 StandardScaler(),
-                PCA(n_components=40, svd_solver="randomized", random_state=20260718),
+                PCA(n_components=gbm_pca_components, svd_solver="randomized", random_state=20260718),
                 HistGradientBoostingClassifier(
                     max_iter=100,
                     max_leaf_nodes=15,
                     learning_rate=0.1,
                     l2_regularization=1.0,
                     early_stopping=False,
+                    class_weight="balanced",
                     random_state=20260718,
                 ),
             )
