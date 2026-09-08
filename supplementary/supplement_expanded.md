@@ -1,5 +1,7 @@
 # Supplementary material
 
+**Description:** Methods detail, sensitivity analyses, reproducibility, data-alignment and nonlinear-decoder analyses, and local-recalibration resampling analyses.
+
 ## S1. Data provenance
 
 This retrospective secondary analysis used the BigP3BCI version 1.0.0 public archive. The downloaded archive had SHA256 digest `eea294aa34e9ed11e5a25d07e30aeefdf8b2d467a8309e2c38405a289afcd72f`. Before any signal was processed, the ingestion pipeline checked this archive digest, read the distributor checksum manifest, selected non-AppleDouble European Data Format files, and checked every selected file against its manifest digest. The source archive and cache are not redistributed in this package.
