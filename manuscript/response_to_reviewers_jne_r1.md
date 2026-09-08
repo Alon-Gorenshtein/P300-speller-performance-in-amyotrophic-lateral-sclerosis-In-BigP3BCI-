@@ -143,8 +143,8 @@ Because the number of contributing cohorts falls as the local draw grows, we rep
 | Refit | Local n | Median local sel. | MAE, transported | MAE, recalibrated | Improvement (95% CI) | MDE 80% |
 | --- | --- | --- | --- | --- | --- | --- |
 | Intercept only | 1 | 60 | 0.097 | 0.112 | -0.012 (-0.032 to +0.008) | 0.027 |
-| Intercept only | 2 | 120 | 0.093 | 0.098 | -0.004 (-0.020 to +0.013) | 0.022 |
-| Intercept only | 4 | 246 | 0.091 | 0.091 | -0.000 (-0.014 to +0.014) | 0.019 |
+| Intercept only | 2 | 120 | 0.093 | 0.097 | -0.004 (-0.020 to +0.013) | 0.022 |
+| Intercept only | 4 | 246 | 0.090 | 0.091 | -0.000 (-0.014 to +0.014) | 0.019 |
 | Intercept only | 8 | 528 | 0.090 | 0.087 | +0.003 (-0.010 to +0.016) | 0.018 |
 | Intercept only | 16 | 1,056 | 0.089 | 0.084 | +0.005 (-0.007 to +0.016) | 0.016 |
 | Intercept and slope | 2 | 120 | 0.099 | 0.173 | **-0.073 (-0.111 to -0.035)** | 0.051 |
@@ -152,7 +152,7 @@ Because the number of contributing cohorts falls as the local draw grows, we rep
 | Intercept and slope | 8 | 528 | 0.090 | 0.094 | -0.003 (-0.013 to +0.007) | 0.014 |
 | Intercept and slope | 16 | 1,056 | 0.089 | 0.086 | +0.003 (-0.005 to +0.010) | 0.011 |
 
-There is no crossing point. At no local sample size we could evaluate, up to 16 participants and 1,056 character selections, did either refit produce an improvement over the transported mapping whose confidence interval excluded zero. At the smallest sizes the two-parameter refit is significantly *worse* than transporting: at two local participants it increases mean absolute error by 0.073 (95% CI 0.035 to 0.111), and it remains significantly worse at three.
+We found no statistically supported crossing point. At no local sample size we could evaluate, up to 16 participants and 1,056 character selections, did either refit produce an improvement over the transported mapping whose confidence interval excluded zero. At the smallest sizes the two-parameter refit is significantly *worse* than transporting: at two local participants it increases mean absolute error by 0.073 (95% CI 0.035 to 0.111), and it remains significantly worse at three.
 
 The mechanism is worth stating because it answers the reviewer's question about subjects versus trials. The calibration score is defined at the session level (Methods), and most participants in this archive contribute a single recorded session, so a local sample of two participants is typically, though not always, a refit on two distinct points. At two local participants, 24.1% of draws returned a *negative* recalibrated slope, that is, a mapping in which higher predicted accuracy implies lower observed accuracy. The binding constraint is the number of distinct session-level predictor values a local sample supplies, which tracks participant count far more than character-selection count: additional selections within an already-drawn session do not add a new predictor value, though drawing a participant with additional sessions would.
 
