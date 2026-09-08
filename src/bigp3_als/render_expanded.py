@@ -84,12 +84,13 @@ METHOD_STYLE = {
     },
 }
 
-# Left-to-right reading order the brief specifies: the primary score, then the four EEG
-# re-alignment variants, then the two nonlinear re-scorings.
+# Left-to-right reading order the brief specifies: the primary score, then the four
+# alignment variants (two on the signal, two on the score), then the two nonlinear
+# re-scorings.
 ROLE_ORDER = ("primary", "alignment", "nonlinear")
 ROLE_STYLE = {
     "primary": {"color": ALS_COLOR, "hatch": None, "label": "Primary score"},
-    "alignment": {"color": OTHER_COLOR, "hatch": "//", "label": "EEG re-alignment"},
+    "alignment": {"color": OTHER_COLOR, "hatch": "//", "label": "Signal or score alignment"},
     "nonlinear": {"color": BAND_COLOR, "hatch": "xx", "label": "Nonlinear re-scoring"},
 }
 # Arm names as written in alignment_transport.csv, relabelled for the axis. The mapping is display
@@ -579,7 +580,14 @@ def render_recalibration_curve(summary: pd.DataFrame, directory: Path) -> None:
     ax.set_ylabel("MAE improvement over the transported mapping\n(cohort mean, 95% CI)")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.legend(loc="lower right", frameon=False, fontsize=9)
+    mde_handle = plt.Line2D(
+        [], [], color=LABEL_COLOR, linestyle="--", linewidth=1.0, alpha=0.7,
+        label="Minimum detectable effect (80% power)",
+    )
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(mde_handle)
+    labels.append(mde_handle.get_label())
+    ax.legend(handles, labels, loc="lower right", frameon=False, fontsize=9)
     _save(fig, directory, "figure_recalibration_curve")
 
 

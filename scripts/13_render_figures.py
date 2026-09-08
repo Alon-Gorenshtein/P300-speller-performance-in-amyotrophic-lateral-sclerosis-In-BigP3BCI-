@@ -84,8 +84,8 @@ def main() -> None:
     print("  figure_transportability          Figure 3")
     print("  figure_skill_by_cohort           Figure 4")
     print("  figure_cohort_type_relationship  Figure S1")
-    print("  figure_recalibration_curve       Figure 5 (recalibration cost, balanced ladder)")
-    print("  figure_alignment_transport       Figure 6 (EEG re-alignment does not repair transport)")
+    print("  figure_alignment_transport       Figure 5 (alignment does not repair transport)")
+    print("  figure_recalibration_curve       Figure 6 (recalibration cost, balanced ladder)")
     print(f"cohorts below the development-mean benchmark: {len(negative)} ({', '.join(negative)})")
 
 
