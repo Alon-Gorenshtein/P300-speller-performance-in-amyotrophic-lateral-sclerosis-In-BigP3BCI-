@@ -266,7 +266,7 @@ The uncorrected standard deviations of the 18 cohort estimates (supplement, Tabl
 
 [With six cohorts contributing at each size on the balanced ladder, the analysis had 80% power to detect a mean improvement of 0.019, 0.018 and 0.016 in mean absolute error for the intercept-only refit at 4, 8 and 16 local participants, and of 0.031, 0.014 and 0.011 for the two-parameter refit at the same sizes, against a transported error of 0.089 to 0.093. Smaller improvements could have gone undetected.]{.mark}
 
-**Figure 6. Paired improvement in mean absolute error from local recalibration, against zero, on the composition-balanced ladder.** Points are the cohort-mean paired improvement with 95% confidence interval at each local sample size, for the intercept-only and the intercept-and-slope refit; the dashed envelope around zero is the minimum detectable effect at 80% power. No point's 95% confidence interval excludes zero in the direction that favours recalibrating at any size from 1 to 16 local participants; the dashed envelope is shown for context, not as a significance threshold.
+**Figure 6. Paired improvement in mean absolute error from local recalibration, against zero, on the composition-balanced ladder.** Points are the cohort-mean paired improvement with 95% confidence interval at each local sample size, for the intercept-only and the intercept-and-slope refit; the dashed curves show each refit's own method-specific minimum detectable effect envelope at 80% power. No point's 95% confidence interval excludes zero in the direction that favours recalibrating at any size from 1 to 16 local participants; the dashed curves are shown for context, not as significance thresholds.
 
 ![](../output/expanded/figures/figure_recalibration_curve.png){width=88%}
 
