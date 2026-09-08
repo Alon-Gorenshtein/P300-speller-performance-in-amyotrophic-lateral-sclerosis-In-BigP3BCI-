@@ -15,5 +15,7 @@ We have also surfaced the reconstructed-decoder caveat into the Abstract and the
 
 We thank you again for your consideration and for the reviewers' insightful input, which has substantially strengthened this work. A point-by-point response accompanies this letter, quoting the revised text inline so that the revision can be assessed without cross-referencing the manuscript.
 
-Sincerely,
-[Authors] on behalf of the authors
+Sincerely,\
+Alon Gorenshtein, MD\
+Department of Neurology, Beth Israel Deaconess Medical Center, Harvard Medical School\
+On behalf of all authors
