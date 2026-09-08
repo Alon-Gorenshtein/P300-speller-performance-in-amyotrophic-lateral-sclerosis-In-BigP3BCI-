@@ -68,7 +68,7 @@ Every arm was put through the identical leave-one-study-out procedure and the id
 
 The result is negative, and uniformly so:
 
-| Arm | Pooled MAE | Slope tau | Slope 95% prediction interval | Intercept tau | Intercept 95% prediction interval |
+| Arm | Pooled MAE | Slope tau | Slope 95% PI | Intercept tau | Intercept 95% PI |
 | --- | --- | --- | --- | --- | --- |
 | Calibration score (primary) | 0.098 | 0.432 | 0.111 to 2.005 | 0.873 | -1.97 to 1.85 |
 | Euclidean Alignment, session reference | 0.095 | 0.419 | 0.136 to 1.975 | 0.922 | -2.06 to 1.98 |
@@ -140,7 +140,7 @@ The design is as follows, and we note that it answers the reviewer's question in
 
 Because the number of contributing cohorts falls as the local draw grows, we report the ladder twice: once using every cohort available at each size, and once restricted to the six cohorts present at every size, so that the shape of the curve is not confounded by a changing and progressively easier cohort mix. The composition-balanced ladder is the one we quote.
 
-| Refit | Local participants | Median local selections | Transported MAE | Recalibrated MAE | Improvement (95% CI) | 80% power to detect |
+| Refit | Local n | Median local sel. | MAE, transported | MAE, recalibrated | Improvement (95% CI) | 80% power |
 | --- | --- | --- | --- | --- | --- | --- |
 | Intercept only | 1 | 60 | 0.097 | 0.112 | -0.012 (-0.032 to +0.008) | 0.027 |
 | Intercept only | 2 | 120 | 0.093 | 0.098 | -0.004 (-0.020 to +0.013) | 0.022 |
