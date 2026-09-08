@@ -1,6 +1,6 @@
 # The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts
 
-Analysis code and frozen outputs for the manuscript "The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts, and neither alignment nor local recalibration repairs it," submitted to the *Journal of Neural Engineering*.
+Analysis code and frozen outputs for the manuscript "The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts and was not restored by tested alignment or local recalibration," submitted to the *Journal of Neural Engineering*.
 
 This repository contains **code and the frozen analysis outputs**, and no source data. The EEG archive (BigP3BCI 1.0.0) is obtained separately from its distributor; see [The archive](#the-archive) below.
 

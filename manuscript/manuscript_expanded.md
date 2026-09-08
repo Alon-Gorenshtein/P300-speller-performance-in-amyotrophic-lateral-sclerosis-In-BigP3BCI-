@@ -1,4 +1,4 @@
-# The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts, and neither alignment nor local recalibration repairs it
+# The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts and was not restored by tested alignment or local recalibration
 
 *Journal of Neural Engineering, Paper*
 

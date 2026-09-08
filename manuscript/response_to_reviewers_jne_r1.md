@@ -1,6 +1,6 @@
 # Response to Reviewers
 
-**The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts, and neither alignment nor local recalibration repairs it**
+**The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts and was not restored by tested alignment or local recalibration**
 
 Manuscript JNE-111284 | *Journal of Neural Engineering* | September 2026
 
@@ -140,7 +140,7 @@ The design is as follows, and we note that it answers the reviewer's question in
 
 Because the number of contributing cohorts falls as the local draw grows, we report the ladder twice: once using every cohort available at each size, and once restricted to the six cohorts present at every size, so that the shape of the curve is not confounded by a changing and progressively easier cohort mix. The composition-balanced ladder is the one we quote.
 
-| Refit | Local n | Median local sel. | MAE, transported | MAE, recalibrated | Improvement (95% CI) | MDE 80% |
+| Refit | Local n | Median local sel. | MAE, transp. | MAE, recal. | Improvement (95% CI) | MDE 80% |
 | --- | --- | --- | --- | --- | --- | --- |
 | Intercept only | 1 | 60 | 0.097 | 0.112 | -0.012 (-0.032 to +0.008) | 0.027 |
 | Intercept only | 2 | 120 | 0.093 | 0.097 | -0.004 (-0.020 to +0.013) | 0.022 |
@@ -277,9 +277,9 @@ Because a null result is most informative when its precision and power are made 
 
 > **Original:** "Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts"
 >
-> **Revised:** "The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts, and neither alignment nor local recalibration repairs it"
+> **Revised:** "The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts and was not restored by tested alignment or local recalibration"
 
-The revised title leads with the finding, names the two remedies the revision tested, and states that neither works, which is the contribution this version makes over the original submission.
+The revised title leads with the finding, names the two remedies the revision tested, and states that neither restored transportability, scoped to what was actually tested rather than every conceivable alignment or recalibration strategy, which is the contribution this version makes over the original submission.
 
 **Closing summary for Reviewer 2.**
 
