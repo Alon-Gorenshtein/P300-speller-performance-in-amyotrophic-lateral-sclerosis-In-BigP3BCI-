@@ -18,7 +18,7 @@ The manuscript, supplement, figures, AMA bibliography, cover letter, and rendere
 
 ## 2026-07-28: JNE pre-submission review response
 
-A second, pre-submission editorial review of the 18-cohort widened design (`manuscript/manuscript_expanded.md`, `supplementary/supplement_expanded.md`) produced a 16-task revision pass, tracked in `.superpowers/sdd/2026-07-27-jne-presubmission-review-fixes/`. It addressed six numbered scientific and statistical concerns, cut manuscript length, rebuilt the render and figure pipeline, consolidated the front-matter declarations, added a TRIPOD checklist, and rewrote the cover letter.
+A second, pre-submission editorial review of the 18-cohort widened design (`manuscript/manuscript_expanded.md`, `supplementary/supplement_expanded.md`) produced a revision pass that addressed six numbered scientific and statistical concerns, cut manuscript length, rebuilt the render and figure pipeline, consolidated the front-matter declarations, added a TRIPOD checklist, and rewrote the cover letter.
 
 ### Scientific and statistical fixes
 
@@ -56,9 +56,9 @@ Rewrote the cover letter from 1,143 words and 4 rendered pages to approximately 
 
 Two items were identified during this revision pass and deliberately left for the submitting author rather than implemented here: a DOI-backed code archive (a Zenodo or OSF deposit of this repository, cited in the manuscript's Data and Code Availability statement) and an optional shortening of the manuscript title. Neither blocks submission on its own, but both should be resolved, or consciously accepted as-is, before upload. Both are also listed as pending action items in `submission/AUTHOR_ACTIONS.md`.
 
-## 2026-07-28: Second pre-submission review pass (14-task plan)
+## 2026-07-28: Second pre-submission review pass
 
-A further, second pre-submission editorial review of the same 18-cohort widened design was addressed by a 14-task revision pass, tracked in `.superpowers/sdd/2026-07-28-jne-second-presubmission-review/` (commits `dfdd15e..45fedf9` on `worktree-jne-second-presubmission-review`, this entry's own rebuild and verification following as the closing task). It addressed ten items: a matched-cohort bootstrap comparison, a new joint-bootstrap covariance analysis, log-scale MAE labeling, independence wording, practical-use softening, figure/table legibility, a protocol-descriptor metadata correction, a commit-hash citation, novelty citations, and minor textual fixes.
+A further, second pre-submission editorial review of the same 18-cohort widened design was addressed by a revision pass (commits `dfdd15e..45fedf9`, this entry's own rebuild and verification closing it out). It addressed ten items: a matched-cohort bootstrap comparison, a new joint-bootstrap covariance analysis, log-scale MAE labeling, independence wording, practical-use softening, figure/table legibility, a protocol-descriptor metadata correction, a commit-hash citation, novelty citations, and minor textual fixes.
 
 ### Scientific and statistical fixes
 

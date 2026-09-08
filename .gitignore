@@ -53,3 +53,7 @@ manuscript/manuscript_refs_diffs.txt
 
 # macOS AppleDouble sidecars created on the external exFAT volume.
 ._*
+
+# Internal revision-planning notes, not part of the public archive.
+docs/superpowers/
+.superpowers/
