@@ -273,7 +273,7 @@ Because a null result is most informative when its precision and power are made 
 
 > Finally, the title. The title could probably punch a bit harder. It might be worth tweaking it to immediately spotlight the paper's main takeaway regarding cross-cohort limits.
 
-**Response.** We appreciate the suggestion and agree the original title buried its own finding in a subordinate clause. We have revised it, and the revision reflects not only the reviewer's point about emphasis but also the new evidence in this revision, which strengthens what the title can claim.
+**Response.** We appreciate the suggestion and agree the original title buried its own finding in a subordinate clause. We have revised it to reflect both the reviewer's point about emphasis and the new evidence in this revision, which strengthens what the title can claim.
 
 > **Original:** "Calibration-derived decoder discriminability is associated with online P300-speller accuracy, but the fitted mapping does not transport across cohorts"
 >

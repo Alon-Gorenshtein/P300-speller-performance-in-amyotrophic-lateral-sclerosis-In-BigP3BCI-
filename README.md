@@ -10,16 +10,16 @@ A score computed from the calibration block that precedes a P300-speller session
 
 Using 18 of 20 source studies in the public BigP3BCI archive (271 participants, 739 session-condition records, 19,611 character selections, four cohorts with an amyotrophic lateral sclerosis population), the calibration-to-accuracy mapping was fitted with one source study held out at a time and evaluated on the withheld study.
 
-**Headline result.** The within-cohort association is positive in every cohort, but the fitted mapping does not transport: the calibration intercept has a between-cohort standard deviation (tau) of 0.87, and the slope varies more than tenfold across cohorts (tau 0.43). Four candidate repairs — two signal-alignment specifications, two score-alignment specifications, two nonlinear decision boundaries, and local recalibration using up to 16 participants — were each tested and none meaningfully restored transportability.
+**Headline result.** The within-cohort association is positive in every cohort, but the fitted mapping does not transport: the calibration intercept has a between-cohort standard deviation (tau) of 0.87, and the slope varies more than tenfold across cohorts (tau 0.43). Four candidate repairs (two signal-alignment specifications, two score-alignment specifications, two nonlinear decision boundaries, and local recalibration using up to 16 participants) were each tested and none meaningfully restored transportability.
 
 ## Repository contents
 
-- `src/` — the analysis package (feature extraction, validation, alignment, recalibration, heterogeneity estimation, figure rendering).
-- `scripts/` — numbered pipeline scripts, run in order, that reproduce every reported number and figure from the extracted features.
-- `output/` — frozen intermediate and final CSV/JSON outputs of the pipeline.
-- `manuscript/`, `supplementary/` — the manuscript, supplement, and reviewer-response source files.
-- `tests/` — the test suite that guards the frozen numeric outputs against regression.
-- `docs/` — supporting analysis notes referenced from the manuscript and supplement.
+- `src/`: the analysis package (feature extraction, validation, alignment, recalibration, heterogeneity estimation, figure rendering).
+- `scripts/`: numbered pipeline scripts, run in order, that reproduce every reported number and figure from the extracted features.
+- `output/`: frozen intermediate and final CSV/JSON outputs of the pipeline.
+- `manuscript/`, `supplementary/`: the manuscript, supplement, and reviewer-response source files.
+- `tests/`: the test suite that guards the frozen numeric outputs against regression.
+- `docs/`: supporting analysis notes referenced from the manuscript and supplement.
 
 ## Reproducing the analysis
 
