@@ -363,7 +363,7 @@ In 18 source-study cohorts, calibration-derived decoder discriminability was rel
 
 ## Data availability statement
 
-BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/P300-speller-performance-in-amyotrophic-lateral-sclerosis-In-BigP3BCI-; a versioned archive with its own DOI will be minted via Zenodo upon acceptance and this citation updated accordingly. The archive is not redistributed.
+BigP3BCI version 1.0.0 is publicly available (doi:10.13026/0byy-ry86). Analysis code and frozen outputs are available at https://github.com/Alon-Gorenshtein/P300-speller-performance-in-amyotrophic-lateral-sclerosis-In-BigP3BCI-, and a versioned archive is deposited at Zenodo (doi:10.5281/zenodo.22667618). The archive is not redistributed.
 
 ## References
 
