@@ -26,30 +26,6 @@ Alon Gorenshtein, MD, on behalf of all authors
 
 ---
 
-## Overview of Revisions
-
-- **Data re-alignment (new).** Four alignment arms were added and evaluated: Euclidean Alignment with a session-level reference, Euclidean Alignment with a cohort-level reference, within-cohort standardisation of the score, and within-cohort rank transformation of the score. None restores transportability; the two score-space arms make it substantially worse. New Methods subsection, new Results subsection, new Figure, new supplementary tables.
-- **Nonlinear decision boundaries (new).** Two nonlinear calibration decoders were added, a radial-basis kernel approximation and a gradient-boosted tree ensemble on a principal-component reduction. Both discriminate less well than the regularised linear decoder and neither improves transport. New Methods and Results text.
-- **Cost of local recalibration (new).** A participant-resampling study inside each withheld cohort, at nine local sample sizes from 1 to 16 participants, with both an intercept-only and an intercept-and-slope refit, evaluated on the held-out participants of the same cohort against the transported mapping on the identical participants. Reported with minimum detectable effects at 80% power. New Methods and Results text, new Figure, new supplementary tables.
-- **Reconstructed decoder.** The caveat that the predictor is not the deployed online decoder now appears in the Abstract and in the first paragraph of the Discussion, not only in the Methods.
-- **Archive homogenisation.** The Discussion now reasons about the direction of the bias introduced by the archive's shared montage, sampling rate and amplifier, and states that the reported heterogeneity likely understates what an independent deployment would show.
-- **ALS characterisation.** The relevant limitation now states explicitly which clinical variables are absent for every cohort.
-- **Researcher degrees of freedom.** A new Discussion paragraph addresses cumulative multiplicity beyond what formal correction captures.
-- **Literature and historical context.** The Introduction cites recent work on calibration-based performance prediction and reports what the prior literature does and does not say about why cross-cohort evaluation was not attempted.
-- **Conclusion.** Revised. The original recommendation to recalibrate locally is now qualified by the evidence in this revision.
-- **Length.** Redundant statistics were removed from the Discussion and the clustered-sandwich-versus-bootstrap estimator comparison was moved to the Supplement, as Reviewer 1 suggested; the three new analyses the reviewers requested increased the net main-text length from approximately 6,600 to 8,900 words.
-
-## Response to Editorial and Production Requirements
-
-- **Author Response.** This document, uploaded at Step 1 of the online submission form.
-- **Highlighted PDF.** A copy of the revised manuscript with every change marked in yellow highlight, in PDF, with figures and tables included, uploaded with the file designation "Complete Document for Review (PDF Only)".
-- **Source File.** A clean revised manuscript in Microsoft Word format, with no tracked changes, coloured text or comments, carrying the full author list and affiliations, the corresponding author and email, funding and acknowledgements, and the ethics statement. Tables, figure captions and equations are editable and no colour or grey-scale shading appears in any table.
-- **Clean PDF version.** An unmarked PDF generated from the clean source file, with the file designation "Source Files".
-- **Supplementary material.** The revised Supplement, clean, with a title and description, with the file designation "Supplementary Data Files".
-- **Data availability.** All analysis code, including every script that produced the new analyses in this revision, and the frozen intermediate files on which the new tables depend, are provided in the repository named in the Data availability statement.
-
----
-
 ## Editor-in-Chief
 
 **Comment E.1.**
