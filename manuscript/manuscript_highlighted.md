@@ -18,19 +18,19 @@
 
 ### Objective
 
-[A calibration-derived score has been related to online P300-speller accuracy within the same session and cohort. We evaluated whether a mapping from that score to expected accuracy transports to withheld cohorts.]{.mark}
+[A calibration-derived score has been related to online P300-speller accuracy in the same session, always within the cohort measured. We evaluated whether a mapping from that score to expected accuracy transports to withheld cohorts.]{.mark}
 
 ### Approach
 
-[Retrospective secondary analysis of BigP3BCI 1.0.0: 18 of 20 source studies contributed 271 participants, 739 session-condition records, and 19,611 character selections. The predictor was a decoder's cross-validated discriminability on calibration epochs alone, with one source study at a time withheld from development. Between-cohort variation was summarised by the random-effects standard deviation tau.]{.mark}
+[Retrospective secondary analysis of BigP3BCI 1.0.0, the largest evaluation of this relationship to date: 18 of 20 studies contributed 271 participants, 739 session-condition records, and 19,611 character selections. The predictor was a decoder's cross-validated discriminability on calibration epochs, one study withheld from development at a time. Between-cohort variation was summarised by the random-effects standard deviation tau.]{.mark}
 
 ### Main Results
 
-[The association was positive in all 18 cohorts (r 0.190 to 0.928; participant-level r = 0.714, p < 0.001), with confidence intervals excluding zero in 12.]{.mark} Pooled estimation error was 0.098 (95% CI 0.091 to 0.107) against a benchmark of 0.146. [Calibration did not transport: intercept tau 0.87 (interval -1.97 to 1.85, log-odds); slope tau 0.43 varied more than tenfold (interval 0.111 to 2.005). Neither alignment (signal- or score-space) nor either nonlinear decision boundary meaningfully reduced this heterogeneity. Local recalibration with up to 16 participants did not reliably improve on transporting; refitting both intercept and slope was significantly worse at the smallest sizes.]{.mark} A protocol proxy for the stopping rule, median time per selection, reduced the between-cohort slope variance by 66%. [The four ALS cohorts alone gave an uncorrected slope spread of 0.223, against 0.560 overall.]{.mark}
+[The association was positive in all 18 cohorts but varied widely (r 0.190 to 0.928; participant-level r = 0.714, p < 0.001), with 12 CIs excluding zero.]{.mark} Pooled estimation error was 0.098 (95% CI 0.091 to 0.107) against a benchmark of 0.146. [Calibration did not transport: intercept tau 0.87 (unrepresented-cohort interval -1.97 to 1.85, log-odds); slope tau 0.43 varied more than tenfold (interval 0.111 to 2.005). Neither alignment (signal- or score-space) nor either nonlinear decision boundary meaningfully reduced this heterogeneity. Local recalibration with up to 16 participants did not reliably improve on transporting; refitting both intercept and slope was significantly worse than transporting at the smallest sizes.]{.mark} [Median time per selection, a stopping-rule proxy, reduced the between-cohort slope variance by 66%.]{.mark} [The four ALS cohorts alone gave an uncorrected slope spread of 0.223, against 0.560 overall.]{.mark}
 
 ### Significance
 
-[The evaluated score is a classifier's cross-validated discriminability on each session's calibration data, not the source studies' undocumented online decoder. That score reproducibly signals within-session accuracy, but the mapping to accuracy is cohort-specific: useful for ranking sessions within a setting, not for reporting accuracy elsewhere.]{.mark} [The four-cohort ALS subgroup appeared more homogeneous than the full archive, illustrating how conclusions about transportability from a small cohort set can be fragile.]{.mark}
+[The evaluated score is a classifier's cross-validated discriminability on each session's calibration data, not the source studies' undocumented online decoder. That score reproducibly signals within-session accuracy, but the mapping to accuracy is cohort-specific: useful for ranking sessions locally, not for reporting accuracy elsewhere.]{.mark} [The four-cohort ALS subgroup appeared more homogeneous than the full archive, illustrating how conclusions about transportability from a small cohort set can be fragile.]{.mark}
 
 **Keywords:** brain-computer interface, P300 speller, calibration, transportability, external validation, heterogeneity, amyotrophic lateral sclerosis
 
