@@ -1,6 +1,6 @@
 # TRIPOD checklist for prediction model development and validation
 
-Completed against `manuscript/manuscript_expanded.md` (this study is a validation of a previously
+Completed against the submitted manuscript (this study is a validation of a previously
 proposed calibration-to-accuracy relationship, not a development of a new model; items specific to
 model development are marked not applicable and the reason is given). Section and table references
 below follow the manuscript's current headings; where a checklist item is only partly addressed in
@@ -43,5 +43,5 @@ the text, that gap is stated rather than papered over.
 | | Interpretation | 19a | Interpretation for validation studies, with reference to performance in the development data | Discussion, paragraph 6 (fold-coefficient stability: development-fold intercept and slope coefficients vary by only 2.5% and 3.3% across folds, against 49.4% for the held-out cohort-specific validated slopes in Table S2) |
 | | | 19b | Overall interpretation, implications for practice | Discussion, Conclusion |
 | | Implications | 20 | Potential clinical use, implications for future research | Discussion, Conclusion; Abstract, Significance |
-| Other information | Supplementary information | 21 | Availability of supplementary resources | Data and Code Availability (data and code); the Supplementary Information document (`supplementary/supplement_expanded.md`) and this checklist (`supplementary/tripod_checklist.md`) are submitted as separate companion files alongside the manuscript, not referenced by filename in the main text |
+| Other information | Supplementary information | 21 | Availability of supplementary resources | Data and Code Availability (data and code); the Supplementary Information document and this checklist are submitted as separate companion files alongside the manuscript, not referenced by filename in the main text |
 | | Funding | 22 | Source of funding | Acknowledgements |
