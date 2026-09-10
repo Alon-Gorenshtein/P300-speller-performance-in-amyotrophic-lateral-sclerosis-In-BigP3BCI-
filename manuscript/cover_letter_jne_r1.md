@@ -13,6 +13,8 @@ This revision is substantive rather than editorial. In response to the Editor-in
 
 We have also surfaced the reconstructed-decoder caveat into the Abstract and the opening of the Discussion, reasoned explicitly about the direction of a bias the source archive's shared recording hardware could introduce, expanded the amyotrophic lateral sclerosis characterisation limitation, added a paragraph addressing cumulative researcher degrees of freedom, incorporated recent literature, and reduced redundancy in the Discussion, though the manuscript's net length increased once the requested new analyses were added.
 
+The authors declare no competing interests.
+
 We thank you again for your consideration and for the reviewers' insightful input, which has substantially strengthened this work. A point-by-point response accompanies this letter, quoting the revised text inline so that the revision can be assessed without cross-referencing the manuscript.
 
 Sincerely,\
