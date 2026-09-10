@@ -68,6 +68,12 @@ The revised manuscript states this as follows.
 >
 > Aligning the score instead of the signal was worse. Standardising each cohort's scores within that cohort raised intercept tau to 1.675 and pooled estimation error to 0.129, and a within-cohort rank transformation gave 1.562 and 0.131; for both, the prediction interval for the calibration slope in an unrepresented cohort extends below zero. Because within-cohort standardisation removes the between-cohort information about absolute score level, the calibration intercept must absorb each cohort's accuracy level unaided, which is what inflates its heterogeneity. The absolute level of the calibration score therefore carries information that does transport, and removing it makes the estimate worse rather than better. Under no specification and no alignment arm did the intercept tau fall below 0.75, and the prediction interval for an unrepresented cohort spanned roughly -2.0 to +2.0 on the log-odds scale throughout, far too wide for a site to act on a transported calibration.
 
+**Figure 5, new to this revision:**
+
+![](../output/expanded/figures/figure_alignment_transport.png){width=100%}
+
+**Figure 5. Each alignment and nonlinear arm's between-cohort heterogeneity against the primary arm's own value.** Panel a is the calibration intercept tau, panel b the slope tau; the dashed line is the primary arm's value from Figure 1. Bars are grouped by role (primary, alignment, nonlinear) and labelled by arm; the pooled mean absolute error for each arm is annotated beside its bar. No arm falls to the left of the primary arm's line on panel a; on panel b, only the session-level Euclidean Alignment arm does, by 0.013, while its intercept tau rises.
+
 We are grateful for the suggestion. The paper is stronger for having tested the obvious remedy and reported that it does not work.
 
 ---
@@ -127,6 +133,12 @@ Because the number of contributing cohorts falls as the local draw grows, we rep
 | Intercept and slope | 3 | 180 | 0.095 | 0.125 | **-0.029 (-0.053 to -0.006)** | 0.031 |
 | Intercept and slope | 8 | 528 | 0.090 | 0.094 | -0.003 (-0.013 to +0.007) | 0.014 |
 | Intercept and slope | 16 | 1,056 | 0.089 | 0.086 | +0.003 (-0.005 to +0.010) | 0.011 |
+
+**Figure 6, new to this revision, plots this same ladder:**
+
+![](../output/expanded/figures/figure_recalibration_curve.png){width=85%}
+
+**Figure 6. Paired improvement in mean absolute error from local recalibration, against zero, on the composition-balanced ladder.** Points are the cohort-mean paired improvement with 95% confidence interval at each local sample size, for the intercept-only and the intercept-and-slope refit; the dashed curves show each refit's own method-specific minimum detectable effect envelope at 80% power. No point's 95% confidence interval excludes zero in the direction that favours recalibrating at any size from 1 to 16 local participants; the dashed curves are shown for context, not as significance thresholds.
 
 We found no statistically supported crossing point. At no local sample size we could evaluate, up to 16 participants and 1,056 character selections, did either refit produce an improvement over the transported mapping whose confidence interval excluded zero. At the smallest sizes the two-parameter refit is significantly *worse* than transporting: at two local participants it increases mean absolute error by 0.073 (95% CI 0.035 to 0.111), and it remains significantly worse at three.
 
