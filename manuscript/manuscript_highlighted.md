@@ -18,7 +18,7 @@
 
 ### Objective
 
-[A calibration-derived score has been related to online P300-speller accuracy in the same session, always within the cohort measured. We evaluated whether a mapping from that score to expected accuracy transports to withheld cohorts.]{.mark}
+A calibration-derived score has been related to online P300-speller accuracy in the same session, always within the cohort measured. [We evaluated whether a mapping from that score to expected accuracy transports to withheld cohorts.]{.mark}
 
 ### Approach
 
