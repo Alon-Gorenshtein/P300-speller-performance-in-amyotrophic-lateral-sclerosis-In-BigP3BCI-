@@ -186,20 +186,9 @@ We could not find a way to add three analyses and shorten the paper at the same 
 
 **Response.** We appreciate this comment and agree that formal correction is not the same thing as protection from cumulative multiplicity. We have added a paragraph to the Discussion, placed near the existing non-registration disclosure rather than in the numbered Limitations list, because the point is about how the exploratory results should be read rather than a defect in the study.
 
-We have also used it to disclose, proactively, a specification change made during this revision, which we describe under Additional Changes below and which we would rather the reviewer hear from us.
+We have also used it to disclose, proactively, a specification change made during this revision that we would rather the reviewer hear from us than discover independently.
 
 > No analysis plan was registered, and the configurations reported here were, with one exception disclosed below, fixed before they were run, but not before the data were seen. The moderator tests are Holm-corrected across the ten descriptors. The alignment specifications were fixed before being run. One nonlinear specification was not: the gradient-boosted arm's initial run lacked the class rebalancing its comparators use and retained fewer principal components than the measured-variance criterion specifies, and was corrected before any transportability analysis used the column, moving its mean discriminability from 0.655 to 0.714 (supplement, S12). Formal correction bounds the family it is applied to and nothing else. The number of specifications a study could have run, and the order in which analyses followed one another, are not captured by any correction procedure, and the exploratory results reported here should be read as hypothesis-generating for that reason. The primary result does not rest on a selected configuration: it is one comparison, reported identically in every sensitivity specification.
-
-**Closing summary for Reviewer 1.**
-
-Once again, we thank the reviewer for a review that identified three analyses the paper needed and two places where its framing misled. In response we have:
-
-1. Added a Discussion paragraph reasoning explicitly about the direction of the archive-homogenisation bias, concluding that the reported heterogeneity likely understates what an independent deployment would show, and cross-referencing the new cohort-level alignment result as evidence for that direction.
-2. Surfaced the reconstructed-decoder caveat into the Abstract and the opening paragraph of the Discussion.
-3. Added a participant-resampling study quantifying the cost of local recalibration in both participants and character selections, with minimum detectable effects at 80% power, and revised the Conclusion to withdraw the unqualified recommendation to recalibrate locally.
-4. Moved the estimator-agreement comparison to Supplement S4 and removed Discussion passages that restated Results statistics.
-5. Expanded the ALS characterisation limitation to name the specific clinical variables that are absent and to state what the framing can support.
-6. Added a Discussion paragraph on cumulative researcher degrees of freedom beyond formal correction, including proactive disclosure of a specification change made during this revision.
 
 ---
 
@@ -268,13 +257,3 @@ Because a null result is most informative when its precision and power are made 
 > **Revised:** "The calibration-to-accuracy mapping in P300 spellers does not transport across cohorts and was not restored by tested alignment or local recalibration"
 
 The revised title leads with the finding, names the two remedies the revision tested, and states that neither restored transportability, scoped to what was actually tested rather than every conceivable alignment or recalibration strategy, which is the contribution this version makes over the original submission.
-
-**Closing summary for Reviewer 2.**
-
-Once again, we thank the reviewer for a review that turned three assumptions into tested claims. In response we have:
-
-1. Added recent citations on calibration-based accuracy prediction to the Introduction, and reported directly what the prior literature does and does not say about why cross-cohort evaluation was not attempted, without attributing a motive we cannot document.
-2. Added two nonlinear calibration decoders, a radial-basis kernel approximation and a gradient-boosted tree ensemble, computed on identical epochs through an identical cross-validation, and reported that neither recovers linear discriminability nor improves transport, while stating explicitly the limit on what that comparison can support.
-3. Added four alignment arms, two on the signal and two on the score, with a full transportability evaluation of each, a mechanistic account of why the score-space arms are worse, and a standard-error-convention sensitivity analysis.
-4. Added a participant-resampling study quantifying the cost of local recalibration, reported that no threshold was found within the evaluable range, reported minimum detectable effects at 80% power to quantify the magnitude of improvement the analysis was powered to detect, and revised the Conclusion accordingly.
-5. Revised the title to lead with the finding and to name both remedies that were tested and failed.
