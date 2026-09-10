@@ -278,15 +278,3 @@ Once again, we thank the reviewer for a review that turned three assumptions int
 3. Added four alignment arms, two on the signal and two on the score, with a full transportability evaluation of each, a mechanistic account of why the score-space arms are worse, and a standard-error-convention sensitivity analysis.
 4. Added a participant-resampling study quantifying the cost of local recalibration, reported that no threshold was found within the evaluable range, reported minimum detectable effects at 80% power to quantify the magnitude of improvement the analysis was powered to detect, and revised the Conclusion accordingly.
 5. Revised the title to lead with the finding and to name both remedies that were tested and failed.
-
----
-
-## Additional Changes During Revision
-
-We describe here three changes that no reviewer requested, so that the Editor and reviewers hear them from us.
-
-**A specification was corrected after its first result was seen.** The gradient-boosted arm was initially run with a configuration that differed from the other arms in two ways: it did not receive the class rebalancing that both logistic-based arms use, against a median non-target to target imbalance of 10.98 to 1, and its principal-component reduction retained fewer components than the measured-variance criterion specifies (Supplement, S12). We corrected both and re-ran the extraction before any transportability analysis used the column. We report the change, and both the initial and corrected values, in the Supplement (S12) and in the manuscript's account of researcher degrees of freedom (Discussion). Our reason for correcting rather than reporting the original was that the arm exists specifically to answer whether a nonlinear boundary transports better, and an arm denied the class rebalancing its comparators received cannot answer that. We note that the correction moved the arm's mean AUC from 0.655 to 0.714, that is, it made the nonlinear arm *better* and the contrast with the linear decoder *smaller*, and that the corrected value is the one that agrees with the independent kernel arm.
-
-**The between-cohort variance of one cohort reference is an outlier.** In the cohort-level alignment arm, StudyK's pooled reference has the most extreme condition number in the archive at 2.69e+03, three to twenty-two times every other cohort. It remains four orders of magnitude below the numerical floor used in the whitening step, and no cohort triggered the diagnostic threshold, so the alignment is unaffected. We considered several explanations for why StudyK differs, tested them against the archive, and could not support any of them; we state the observation and say that we did not identify its cause rather than offer a mechanism we cannot defend.
-
-**Software versions.** The Methods reported software versions that did not match the environment in which the analyses were run. The revised Methods states the correct versions: Python 3.11.14 with NumPy 2.4.6, SciPy 1.17.1, scikit-learn 1.9.0, statsmodels 0.14.6, pandas 3.0.3 and MNE 1.12.1. We apologise for the error, which we found while preparing this revision.
